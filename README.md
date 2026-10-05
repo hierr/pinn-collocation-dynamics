@@ -3,10 +3,8 @@
 Residual-guided collocation and stochastic diffusion for PINNs: evaluating
 performance across smooth and sharp-feature PDE regimes.
 
-This research continues the PCS5022 project, is currently developed for the
-PME5242 Physics-Informed Machine Learning coursework, and targets a possible
-publication. The previous repository remains the historical experiment record;
-this repository starts with a small, independent implementation.
+This research investigates adaptive collocation methods for physics-informed
+neural networks, with a possible publication as the longer-term objective.
 
 ## Research questions
 
@@ -31,7 +29,6 @@ src/                    Minimal training code and sampler callbacks, when added
 config/                 Experiment YAML files, when added
 experimental/           Research context, methodology, and experiment records
 references/             Source provenance and upstream implementation pin
-coursework/PME5242/     Class-specific requirements and submission material
 ```
 
 Use `data/` for reference data and
@@ -46,5 +43,4 @@ endpoints, final models, and selected collocation snapshots; exact resume and
 campaign automation are deferred.
 
 See [source provenance](references/upstream.md) and
-[working agreements](AGENTS.md). A future submission tag can preserve the
-PME5242 checkpoint while publication work continues in this repository.
+[working agreements](AGENTS.md).

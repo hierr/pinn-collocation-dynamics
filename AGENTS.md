@@ -5,11 +5,11 @@ Read `MEMORY.md` and, if present, ignored `AGENTS.local.md` at session start.
 ## Scope
 
 - Communicate and write code and documentation in English.
-- This is a research/coursework repository. Start small, use targeted diffs,
+- This is a research repository. Start small, use targeted diffs,
   and generalize only when another experiment requires it.
 - Use DeepXDE with a PyTorch backend for the initial upstream reproduction.
   Keep problem definitions and sampling callbacks separate as needed; avoid
-  introducing a general framework or copying the previous trainer wholesale.
+  introducing a general framework before experiments require it.
 - Preserve upstream attribution, licenses, pinned commits, and recorded
   deviations. Distinguish code reproduction from a modified benchmark study.
 
