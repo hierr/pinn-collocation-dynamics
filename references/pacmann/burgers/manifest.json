@@ -1,0 +1,51 @@
+{
+  "repository": "https://github.com/CoenVisser/PACMANN",
+  "commit": "ecf06a6cf277b8beb6f8a99c88baa2535738fd7f",
+  "files": [
+    {
+      "upstream_path": "1D Burgers' equation/PINN_Burgers_function.py",
+      "commit": "ecf06a6cf277b8beb6f8a99c88baa2535738fd7f",
+      "url": "https://raw.githubusercontent.com/CoenVisser/PACMANN/ecf06a6cf277b8beb6f8a99c88baa2535738fd7f/1D%20Burgers%27%20equation/PINN_Burgers_function.py",
+      "local_path": "references/pacmann/burgers/PINN_Burgers_function.py",
+      "bytes": 30833,
+      "git_blob_sha1": "bc4909ac6c8584f3d3ae0944dbe330b1e40e2c63",
+      "sha256": "0c479506717fe9cd3c7a7f7b72330c3a7213a91a593cebcad7cc30e9d3b0fedd"
+    },
+    {
+      "upstream_path": "1D Burgers' equation/Setup_file.py",
+      "commit": "ecf06a6cf277b8beb6f8a99c88baa2535738fd7f",
+      "url": "https://raw.githubusercontent.com/CoenVisser/PACMANN/ecf06a6cf277b8beb6f8a99c88baa2535738fd7f/1D%20Burgers%27%20equation/Setup_file.py",
+      "local_path": "references/pacmann/burgers/Setup_file.py",
+      "bytes": 2084,
+      "git_blob_sha1": "7e346fdfca42396cf6ee0a223b68a22d72239cac",
+      "sha256": "f55ca42edc811f78b7a76e9b4422662d9540d18e852117ee8b40c246f1e283e5"
+    },
+    {
+      "upstream_path": "requirements.txt",
+      "commit": "ecf06a6cf277b8beb6f8a99c88baa2535738fd7f",
+      "url": "https://raw.githubusercontent.com/CoenVisser/PACMANN/ecf06a6cf277b8beb6f8a99c88baa2535738fd7f/requirements.txt",
+      "local_path": "references/pacmann/burgers/requirements.txt",
+      "bytes": 74,
+      "git_blob_sha1": "b0bdfefdcebc86b83ca40ce49fba78514585d203",
+      "sha256": "bfd1a56b9f4821eaa16d4207288f2a9b302809917c5bfea9aabdf3840573a886"
+    },
+    {
+      "upstream_path": "LICENSE",
+      "commit": "ecf06a6cf277b8beb6f8a99c88baa2535738fd7f",
+      "url": "https://raw.githubusercontent.com/CoenVisser/PACMANN/ecf06a6cf277b8beb6f8a99c88baa2535738fd7f/LICENSE",
+      "local_path": "references/pacmann/burgers/LICENSE",
+      "bytes": 11357,
+      "git_blob_sha1": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "upstream_path": "1D Burgers' equation/Burgers.npz",
+      "commit": "ecf06a6cf277b8beb6f8a99c88baa2535738fd7f",
+      "url": "https://raw.githubusercontent.com/CoenVisser/PACMANN/ecf06a6cf277b8beb6f8a99c88baa2535738fd7f/1D%20Burgers%27%20equation/Burgers.npz",
+      "local_path": "data/burgers/Burgers.npz",
+      "bytes": 208318,
+      "git_blob_sha1": "3859d7df492bed7bb3f965ed0d55676d0b71ffb7",
+      "sha256": "e9d57a5824cd54b8345ac0c7390dad93ccb1bebec85d4f9d71f5407c99874315"
+    }
+  ]
+}

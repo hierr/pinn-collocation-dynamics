@@ -19,8 +19,12 @@ The questions above are hypotheses to investigate, not established claims.
 
 Reproduce the upstream Burgers benchmark with PACMANN and its Hammersley
 baseline, then add diffusion as a controlled change. DeepXDE with the PyTorch
-backend is the intended implementation. No trainer or environment is included
-in this bootstrap; select and lock dependencies before implementation.
+backend is the intended implementation. The pinned upstream Burgers scripts,
+requirements, license, and file manifest are imported under
+`references/pacmann/burgers/`. The ignored reference dataset can be restored using
+[source provenance instructions](references/upstream.md#restore-the-dataset).
+No maintained trainer or environment exists yet; select and lock dependencies
+before implementation. The import is not a completed scientific reproduction.
 
 ## Structure
 
