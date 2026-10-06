@@ -29,3 +29,14 @@
   settings; CLI selects method and seed index. Phase/final weights are evaluation
   snapshots, not exact-resume checkpoints. Focused tests use pytest with coverage;
   ruff and ty provide static checks. Diffusion and campaign automation are deferred.
+
+- [2026-10-06] (Mem-0008) Committed the minimal Burgers reproduction
+  implementation as `a64639d`. Tested DeepXDE 1.15.0 and PyTorch 2.14.1/cu130
+  in an isolated environment using the existing focused tests and short GPU runs
+  for both methods. No source changes were needed for compatibility. Retained
+  DeepXDE 1.14.0 and PyTorch 2.7.1/cu128 for upstream reproduction.
+- [2026-10-06] (Mem-0009) After validation, removed the temporary compatibility
+  environment, manifest/lock, configuration, and detailed validation records from
+  tracked documentation. Final environment decisions belong in methodology;
+  experimental notes and results are reserved for scientific experiment runs.
+  Memory retains the actions taken and decisions made, without detailed results.

@@ -83,4 +83,4 @@ uv pip check --python venv/bin/python
 
 Tests cover the reference checksum/order, analytic PDE residual, coordinate-Adam
 parity with the imported upstream callback, fixed constraints, and run isolation.
-See [experiment notes](experimental/experimental_notes.md) for validation limits.
+See [methodology](experimental/methodology.md) for the environment decision.
