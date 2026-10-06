@@ -18,3 +18,9 @@ AGENTS.local.md
 .vscode/
 .idea/
 .DS_Store
+
+# Local validation caches
+.coverage
+htmlcov/
+.pytest_cache/
+.ruff_cache/

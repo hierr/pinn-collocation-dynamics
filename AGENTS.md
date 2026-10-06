@@ -16,9 +16,10 @@ Read `MEMORY.md` and, if present, ignored `AGENTS.local.md` at session start.
 ## Environment and execution
 
 - Use Python 3.12 and manage dependencies through uv in a local `venv`.
-- No environment exists yet. Inspect available tools and obtain approval
-  before creating it or choosing dependency versions. Check whether conda is
-  necessary; otherwise prefer uv. Do not add production testing tooling by default.
+- The local `venv` and `uv.lock` use the pinned released dependency stack.
+  Use the existing environment; obtain approval before dependency changes.
+  Conda is unnecessary for the current wheel-based stack. Dev tools are
+  ruff, ty, pytest, and pytest-cov; run focused tests with coverage.
 - After dependency changes, run `uv lock --check` and
   `uv pip check --python venv/bin/python`.
 - Verify GPU execution on the host before claiming CUDA validation. Do not

@@ -23,14 +23,14 @@ backend is the intended implementation. The pinned upstream Burgers scripts,
 requirements, license, and file manifest are imported under
 `references/pacmann/burgers/`. The ignored reference dataset can be restored using
 [source provenance instructions](references/upstream.md#restore-the-dataset).
-No maintained trainer or environment exists yet; select and lock dependencies
-before implementation. The import is not a completed scientific reproduction.
+The minimal trainer and locked environment are implemented. Short engineering
+checks are separate from a completed scientific reproduction.
 
 ## Structure
 
 ```text
-src/                    Minimal training code and sampler callbacks, when added
-config/                 Experiment YAML files, when added
+src/                    Burgers definition, sampler callback, and training entrypoint
+config/                 Full reproduction and short validation YAML files
 experimental/           Research context, methodology, and experiment records
 references/             Source provenance and upstream implementation pin
 ```
@@ -48,3 +48,39 @@ campaign automation are deferred.
 
 See [source provenance](references/upstream.md) and
 [working agreements](AGENTS.md).
+
+## Setup and execution
+
+Use Python 3.12 and uv; conda is not required for this wheel-based stack.
+The lock pins the released DeepXDE 1.14.0 environment with PyTorch 2.7.1/cu128.
+
+```bash
+uv venv --python 3.12 venv
+VIRTUAL_ENV="$PWD/venv" uv sync --active --locked
+venv/bin/python -m src.train --config config/burgers_validation.yaml --method fixed_hammersley --seed-index 0
+venv/bin/python -m src.train --config config/burgers_validation.yaml --method pacmann_adam --seed-index 0
+```
+
+The validation runs use two short optimizer phases. Existing directories are
+rejected; use a new campaign name for a new attempt. DeepXDE selects CUDA when
+available, otherwise CPU; the actual device is recorded in metadata.
+`config/burgers.yaml` holds the full five-phase, ten-seed reproduction settings.
+Full reproduction training and diffusion experiments remain future work.
+
+Each run saves its configuration, provenance, status, log, optimizer timings,
+loss/metric history, predictions, phase/final weights, and collocation snapshots.
+Weights support evaluation, not exact training resume. Final weights are reloaded
+into a fresh model and checked against saved predictions. Both final errors and
+upstream history-selected errors are explicitly named.
+
+```bash
+venv/bin/python -m pytest --cov=src --cov-report=term-missing
+venv/bin/ruff check src tests
+venv/bin/ty check
+uv lock --check
+uv pip check --python venv/bin/python
+```
+
+Tests cover the reference checksum/order, analytic PDE residual, coordinate-Adam
+parity with the imported upstream callback, fixed constraints, and run isolation.
+See [experiment notes](experimental/experimental_notes.md) for validation limits.

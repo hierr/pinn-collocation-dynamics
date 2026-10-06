@@ -1,0 +1,32 @@
+[project]
+name = "pinn-collocation-dynamics"
+version = "0.1.0"
+description = "Controlled Burgers collocation experiments with DeepXDE"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "deepxde==1.14.0", "numpy==2.3.1", "scipy==1.16.0",
+  "matplotlib==3.10.3", "torch==2.7.1", "PyYAML==6.0.2",
+]
+
+[dependency-groups]
+dev = ["ruff", "ty", "pytest", "pytest-cov"]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+
+[tool.ruff]
+exclude = ["references", "venv"]
+
+[tool.ty.environment]
+python = "./venv"
+
+[tool.ty.src]
+include = ["src", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

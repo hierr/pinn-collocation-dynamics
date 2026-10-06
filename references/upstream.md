@@ -80,6 +80,28 @@ The paper is DOI 10.1016/j.cma.2025.118723, Sections 2 and 3.1, Tables 1-3.
 | Software | Paper mentions PyTorch 1.12.1; released requirements pin PyTorch 2.7.1 and DeepXDE 1.14.0 | Choose a compatible locked project environment and disclose differences. |
 | Seeds / failures | Ten repetitions; paper describes replacing occasional failed initializations | Use explicit planned seeds and retain/report failures as repository policy requires; disclose the protocol difference. |
 
-No training has been performed and no published result has been reproduced.
-Environment selection, numerical compatibility checks, evaluation policy, and
-reproduction acceptance criteria remain for the next approved checkpoint.
+No published result has been reproduced.
+
+## Implemented reproduction choices
+
+The maintained code uses [0, 0.99], float64, explicit Hammersley sampling,
+coordinate-Adam epsilon 1e-7 outside the square root, and fresh coordinate moments
+at each event. Escaped points are replaced only after all 15 movement steps.
+Network optimizer state resets at each alternating stage. Planned seeds are
+1000–1009; failed seeds are retained rather than replaced.
+
+DeepXDE initially includes 240 initial/boundary points in the PDE population:
+2,740 PDE coordinates and 240 fixed constraint coordinates (duplicated in the
+combined training array). Upstream `train_x[480:]` selects the 2,500 interior
+points. The maintained callback selects the corresponding tail of `train_x_all`,
+then replaces PDE anchors with those 2,500 points. The static baseline retains
+2,740 PDE coordinates. This released-code population difference is preserved
+and disclosed; a later matched-budget study must address it explicitly.
+
+PyTorch is pinned to 2.7.1 with CUDA 12.8 wheels, rather than the paper's 1.12.1.
+The runner updates DeepXDE's derived L-BFGS per-call limits alongside its public
+options; version 1.14.0 otherwise leaves those limits at import-time defaults.
+This matters for short validation limits; the full 3,000-iteration configuration
+retains 1,000 iterations per call. Actual optimizer iterations are archived.
+Final-weight errors and upstream history-selected errors are saved separately.
+Engineering checks do not establish agreement with published numerical results.

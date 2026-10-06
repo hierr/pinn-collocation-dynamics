@@ -4,7 +4,7 @@
   collocation and stochastic diffusion for PINNs, targeting a possible publication.
 - [2026-10-05] (Mem-0002) Begin with a small DeepXDE/PyTorch Burgers reproduction
   and separate sampling callbacks. Generalize and add functionality only when
-  required. Dependency selection, environment creation, and training are deferred.
+  required. The initial implementation is recorded in Mem-0007.
 - [2026-10-05] (Mem-0003) Runs use
   `output/<campaign>/<problem>/<method>/<seed>/` with an archived configuration.
   Data and generated artifacts stay outside ordinary Git tracking; campaign
@@ -20,4 +20,12 @@
   immutable reference material, separate from maintained code. A tracked manifest
   records source URLs, sizes, and hashes; the ignored Burgers dataset lives at
   `data/burgers/Burgers.npz` with restoration instructions in source provenance.
-  No project environment or executable reproduction has been implemented.
+  The initial executable reproduction infrastructure is recorded in Mem-0007.
+
+- [2026-10-06] (Mem-0007) Python 3.12 and uv manage local `venv` with a
+  tracked lock: DeepXDE 1.14.0, PyTorch 2.7.1/cu128, and released numerical
+  dependencies. Conda is unnecessary. The minimal Burgers implementation separates
+  problem definition, PACMANN callback, and single-run CLI. YAML selects scientific
+  settings; CLI selects method and seed index. Phase/final weights are evaluation
+  snapshots, not exact-resume checkpoints. Focused tests use pytest with coverage;
+  ruff and ty provide static checks. Diffusion and campaign automation are deferred.
