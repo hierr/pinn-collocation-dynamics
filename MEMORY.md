@@ -40,3 +40,8 @@
   tracked documentation. Final environment decisions belong in methodology;
   experimental notes and results are reserved for scientific experiment runs.
   Memory retains the actions taken and decisions made, without detailed results.
+
+- [2026-10-06] (Mem-0010) The approved reproduction pilot uses a dedicated
+  one-seed YAML and committed protocol before training. Pilot artifacts remain
+  local, with a checksummed compressed archive and verified extraction; this is
+  not off-machine backup. Expansion to ten seeds requires separate review.
