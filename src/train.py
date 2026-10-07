@@ -103,17 +103,9 @@ def run_training(config: dict, method: str, seed_index: int):
         "revision": subprocess.check_output(
             ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
         ).strip(),
-        "dirty": bool(
-            subprocess.check_output(
-                ["git", "status", "--porcelain"], cwd=ROOT, text=True
-            )
-        ),
         "versions": versions,
         "dataset_sha256": fingerprint,
-        "upstream_commit": "ecf06a6cf277b8beb6f8a99c88baa2535738fd7f",
         "device": str(torch.get_default_device()),
-        "seed": seed,
-        "snapshot_contract": "Evaluation weights only; not exact resume",
     }
     write_json(run / "metadata.json", metadata)
     write_json(run / "status.json", {"status": "running"})
@@ -196,23 +188,21 @@ def execute(config, method, seed, coordinates, values, run):
             name = f"phase_{phase:02d}_{optimizer.lower()}"
             snapshot(model, run, name, count)
             state = next(iter(model.opt.state_dict()["state"].values()), {})
-            stages.append(
-                {
-                    "phase": phase,
-                    "optimizer": optimizer,
-                    "seconds": elapsed,
-                    "global_step": int(model.train_state.step),
-                    "optimizer_iterations": int(
-                        state.get("n_iter", settings["adam_steps"])
-                    ),
-                    "function_evaluations": int(
-                        state.get("func_evals", settings["adam_steps"])
-                    ),
-                    "movement_events": (sampler.events if sampler else 0)
-                    - events_before,
-                    "pde_points": len(model.data.train_x_all),
-                }
-            )
+            stage = {
+                "phase": phase,
+                "optimizer": optimizer,
+                "seconds": elapsed,
+                "global_step": int(model.train_state.step),
+                "optimizer_iterations": int(
+                    state.get("n_iter", settings["adam_steps"])
+                ),
+                "movement_events": (sampler.events if sampler else 0) - events_before,
+                "pde_points": len(model.data.train_x_all),
+            }
+            # Only L-BFGS exposes an actual function-evaluation counter.
+            if optimizer == "L-BFGS":
+                stage["function_evaluations"] = int(state["func_evals"])
+            stages.append(stage)
             write_json(run / "training.json", {"stages": stages})
     snapshot(model, run, "final", count)
     predictions = model.predict(coordinates)
@@ -264,7 +254,6 @@ def execute(config, method, seed, coordinates, values, run):
             "upstream_min_observed_mse": float(metrics[:, 0].min()),
             "upstream_min_observed_l2": float(metrics[:, 1].min()),
             "movement_events": sampler.events if sampler else 0,
-            "reload_max_abs_difference": float(np.max(np.abs(predictions - reloaded))),
             "training_seconds": total_seconds,
         },
     )

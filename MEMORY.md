@@ -45,3 +45,50 @@
   one-seed YAML and committed protocol before training. Pilot artifacts remain
   local, with a checksummed compressed archive and verified extraction; this is
   not off-machine backup. Expansion to ten seeds requires separate review.
+
+- [2026-10-06] (Mem-0011) Completed the approved full-budget Burgers pilot
+  for both methods using the committed protocol, and recorded scientific results
+  in experiment notes/results. Phase artifacts and diagnostics are retained
+  locally in a checksummed archive with verified extraction. Stop for review before authorizing the remaining seeds; the runner
+  remains unchanged. Preparation commits are `b944b92` (cleanup) and `eba6c86` (protocol).
+
+- [2026-10-06] (Mem-0012) Replaced the local compressed-archive policy with
+  direct Git retention of scientific run directories. Removed setup-validation
+  and compatibility outputs, compressed archives, checksum sidecars, verification
+  reports, and the pilot archive manifest; preserved both pilot seed directories.
+  This supersedes the archive policy in Mem-0003/Mem-0010/Mem-0011. Reference
+  datasets remain ignored with pinned restoration instructions. The short
+  validation config remains available for tests and future disposable checks.
+
+- [2026-10-06] (Mem-0013) Removed redundant campaign hardware/summary JSONs
+  and moved post-processing from the pilot output into `scripts/analyze_burgers.py`.
+  The CLI accepts one run directory and separates loading, grid reconstruction,
+  additional error diagnostics, and plotting. Keep input checks needed for
+  calculation; training-protocol invariants belong in training/tests. Hardware
+  belongs in methodology, and per-run metrics remain the authoritative summaries.
+
+- [2026-10-07] (Mem-0014) Methodology now contains general design, control,
+  evaluation, interpretation, reproducibility, final environment, and retention
+  guidelines. Moved the pilot-specific protocol into experiment notes, preserving
+  its settings, acceptance criteria, results, and decisions. Campaign protocols
+  require approval; run records must not accumulate in general methodology.
+
+- [2026-10-07] (Mem-0015) Simplified the JSON writers and existing pilot
+  outputs: metadata retains revision, versions, dataset fingerprint, and device;
+  removed dirty, seed, upstream commit, and snapshot-contract duplicates. Report
+  function evaluations only for L-BFGS. Metrics retain training time and movement
+  totals but omit the reload-difference field; the runtime reload check remains.
+  Historical scientific values and all other run artifacts were preserved.
+
+- [2026-10-07] (Mem-0016) Added `docs/output_format.md` as the shared output
+  file/field dictionary. Scientific campaigns use a short, manually maintained
+  README linking to their experiment-notes section, results table, and dictionary;
+  notes use a stable campaign anchor and link back to the campaign. Run narratives
+  remain in experiment notes rather than being duplicated in seed directories.
+
+- [2026-10-07] (Mem-0017) Consolidated research context, methodology, experiment
+  notes, and results into the flat `docs/` directory alongside the output dictionary.
+  Updated repository instructions and campaign/document links; configurations
+  remain in `config/` and scientific artifacts remain in `output/`. Global Codex
+  guidance adopts `docs/` as the default research-documentation location while
+  respecting established repository conventions.

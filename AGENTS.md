@@ -32,18 +32,23 @@ Read `MEMORY.md` and, if present, ignored `AGENTS.local.md` at session start.
   `output/<campaign>/<problem>/<method>/<seed>/config.yaml` at run start.
 - Never overwrite a prior run or alter original reference datasets.
 - Use archived configurations and fixed evaluation seeds for post-processing.
+- Keep `docs/methodology.md` focused on general design, evaluation,
+  reproducibility, final environment, and retention guidelines. Put campaign
+  protocols and run records in `docs/experimental_notes.md`.
 - Before material runs, document objectives, controls, changed variables,
   metrics, reproducibility requirements, and decision criteria in
-  `experimental/experimental_notes.md`. Obtain approval for the methodology.
+  `docs/experimental_notes.md`. Obtain approval for the experiment protocol.
 - Record completed results and limitations there, with compact comparisons in
-  `experimental/results.md`. Create report notes when a report requires them.
+  `docs/results.md`. Create report notes when a report requires them.
 - Only physics points move; keep boundary, initial, and supervised constraints
   fixed in matched sampling comparisons. Keep point budgets matched unless
   budget is the variable explicitly under study.
 - Retain planned seeds and report failures. Avoid unsupported novelty or
   superiority claims; diffusion and sharpness benefits are open questions.
-- Datasets and outputs are ignored by Git. Agree on an artifact archive and
-  retrieval policy before producing campaign results.
+- Track scientific run directories directly in Git, including configs, models,
+  points, logs, predictions, and diagnostics. Reference datasets remain ignored
+  with restoration instructions. Setup-validation/compatibility runs are
+  disposable and ignored; do not create compressed run archives by default.
 
 ## Change control
 

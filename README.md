@@ -31,16 +31,22 @@ checks are separate from a completed scientific reproduction.
 ```text
 src/                    Burgers definition, sampler callback, and training entrypoint
 config/                 Full reproduction and short validation YAML files
-experimental/           Research context, methodology, and experiment records
+docs/                   Research context, methodology, experiment records, and output dictionary
 references/             Source provenance and upstream implementation pin
 ```
 
 Use `data/` for reference data and
 `output/<campaign>/<problem>/<method>/<seed>/` for generated run artifacts.
-Both are ignored by Git. Before a campaign, document artifact storage and
-retrieval; ignored local files alone are not a reproducibility archive.
+Reference datasets are ignored with restoration instructions. Scientific run
+directories are retained directly in Git; setup-validation/compatibility outputs
+remain disposable and ignored. Compressed archives are not required.
 Each run must archive its resolved configuration and must not overwrite an
 existing run directory. Scientific settings belong in configurations.
+
+See the [output file dictionary](docs/output_format.md) for file contents, fields,
+array layouts, and snapshot meanings. Each scientific campaign has a README
+linking its artifacts to the experiment protocol and results; see the
+[Burgers pilot](output/burgers_pilot_01/README.md).
 
 Add functionality only when the next experiment requires it. Begin with phase
 endpoints, final models, and selected collocation snapshots; exact resume and
@@ -83,4 +89,17 @@ uv pip check --python venv/bin/python
 
 Tests cover the reference checksum/order, analytic PDE residual, coordinate-Adam
 parity with the imported upstream callback, fixed constraints, and run isolation.
-See [methodology](experimental/methodology.md) for the environment decision.
+See [methodology](docs/methodology.md) for the environment decision.
+
+## Analyze a saved run
+
+```bash
+venv/bin/python scripts/analyze_burgers.py --run-dir output/burgers_pilot_01/burgers/pacmann_adam/seed_1000
+```
+
+This regenerates only `diagnostics.json` and `diagnostics.png` from saved
+predictions, history, points, and configuration. Diagnostics contain maximum
+absolute error, its coordinates, evaluation times, and per-time relative L2.
+Training metrics remain in `metrics.json`; analysis does not certify the training
+protocol. Grid dimensions are inferred from saved coordinates. No training or
+reference dataset download is needed.
