@@ -1,17 +1,20 @@
 # Repository instructions for agents
 
-Read `MEMORY.md` and, if present, ignored `AGENTS.local.md` at session start.
+Read ignored `AGENTS.local.md`, if present, at session start.
 
 ## Scope
 
 - Communicate and write code and documentation in English.
-- This is a research repository. Start small, use targeted diffs,
-  and generalize only when another experiment requires it.
+- This is an independent research repository, separate from coursework repositories.
+  Start small, use targeted diffs, and generalize only when another experiment
+  requires it.
 - Use DeepXDE with a PyTorch backend for the initial upstream reproduction.
   Keep problem definitions and sampling callbacks separate as needed; avoid
   introducing a general framework before experiments require it.
 - Preserve upstream attribution, licenses, pinned commits, and recorded
   deviations. Distinguish code reproduction from a modified benchmark study.
+- Treat `references/pacmann/burgers/` as immutable upstream material. Restore
+  `data/burgers/Burgers.npz` using `references/upstream.md`.
 
 ## Environment and execution
 
@@ -32,6 +35,7 @@ Read `MEMORY.md` and, if present, ignored `AGENTS.local.md` at session start.
   `output/<campaign>/<problem>/<method>/<seed>/config.yaml` at run start.
 - Never overwrite a prior run or alter original reference datasets.
 - Use archived configurations and fixed evaluation seeds for post-processing.
+- Model snapshots support evaluation, not exact training resume.
 - Keep `docs/methodology.md` focused on general design, evaluation,
   reproducibility, final environment, and retention guidelines. Put campaign
   protocols and run records in `docs/experimental_notes.md`.
@@ -40,6 +44,8 @@ Read `MEMORY.md` and, if present, ignored `AGENTS.local.md` at session start.
   `docs/experimental_notes.md`. Obtain approval for the experiment protocol.
 - Record completed results and limitations there, with compact comparisons in
   `docs/results.md`. Create report notes when a report requires them.
+- Each scientific campaign has a short README linking its stable experiment-notes
+  anchor, results table, and `docs/output_format.md`; keep narratives in the notes.
 - Only physics points move; keep boundary, initial, and supervised constraints
   fixed in matched sampling comparisons. Keep point budgets matched unless
   budget is the variable explicitly under study.
@@ -58,6 +64,4 @@ Read `MEMORY.md` and, if present, ignored `AGENTS.local.md` at session start.
 - Obtain explicit approval before commits, branches, tags, or publication.
   Use Conventional Commits.
 - Never modify or discard user changes without authorization.
-- Update `MEMORY.md` for durable setup, structure, workflow, and policy decisions
-  only, using dated `(Mem-xxxx)` bullets. Keep experiment details in notes.
 - Never store secrets in code, logs, or documentation.
