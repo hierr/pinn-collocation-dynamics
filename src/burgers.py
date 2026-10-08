@@ -10,7 +10,6 @@ from pathlib import Path
 
 import deepxde as dde
 import numpy as np
-from deepxde import config as dde_config
 from deepxde.nn.pytorch import FNN
 
 
@@ -39,21 +38,23 @@ def residual(x, y, viscosity: float):
     return ut + y * ux - viscosity * uxx
 
 
-def build_model(config: dict, seed: int, coordinates, values):
-    """Build the seeded float64 DeepXDE model and squared-residual gradient."""
-    dde_config.set_random_seed(seed)
-    dde_config.set_default_float("float64")
-    problem = config["problem"]
+def build_model(
+    problem_settings: dict,
+    network_settings: dict,
+    reference_coordinates,
+    reference_values,
+):
+    """Build the Burgers model and its squared-residual coordinate gradient."""
     domain = dde.geometry.GeometryXTime(
-        dde.geometry.Interval(*problem["x_bounds"]),
-        dde.geometry.TimeDomain(*problem["t_bounds"]),
+        dde.geometry.Interval(*problem_settings["x_bounds"]),
+        dde.geometry.TimeDomain(*problem_settings["t_bounds"]),
     )
 
     def pde(x, y):
         """Return the configured Burgers residual."""
-        return residual(x, y, problem["viscosity"])
+        return residual(x, y, problem_settings["viscosity"])
 
-    def score_gradient(x, y):
+    def residual_gradient(x, y):
         """Return the gradient of squared residual with respect to coordinates."""
         return dde.grad.jacobian(pde(x, y) ** 2, x, i=0)
 
@@ -66,13 +67,13 @@ def build_model(config: dict, seed: int, coordinates, values):
         domain,
         pde,
         [bc, ic],
-        num_domain=problem["interior_points"],
-        num_boundary=problem["boundary_points"],
-        num_initial=problem["initial_points"],
+        num_domain=problem_settings["interior_points"],
+        num_boundary=problem_settings["boundary_points"],
+        num_initial=problem_settings["initial_points"],
         num_test=10000,
         train_distribution="Hammersley",
     )
-    net = FNN(config["network"]["layers"], "tanh", "Glorot normal")
+    net = FNN(network_settings["layers"], "tanh", "Glorot normal")
     model = dde.Model(data, net)
-    data.test_x, data.test_y = coordinates, values
-    return model, score_gradient
+    data.test_x, data.test_y = reference_coordinates, reference_values
+    return model, residual_gradient

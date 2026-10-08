@@ -1,262 +1,232 @@
 """Run one configured Burgers method and seed in a fresh artifact directory."""
 
 import argparse
-import contextlib
-import importlib.metadata
-import json
-import subprocess
-import sys
 import time
-import traceback
 from pathlib import Path
 
 import numpy as np
 import torch
 import yaml
+from deepxde import config as dde_config
 from deepxde.optimizers import config as optimizer_config
 
+from src.artifacts import (
+    capture_run_log,
+    prepare_run,
+    save_points,
+    save_snapshot,
+    write_json,
+)
 from src.burgers import build_model, load_reference
-from src.sampling import PacmannAdam, interior_points
+from src.sampling import FixedHammersley, PacmannAdam
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-class Tee:
-    """Copy training output to both the terminal and the run log."""
+def run_training(config: dict, method: str, seed: int):
+    """Train and evaluate one configured seed, retaining artifacts on failure."""
+    # Verify reference data and archive the selected scientific configuration.
+    reference_coordinates, reference_values, dataset_sha256 = load_reference(ROOT)
+    run_dir = prepare_run(config, method, seed, dataset_sha256, ROOT)
+    problem_settings = config["problem"]
+    network_settings = config["network"]
+    training_settings = config["training"]
+    sampling_settings = config["methods"][method]
+    interior_count = problem_settings["interior_points"]
+    metrics = ["mean squared error", "l2 relative error"]
 
-    def __init__(self, terminal, log):
-        """Store the two output streams."""
-        self.terminal, self.log = terminal, log
+    with capture_run_log(run_dir):
+        # Initialize reproducibility before constructing points and network weights.
+        dde_config.set_random_seed(seed)
+        dde_config.set_default_float("float64")
+        model, residual_gradient = build_model(
+            problem_settings=problem_settings,
+            network_settings=network_settings,
+            reference_coordinates=reference_coordinates,
+            reference_values=reference_values,
+        )
 
-    def write(self, text):
-        """Write text to both streams."""
-        self.terminal.write(text)
-        return self.log.write(text)
+        # Select the collocation method independently of the network optimizer.
+        if method == "fixed_hammersley":
+            sampler = FixedHammersley()
+        else:
+            sampler = PacmannAdam(
+                interior_points=interior_count,
+                residual_gradient=residual_gradient,
+                period=sampling_settings["period"],
+                coordinate_steps=sampling_settings["steps"],
+                step_size=sampling_settings["step_size"],
+                betas=sampling_settings["betas"],
+                epsilon=sampling_settings["epsilon"],
+            )
+        constraints = model.data.train_x_bc.copy()
+        initial_pde_points = model.data.train_x_all.copy()
+        save_points(model.data, run_dir, "initial", interior_count)
 
-    def flush(self):
-        """Flush both output streams."""
-        self.terminal.flush()
-        self.log.flush()
+        # Preserve upstream L-BFGS limits and DeepXDE's optimizer-call batching.
+        optimizer_config.set_LBFGS_options(**training_settings["lbfgs"])
+        options = optimizer_config.LBFGS_options
+        # DeepXDE initializes these derived limits only at import time.
+        options["iter_per_step"] = min(1000, options["maxiter"])
+        options["fun_per_step"] = (
+            options["maxfun"] * options["iter_per_step"] // options["maxiter"]
+        )
+        stages = []
+        total_seconds = 0.0
 
+        for phase in range(1, training_settings["phases"] + 1):
+            # Optimize network weights with Adam and the sampling callback.
+            events_before = sampler.events
+            synchronize()
+            start = time.perf_counter()
+            model.compile(
+                "adam", lr=training_settings["learning_rate"], metrics=metrics
+            )
+            model.train(
+                iterations=training_settings["adam_steps"],
+                callbacks=[sampler],
+                display_every=training_settings["display_every"],
+            )
+            synchronize()
+            adam_seconds = time.perf_counter() - start
+            total_seconds += adam_seconds
 
-def write_json(path: Path, payload):
-    """Write a human-readable JSON artifact, rejecting non-finite values."""
-    path.write_text(json.dumps(payload, indent=2, allow_nan=False) + "\n")
+            # Verify constraints and fixed sampling at the Adam endpoint.
+            if not np.array_equal(model.data.train_x_bc, constraints):
+                raise RuntimeError("Initial/boundary constraint coordinates changed")
+            if method == "fixed_hammersley" and not np.array_equal(
+                initial_pde_points, model.data.train_x_all
+            ):
+                raise RuntimeError("Fixed Hammersley points moved")
+            if not np.isfinite(model.train_state.loss_train).all():
+                raise FloatingPointError("Non-finite training loss")
+            save_snapshot(model, run_dir, f"phase_{phase:02d}_adam", interior_count)
+            stages.append(
+                {
+                    "phase": phase,
+                    "optimizer": "adam",
+                    "seconds": adam_seconds,
+                    "global_step": int(model.train_state.step),
+                    "optimizer_iterations": training_settings["adam_steps"],
+                    "movement_events": sampler.events - events_before,
+                    "pde_points": len(model.data.train_x_all),
+                }
+            )
+            write_json(run_dir / "training.json", {"stages": stages})
+
+            # Recompile for L-BFGS, resetting optimizer state and fixing PDE points.
+            pde_before_lbfgs = model.data.train_x_all.copy()
+            events_before = sampler.events
+            synchronize()
+            start = time.perf_counter()
+            model.compile("L-BFGS", metrics=metrics)
+            model.train(display_every=training_settings["display_every"])
+            synchronize()
+            lbfgs_seconds = time.perf_counter() - start
+            total_seconds += lbfgs_seconds
+
+            # Verify fixed populations at the L-BFGS endpoint.
+            if not np.array_equal(model.data.train_x_bc, constraints):
+                raise RuntimeError("Initial/boundary constraint coordinates changed")
+            if not np.array_equal(pde_before_lbfgs, model.data.train_x_all):
+                raise RuntimeError("Physics points moved during L-BFGS")
+            if method == "fixed_hammersley" and not np.array_equal(
+                initial_pde_points, model.data.train_x_all
+            ):
+                raise RuntimeError("Fixed Hammersley points moved")
+            if not np.isfinite(model.train_state.loss_train).all():
+                raise FloatingPointError("Non-finite training loss")
+            save_snapshot(model, run_dir, f"phase_{phase:02d}_l-bfgs", interior_count)
+            lbfgs_state = next(iter(model.opt.state_dict()["state"].values()))
+            stages.append(
+                {
+                    "phase": phase,
+                    "optimizer": "L-BFGS",
+                    "seconds": lbfgs_seconds,
+                    "global_step": int(model.train_state.step),
+                    "optimizer_iterations": int(lbfgs_state["n_iter"]),
+                    "movement_events": sampler.events - events_before,
+                    "pde_points": len(model.data.train_x_all),
+                    "function_evaluations": int(lbfgs_state["func_evals"]),
+                }
+            )
+            write_json(run_dir / "training.json", {"stages": stages})
+
+        # Evaluate final weights on the independent reference grid.
+        save_snapshot(model, run_dir, "final", interior_count)
+        predictions = model.predict(reference_coordinates)
+        if not np.isfinite(predictions).all():
+            raise FloatingPointError("Non-finite final predictions")
+        np.savez_compressed(
+            run_dir / "predictions.npz",
+            coordinates=reference_coordinates,
+            reference=reference_values,
+            prediction=predictions,
+        )
+
+        # Preserve upstream reporting at the recorded minimum training loss.
+        history = model.losshistory
+        training_loss = np.sum(np.array(history.loss_train), axis=1)
+        test_metrics = np.array(history.metrics_test)
+        minimum_loss_index = int(np.argmin(training_loss))
+        np.savez_compressed(
+            run_dir / "history.npz",
+            steps=np.array(history.steps),
+            loss_train=np.array(history.loss_train),
+            loss_test=np.array(history.loss_test),
+            metrics_test=test_metrics,
+        )
+
+        # Verify saved final weights independently; snapshots support evaluation only.
+        dde_config.set_random_seed(seed)
+        dde_config.set_default_float("float64")
+        restored_model, _ = build_model(
+            problem_settings=problem_settings,
+            network_settings=network_settings,
+            reference_coordinates=reference_coordinates,
+            reference_values=reference_values,
+        )
+        restored_model.compile("adam", lr=training_settings["learning_rate"])
+        restored_model.net.load_state_dict(
+            torch.load(run_dir / "models/final.pt", weights_only=True)
+        )
+        reloaded_predictions = restored_model.predict(reference_coordinates)
+        if not np.allclose(predictions, reloaded_predictions, rtol=1e-10, atol=1e-12):
+            raise RuntimeError("Reloaded predictions differ from final predictions")
+        if method == "pacmann_adam":
+            expected_events = (
+                training_settings["phases"]
+                * training_settings["adam_steps"]
+                // sampling_settings["period"]
+            )
+            if sampler.events != expected_events:
+                raise RuntimeError("Unexpected PACMANN update count")
+
+        # Report final errors separately from upstream history-selected errors.
+        write_json(
+            run_dir / "metrics.json",
+            {
+                "final_mse": float(np.mean((predictions - reference_values) ** 2)),
+                "final_relative_l2": float(
+                    np.linalg.norm(predictions - reference_values)
+                    / np.linalg.norm(reference_values)
+                ),
+                "upstream_min_loss_step": int(history.steps[minimum_loss_index]),
+                "upstream_mse_at_min_loss": float(test_metrics[minimum_loss_index, 0]),
+                "upstream_l2_at_min_loss": float(test_metrics[minimum_loss_index, 1]),
+                "upstream_min_observed_mse": float(test_metrics[:, 0].min()),
+                "upstream_min_observed_l2": float(test_metrics[:, 1].min()),
+                "movement_events": sampler.events,
+                "training_seconds": total_seconds,
+            },
+        )
+    return run_dir
 
 
 def synchronize():
     """Synchronize CUDA before measuring elapsed training time."""
     if torch.cuda.is_available():
         torch.cuda.synchronize()
-
-
-def create_run(config: dict, method: str, seed_index: int, root: Path = ROOT):
-    """Validate selectors and reserve a fresh run directory without overwriting."""
-    campaign = config["campaign"]
-    if (
-        not isinstance(campaign, str)
-        or campaign in ("", ".", "..")
-        or "/" in campaign
-        or "\\" in campaign
-    ):
-        raise ValueError("Campaign must be one ordinary path component")
-    if (
-        method not in ("fixed_hammersley", "pacmann_adam")
-        or method not in config["methods"]
-    ):
-        raise ValueError("Unknown sampling method")
-    if not 0 <= seed_index < len(config["seeds"]):
-        raise ValueError("Seed index is outside the configured list")
-    seed = config["seeds"][seed_index]
-    if not isinstance(seed, int) or seed < 0:
-        raise ValueError("Seeds must be nonnegative integers")
-    run = root / "output" / campaign / "burgers" / method / f"seed_{seed}"
-    run.mkdir(parents=True, exist_ok=False)
-    return run, seed
-
-
-def snapshot(model, run: Path, name: str, count: int):
-    """Save evaluation weights and distinct PDE/interior/constraint coordinates."""
-    torch.save(model.net.state_dict(), run / "models" / f"{name}.pt")
-    np.savez_compressed(
-        run / "points" / f"{name}.npz",
-        interior=interior_points(model.data, count),
-        pde=model.data.train_x_all.copy(),
-        constraints=model.data.train_x_bc.copy(),
-    )
-
-
-def run_training(config: dict, method: str, seed_index: int):
-    """Train and evaluate one seed, preserving all artifacts if execution fails."""
-    # Verify the immutable evaluation dataset before creating output artifacts.
-    coordinates, values, fingerprint = load_reference(ROOT)
-    run, seed = create_run(config, method, seed_index)
-    resolved = dict(config, selected_method=method, selected_seed=seed)
-    (run / "config.yaml").write_text(yaml.safe_dump(resolved, sort_keys=False))
-    for folder in ("models", "points"):
-        (run / folder).mkdir()
-    versions = {
-        name: importlib.metadata.version(name)
-        for name in ("deepxde", "torch", "numpy", "scipy", "matplotlib", "PyYAML")
-    }
-    metadata = {
-        "revision": subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
-        ).strip(),
-        "versions": versions,
-        "dataset_sha256": fingerprint,
-        "device": str(torch.get_default_device()),
-    }
-    write_json(run / "metadata.json", metadata)
-    write_json(run / "status.json", {"status": "running"})
-    with (
-        (run / "run.log").open("w") as log,
-        contextlib.redirect_stdout(Tee(sys.stdout, log)),
-        contextlib.redirect_stderr(Tee(sys.stderr, log)),
-    ):
-        try:
-            execute(resolved, method, seed, coordinates, values, run)
-        except Exception as error:
-            traceback.print_exc()
-            write_json(run / "status.json", {"status": "failed", "error": str(error)})
-            raise
-    write_json(run / "status.json", {"status": "complete"})
-    return run
-
-
-def execute(config, method, seed, coordinates, values, run):
-    """Execute optimizer phases, save history, and check final-weight reload."""
-    model, operator = build_model(config, seed, coordinates, values)
-    settings = config["training"]
-    count = config["problem"]["interior_points"]
-    sampler = (
-        PacmannAdam(config["methods"][method], count, operator)
-        if method == "pacmann_adam"
-        else None
-    )
-    constraints = model.data.train_x_bc.copy()
-    initial = model.data.train_x_all.copy()
-    np.savez_compressed(
-        run / "points" / "initial.npz",
-        interior=interior_points(model.data, count),
-        pde=initial,
-        constraints=constraints,
-    )
-    stages = []
-    total_seconds = 0.0
-    optimizer_config.set_LBFGS_options(**settings["lbfgs"])
-    # DeepXDE initializes these derived limits only at import time.
-    options = optimizer_config.LBFGS_options
-    options["iter_per_step"] = min(1000, options["maxiter"])
-    options["fun_per_step"] = (
-        options["maxfun"] * options["iter_per_step"] // options["maxiter"]
-    )
-    # Recompile each stage, resetting network optimizer state as upstream does.
-    for phase in range(1, settings["phases"] + 1):
-        for optimizer in ("adam", "L-BFGS"):
-            kwargs = {"lr": settings["learning_rate"]} if optimizer == "adam" else {}
-            synchronize()
-            start = time.perf_counter()
-            model.compile(
-                optimizer, metrics=["mean squared error", "l2 relative error"], **kwargs
-            )
-            before = model.data.train_x_all.copy()
-            events_before = sampler.events if sampler else 0
-            train_kwargs = (
-                {
-                    "iterations": settings["adam_steps"],
-                    "callbacks": [sampler] if sampler else [],
-                }
-                if optimizer == "adam"
-                else {}
-            )
-            model.train(display_every=settings["display_every"], **train_kwargs)
-            synchronize()
-            elapsed = time.perf_counter() - start
-            total_seconds += elapsed
-            # Verify population invariants after each optimizer endpoint.
-            if not np.array_equal(model.data.train_x_bc, constraints):
-                raise RuntimeError("Initial/boundary constraint coordinates changed")
-            if optimizer == "L-BFGS" and not np.array_equal(
-                before, model.data.train_x_all
-            ):
-                raise RuntimeError("Physics points moved during L-BFGS")
-            if sampler is None and not np.array_equal(initial, model.data.train_x_all):
-                raise RuntimeError("Fixed Hammersley points moved")
-            if not np.isfinite(model.train_state.loss_train).all():
-                raise FloatingPointError("Non-finite training loss")
-            name = f"phase_{phase:02d}_{optimizer.lower()}"
-            snapshot(model, run, name, count)
-            state = next(iter(model.opt.state_dict()["state"].values()), {})
-            stage = {
-                "phase": phase,
-                "optimizer": optimizer,
-                "seconds": elapsed,
-                "global_step": int(model.train_state.step),
-                "optimizer_iterations": int(
-                    state.get("n_iter", settings["adam_steps"])
-                ),
-                "movement_events": (sampler.events if sampler else 0) - events_before,
-                "pde_points": len(model.data.train_x_all),
-            }
-            # Only L-BFGS exposes an actual function-evaluation counter.
-            if optimizer == "L-BFGS":
-                stage["function_evaluations"] = int(state["func_evals"])
-            stages.append(stage)
-            write_json(run / "training.json", {"stages": stages})
-    snapshot(model, run, "final", count)
-    predictions = model.predict(coordinates)
-    if not np.isfinite(predictions).all():
-        raise FloatingPointError("Non-finite final predictions")
-    np.savez_compressed(
-        run / "predictions.npz",
-        coordinates=coordinates,
-        reference=values,
-        prediction=predictions,
-    )
-    history = model.losshistory
-    loss = np.sum(np.array(history.loss_train), axis=1)
-    metrics = np.array(history.metrics_test)
-    best = int(np.argmin(loss))
-    np.savez_compressed(
-        run / "history.npz",
-        steps=np.array(history.steps),
-        loss_train=np.array(history.loss_train),
-        loss_test=np.array(history.loss_test),
-        metrics_test=metrics,
-    )
-    # Rebuild independently and verify evaluation-only weight portability.
-    restored, _ = build_model(config, seed, coordinates, values)
-    restored.compile("adam", lr=settings["learning_rate"])
-    restored.net.load_state_dict(torch.load(run / "models/final.pt", weights_only=True))
-    reloaded = restored.predict(coordinates)
-    if not np.allclose(predictions, reloaded, rtol=1e-10, atol=1e-12):
-        raise RuntimeError("Reloaded predictions differ from final predictions")
-    expected_events = (
-        settings["phases"]
-        * settings["adam_steps"]
-        // config["methods"][method]["period"]
-        if sampler
-        else 0
-    )
-    if sampler and sampler.events != expected_events:
-        raise RuntimeError("Unexpected PACMANN update count")
-    write_json(
-        run / "metrics.json",
-        {
-            "final_mse": float(np.mean((predictions - values) ** 2)),
-            "final_relative_l2": float(
-                np.linalg.norm(predictions - values) / np.linalg.norm(values)
-            ),
-            "upstream_min_loss_step": int(history.steps[best]),
-            "upstream_mse_at_min_loss": float(metrics[best, 0]),
-            "upstream_l2_at_min_loss": float(metrics[best, 1]),
-            "upstream_min_observed_mse": float(metrics[:, 0].min()),
-            "upstream_min_observed_l2": float(metrics[:, 1].min()),
-            "movement_events": sampler.events if sampler else 0,
-            "training_seconds": total_seconds,
-        },
-    )
 
 
 def main():
@@ -270,7 +240,10 @@ def main():
     args = parser.parse_args()
     with args.config.open() as stream:
         config = yaml.safe_load(stream)
-    print("Artifacts:", run_training(config, args.method, args.seed_index))
+    if not 0 <= args.seed_index < len(config["seeds"]):
+        parser.error("Seed index is outside the configured list")
+    seed = config["seeds"][args.seed_index]
+    print("Artifacts:", run_training(config, args.method, seed))
 
 
 if __name__ == "__main__":

@@ -11,6 +11,9 @@ Read ignored `AGENTS.local.md`, if present, at session start.
 - Use DeepXDE with a PyTorch backend for the initial upstream reproduction.
   Keep problem definitions and sampling callbacks separate as needed; avoid
   introducing a general framework before experiments require it.
+- Keep the experiment readable from top to bottom, with explicit optimizer stages
+  and consistent parameter names. Each sampling class contains its numerical
+  updates; keep logging and serialization outside the scientific flow.
 - Preserve upstream attribution, licenses, pinned commits, and recorded
   deviations. Distinguish code reproduction from a modified benchmark study.
 - Treat `references/pacmann/burgers/` as immutable upstream material. Restore

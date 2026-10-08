@@ -63,15 +63,19 @@ The lock pins the released DeepXDE 1.14.0 environment with PyTorch 2.7.1/cu128.
 ```bash
 uv venv --python 3.12 venv
 VIRTUAL_ENV="$PWD/venv" uv sync --active --locked
-venv/bin/python -m src.train --config config/burgers_validation.yaml --method fixed_hammersley --seed-index 0
-venv/bin/python -m src.train --config config/burgers_validation.yaml --method pacmann_adam --seed-index 0
+venv/bin/python -m src.train --config config/burgers_pilot.yaml --method fixed_hammersley --seed-index 0
+venv/bin/python -m src.train --config config/burgers_pilot.yaml --method pacmann_adam --seed-index 0
 ```
 
-The validation runs use two short optimizer phases. Existing directories are
-rejected; use a new campaign name for a new attempt. DeepXDE selects CUDA when
-available, otherwise CPU; the actual device is recorded in metadata.
-`config/burgers.yaml` holds the full five-phase, ten-seed reproduction settings.
-Full reproduction training and diffusion experiments remain future work.
+These commands select the full-budget, one-seed pilot: five phases of 7,000 Adam
+steps followed by L-BFGS with a configured 3,000-iteration limit per phase.
+The saved pilot directories already exist, so rerunning these commands is rejected.
+Use a configuration with a new campaign name for a new approved run. For disposable
+engineering checks, copy the pilot settings into a temporary YAML, reduce the
+training budget, and use a campaign name containing `validation` so its output
+is ignored. DeepXDE selects CUDA when available, otherwise CPU; the actual device
+is recorded in metadata. The ten-seed reproduction and diffusion experiments
+remain future work.
 
 Each run saves its configuration, provenance, status, log, optimizer timings,
 loss/metric history, predictions, phase/final weights, and collocation snapshots.
