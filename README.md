@@ -6,6 +6,11 @@ performance across smooth and sharp-feature PDE regimes.
 This research investigates adaptive collocation methods for physics-informed
 neural networks, with a possible publication as the longer-term objective.
 
+The [research context](docs/research_context.md) records the study stages and
+scientific decisions. [Methodology](docs/methodology.md) gives reusable procedures,
+[experimental notes](docs/experimental_notes.md) hold scientific campaign
+protocols and interpretation, and [results](docs/results.md) consolidate comparisons.
+
 ## Research questions
 
 - When does residual-gradient adaptive collocation improve on low-discrepancy
@@ -47,7 +52,9 @@ existing run directory. Scientific settings belong in configurations.
 See the [output file dictionary](docs/output_format.md) for file contents, fields,
 array layouts, and snapshot meanings. Each scientific campaign has a README
 linking its artifacts to the experiment protocol and results; see the
-[Burgers pilot](output/burgers_pilot_01/README.md).
+[Burgers sigma-tuning campaign](output/burgers_sigma_tuning_01_baseline/README.md).
+Earlier readiness artifacts remain available but are excluded from scientific
+notes and comparison tables.
 
 Add functionality only when the next experiment requires it. Begin with phase
 endpoints, final models, and selected collocation snapshots. The Burgers campaign
@@ -117,24 +124,28 @@ See [methodology](docs/methodology.md) for the environment decision.
 
 ## Sigma tuning
 
-The diffusion sampler and a paired tuning sweep are prepared; the scientific
-sweep has not started. See the [tuning protocol](docs/experimental_notes.md#burgers-sigma-tuning-01)
+The diffusion sampler and a paired tuning protocol are implemented. The tuning
+comparison is incomplete and no sigma has been selected. See the
+[tuning protocol](docs/experimental_notes.md#burgers-sigma-tuning-01)
 for the noise definition, controls, seeds, and selection rule.
 
 [`scripts/run_burgers_sigma_tuning.py`](scripts/run_burgers_sigma_tuning.py) selects
 five self-contained YAMLs through `CONFIG_PATHS` at its top: PACMANN as sigma zero,
 then diffusion at `1e-5`, `1e-4`, `1e-3`, and `1e-2`. Each uses seeds 2000–2002.
-Its `ACTION` defaults to `"summarize"`, which reads saved artifacts and prints a
-Markdown comparison without training or writing files:
+Its committed `ACTION` is currently `"run"`. To inspect existing outputs, change
+it to `"summarize"`, which reads saved artifacts and prints a Markdown comparison
+without training or writing files. Then use:
 
 ```bash
 venv/bin/python -m scripts.run_burgers_sigma_tuning
 ```
 
-Before a separately authorized scientific launch, commit the source and
-configurations. Set `ACTION = "run"`, include that execution selection in the
-checkpoint, and use the same command to train and analyze all 15 runs. The script
-checks all destinations before starting and stops on failure. It creates short
+For an approved scientific launch, commit the source and configurations with
+`ACTION = "run"` and use the same command to train and analyze all 15 runs. Routine
+execution within that approved scope needs no repeated permission. Existing
+occupied destinations must be resolved under the
+[recovery policy](docs/methodology.md#execution-interruptions-and-recovery).
+The script checks all destinations before starting and stops on failure. It creates short
 campaign READMEs linking to the protocol and artifact dictionary, preserving
 existing READMEs. The YAML campaign names keep sigma settings in separate output
 directories; each seed archives its actual settings.

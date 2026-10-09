@@ -57,13 +57,19 @@ diagnostics. A failed or interrupted run can have only a subset of these files.
 | `revision` | Git HEAD commit at run start. This identifies the checkout revision; it does not capture uncommitted changes. |
 | `versions` | Installed version strings for DeepXDE, PyTorch, NumPy, SciPy, Matplotlib, and PyYAML. |
 | `dataset_sha256` | SHA-256 fingerprint of the input reference dataset, verified against the imported manifest. It identifies the evaluation data. |
-| `device` | PyTorch default device recorded by the runner, for example `cuda:0` or `cpu`. Hardware details belong in methodology or campaign notes. |
+| `device` | PyTorch default device recorded by the runner, for example `cuda:0` or `cpu`. Final hardware choices belong in methodology; material campaign deviations belong in notes. |
 
 `status.json` contains `status`: `running`, `complete`, or `failed`. A caught
 failure also records `error`, the exception message. `complete` means the runner
 finished its checks and output writes; it does not establish a scientific claim.
 An abrupt interruption can leave `running` behind. Upstream attribution and the
 pinned source commit are in [source provenance](../references/upstream.md).
+
+These are execution states, not scientific classifications. A `failed` entry
+or incomplete files alone cannot distinguish numerical failure from an external
+interruption. Apply the [recovery policy](methodology.md#execution-interruptions-and-recovery)
+before interpreting an attempt or counting scientific failures; no additional
+scientific status field is implied.
 
 For `pacmann_diffusion`, the saved method settings include `sigma` alongside the
 coordinate-Adam settings. Domain widths are derived from `problem.x_bounds` and
@@ -119,7 +125,7 @@ nondimensional coordinates and solution values.
 | `final_relative_l2` | Relative L2 of that final model over the same grid. |
 | `upstream_min_loss_step` | Recorded global step with the smallest sum of training-loss components. The first occurrence is used if sums tie. |
 | `upstream_mse_at_min_loss` | Reference-grid MSE at that recorded step. |
-| `upstream_l2_at_min_loss` | Reference-grid relative L2 at that recorded step; the current reproduction's primary error diagnostic. |
+| `upstream_l2_at_min_loss` | Reference-grid relative L2 at that recorded step; used for upstream-style reproduction reporting. |
 | `upstream_min_observed_mse` | Smallest MSE in the recorded history. |
 | `upstream_min_observed_l2` | Smallest relative L2 in the recorded history. Its step may differ from the minimum-MSE or minimum-training-loss step. |
 | `movement_events` | Total PACMANN events across training; sum of the stage event counts. |
@@ -130,6 +136,10 @@ released reproduction. Minima refer to recorded observations, not every network
 iteration. Minimum observed test errors are descriptive; they do not select
 the primary result. The final weights are reloaded into a fresh model and checked
 against final predictions during execution; no separate reload metric is stored.
+
+The campaign protocol determines which metric is primary. The current sigma
+search selects using `final_relative_l2`, while upstream-style reporting retains
+the training-loss-selected errors; these answer different comparisons.
 
 ## Recorded convergence: `history.npz`
 
@@ -185,7 +195,8 @@ callback replaces that PDE population with the moved interior population, while
 retaining the separately evaluated constraints. Fixed Hammersley retains the
 original PDE population. Constraints remain fixed for both methods.
 
-For the current pilot, `I = 2500` and `C = 240` (80 boundary and 160 initial).
+For the original benchmark settings, `I = 2500` and `C = 240`
+(80 boundary and 160 initial).
 Initially `P = 2740`; it stays 2740 for Hammersley and becomes 2500 after
 PACMANN's first event. After replacement, PACMANN's `interior` and `pde` arrays
 are equal. Saved arrays record the populations actually used; do not add their
