@@ -1,12 +1,10 @@
 """Run one configured Burgers method and seed in a fresh artifact directory."""
 
-import argparse
 import time
 from pathlib import Path
 
 import numpy as np
 import torch
-import yaml
 from deepxde import config as dde_config
 from deepxde.optimizers import config as optimizer_config
 
@@ -18,7 +16,7 @@ from src.artifacts import (
     write_json,
 )
 from src.burgers import build_model, load_reference
-from src.sampling import FixedHammersley, PacmannAdam
+from src.sampling import FixedHammersley, PacmannAdam, PacmannDiffusion
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -49,7 +47,7 @@ def run_training(config: dict, method: str, seed: int):
         # Select the collocation method independently of the network optimizer.
         if method == "fixed_hammersley":
             sampler = FixedHammersley()
-        else:
+        elif method == "pacmann_adam":
             sampler = PacmannAdam(
                 interior_points=interior_count,
                 residual_gradient=residual_gradient,
@@ -58,6 +56,22 @@ def run_training(config: dict, method: str, seed: int):
                 step_size=sampling_settings["step_size"],
                 betas=sampling_settings["betas"],
                 epsilon=sampling_settings["epsilon"],
+            )
+        else:
+            sampler = PacmannDiffusion(
+                interior_points=interior_count,
+                residual_gradient=residual_gradient,
+                period=sampling_settings["period"],
+                coordinate_steps=sampling_settings["steps"],
+                step_size=sampling_settings["step_size"],
+                betas=sampling_settings["betas"],
+                epsilon=sampling_settings["epsilon"],
+                sigma=sampling_settings["sigma"],
+                domain_widths=[
+                    problem_settings["x_bounds"][1] - problem_settings["x_bounds"][0],
+                    problem_settings["t_bounds"][1] - problem_settings["t_bounds"][0],
+                ],
+                seed=seed,
             )
         constraints = model.data.train_x_bc.copy()
         initial_pde_points = model.data.train_x_all.copy()
@@ -193,7 +207,7 @@ def run_training(config: dict, method: str, seed: int):
         reloaded_predictions = restored_model.predict(reference_coordinates)
         if not np.allclose(predictions, reloaded_predictions, rtol=1e-10, atol=1e-12):
             raise RuntimeError("Reloaded predictions differ from final predictions")
-        if method == "pacmann_adam":
+        if method in ("pacmann_adam", "pacmann_diffusion"):
             expected_events = (
                 training_settings["phases"]
                 * training_settings["adam_steps"]
@@ -227,24 +241,3 @@ def synchronize():
     """Synchronize CUDA before measuring elapsed training time."""
     if torch.cuda.is_available():
         torch.cuda.synchronize()
-
-
-def main():
-    """Parse execution selectors and run the selected configuration."""
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", required=True, type=Path)
-    parser.add_argument(
-        "--method", required=True, choices=("fixed_hammersley", "pacmann_adam")
-    )
-    parser.add_argument("--seed-index", required=True, type=int)
-    args = parser.parse_args()
-    with args.config.open() as stream:
-        config = yaml.safe_load(stream)
-    if not 0 <= args.seed_index < len(config["seeds"]):
-        parser.error("Seed index is outside the configured list")
-    seed = config["seeds"][args.seed_index]
-    print("Artifacts:", run_training(config, args.method, seed))
-
-
-if __name__ == "__main__":
-    main()

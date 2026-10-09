@@ -13,7 +13,8 @@ Each seed directory's `config.yaml` records its executed configuration.
 
 ## Commands
 
-Run from the repository root using the
+The following historical training commands worked at revision `eba6c86`, from
+the repository root using the
 [pinned reproduction environment](../../docs/methodology.md#reproduction-environment).
 The pilot used seed 1000 (`--seed-index 0`), with fixed Hammersley followed by
 PACMANN-Adam, sequentially on the host GPU:
@@ -23,11 +24,15 @@ venv/bin/python -m src.train --config config/burgers_pilot.yaml --method fixed_h
 venv/bin/python -m src.train --config config/burgers_pilot.yaml --method pacmann_adam --seed-index 0
 ```
 
-The training source revision was `eba6c86`; each run's `metadata.json` records
+The training CLI has since been removed. With current code, select the YAML in
+[`scripts/run_burgers_campaign.py`](../../scripts/run_burgers_campaign.py) and run
+`venv/bin/python -m scripts.run_burgers_campaign`; see the
+[current execution instructions](../../README.md#setup-and-execution).
+
+Each run's `metadata.json` records
 the full revision, dependency versions, reference dataset fingerprint, and device.
 The saved run configurations match `config/burgers_pilot.yaml`, with the selected
-method and seed added. Existing run directories are protected from overwriting;
-use a configuration with a new campaign name for a new approved run.
+method and seed added. These saved run directories are protected from overwriting.
 
 Regenerate diagnostics for the saved runs with the current analysis script:
 

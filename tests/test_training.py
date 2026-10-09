@@ -1,7 +1,6 @@
 """Check run artifacts, execution selectors, and optimizer-stage behavior."""
 
 import json
-import sys
 
 import numpy as np
 import pytest
@@ -158,35 +157,3 @@ def test_invalid_selectors_create_no_output(config, tmp_path, selector):
     with pytest.raises(ValueError):
         prepare_run(config, method, seed, "unused", tmp_path)
     assert not (tmp_path / "output").exists()
-
-
-@pytest.mark.parametrize("seed_index", [-1, 0, 1])
-def test_cli_resolves_seed_index(config, tmp_path, monkeypatch, seed_index):
-    """Pass the selected seed value to training and reject invalid indices."""
-    config_path = tmp_path / "config.yaml"
-    config_path.write_text(yaml.safe_dump(config))
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        [
-            "train",
-            "--config",
-            str(config_path),
-            "--method",
-            "pacmann_adam",
-            "--seed-index",
-            str(seed_index),
-        ],
-    )
-    calls = []
-    monkeypatch.setattr(
-        train, "run_training", lambda config, method, seed: calls.append((method, seed))
-    )
-    if seed_index == 0:
-        train.main()
-        assert calls == [("pacmann_adam", 1000)]
-    else:
-        with pytest.raises(SystemExit) as error:
-            train.main()
-        assert error.value.code == 2
-        assert calls == []

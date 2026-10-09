@@ -27,7 +27,7 @@ output/<campaign>/
     diagnostics.png
 ```
 
-Each scientific campaign has a short, manually maintained `README.md` linking
+Each scientific campaign has a short `README.md` linking
 to its protocol/results section in
 [`experimental_notes.md`](experimental_notes.md), its comparison
 table in [`results.md`](results.md), and this dictionary. Give
@@ -35,6 +35,8 @@ the notes section an explicit HTML anchor based on the campaign name, so the
 link remains valid when its heading changes. The notes link back to the campaign.
 This campaign-level link covers its methods and seeds; individual seed
 directories do not need another copy of the narrative.
+The sigma-tuning script prepares these links at launch and preserves an existing
+README; researchers maintain the narrative and results in the linked documents.
 
 The trainer writes each seed directory; the analysis script adds the derived
 diagnostics. A failed or interrupted run can have only a subset of these files.
@@ -62,6 +64,23 @@ failure also records `error`, the exception message. `complete` means the runner
 finished its checks and output writes; it does not establish a scientific claim.
 An abrupt interruption can leave `running` behind. Upstream attribution and the
 pinned source commit are in [source provenance](../references/upstream.md).
+
+For `pacmann_diffusion`, the saved method settings include `sigma` alongside the
+coordinate-Adam settings. Domain widths are derived from `problem.x_bounds` and
+`problem.t_bounds`; the movement-event length is `methods.pacmann_diffusion.steps`.
+Each coordinate step adds Gaussian noise with standard deviations
+`sigma * domain_widths / sqrt(steps)`. Sigma therefore scales the accumulated
+noise component per movement event, before boundary replacement; it is not a
+physical PDE diffusion coefficient. Ordinary `pacmann_adam` is the sigma-zero
+baseline and has no `sigma` field.
+
+The diffusion callback initializes a persistent local generator using NumPy
+`SeedSequence([selected_seed, 1])`. This convention and the archived NumPy version
+identify the noise stream without extra metadata fields. Sigma zero draws no
+noise. Gaussian draws do not advance the global NumPy stream; uniform escaped-point
+replacement still uses upstream sampling and can consume different draws when
+positive sigma changes which points escape. Initial points and weights remain
+paired across configurations.
 
 ## Optimizer-stage records: `training.json`
 
