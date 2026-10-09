@@ -10,7 +10,7 @@ from scripts import run_burgers_campaign as campaign
 from src.train import ROOT
 
 # Select execution here. Summarization never launches training or writes artifacts.
-ACTION = "summarize"
+ACTION = "run"
 CONFIG_PATHS = [
     ROOT / "config/burgers_sigma_baseline.yaml",
     ROOT / "config/burgers_sigma_1e-5.yaml",
