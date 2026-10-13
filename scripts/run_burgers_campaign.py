@@ -9,6 +9,7 @@ from src.train import ROOT, run_training
 CONFIG_PATH = ROOT / "config/burgers_pilot.yaml"
 
 
+## Scientific research workflow and documentation
 def check_campaign(config: dict):
     """Check selectors and all run destinations without creating artifacts."""
     campaign = config["campaign"]

@@ -1,0 +1,11 @@
+{
+  "final_mse": 7.425215044722864e-08,
+  "final_relative_l2": 0.00044355500289491374,
+  "upstream_min_loss_step": 51445,
+  "upstream_mse_at_min_loss": 7.425215044722864e-08,
+  "upstream_l2_at_min_loss": 0.00044355500289491374,
+  "upstream_min_observed_mse": 7.120160460999534e-08,
+  "upstream_min_observed_l2": 0.0004343480285171079,
+  "movement_events": 700,
+  "training_seconds": 931.7916462050016
+}

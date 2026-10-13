@@ -17,9 +17,16 @@ existing artifacts are retained; this anchor preserves earlier links.
 
 ## 2026-10-08: Original-benchmark Burgers sigma tuning
 
-Scientific development for Stage 1: the planned comparison is incomplete and no
-sigma has been selected. [Available campaign artifacts](../output/burgers_sigma_tuning_01_baseline/README.md)
-link to this protocol. Other sigma campaign directories are created on execution.
+Scientific development for Stage 1. All 15 planned runs and diagnostics completed.
+The predeclared lowest-mean criterion selects sigma `1e-4`: mean final relative
+L2 was 0.04710% (sample SD 0.00793%), compared with 0.07785% (sample SD 0.02905%)
+for ordinary PACMANN. The mean paired change was -0.03075 percentage points, with
+improvement in two of three seed pairs. The `1e-3` results include one much larger
+error (28.1237%), retained as a completed run; this setting's mean and variability
+are correspondingly poor. See the [results table](results.md#original-benchmark-burgers-sigma-tuning)
+and [campaign artifacts](../output/burgers_sigma_tuning_01_baseline/README.md).
+This selects a candidate for separate evaluation on the original benchmark; it
+does not test sharpness dependence or establish a general diffusion benefit.
 https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1004385
 ### Objective and numerical change
 
@@ -127,11 +134,12 @@ remain uncertain and must be described that way.
 
 ### Reporting and next decision
 
-After the scientific comparison completes, put the table in [results](results.md)
-as a tuning comparison, then add interpretation, limitations, and the freeze or
-search-revision decision here. If numerical failures prevent completion, report
-them and review any material protocol change before further scientific runs.
-Do not add operational interruption narratives as scientific observations.
+The completed tuning comparison and its interpretation are recorded in
+[results](results.md). Freeze sigma `1e-4` as the candidate for the later
+ten-seed evaluation on this benchmark. This choice follows the predeclared mean
+criterion, despite improvement in only two of three paired seeds, and remains
+specific to this Burgers case. Do not generalize it to other viscosities or PDE
+families.
 
 Freeze the selected sigma before the later ten-seed evaluation using seeds
 1000–1009, which are excluded from sigma tuning. Seed 1000 has previously been

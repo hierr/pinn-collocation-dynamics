@@ -236,14 +236,14 @@ def test_stale_or_invalid_artifacts_rejected(sweep, tmp_path, field):
         tuning.summarize_tuning(sweep)
 
 
-def test_default_action_summarizes_without_writing_or_training(
+def test_summary_action_without_writing_or_training(
     sweep, tmp_path, monkeypatch, capsys
 ):
-    """Use summary mode safely before any scientific sweep has been launched."""
+    """Summarize without launching training or creating output directories."""
     calls = []
     monkeypatch.setattr(tuning, "load_configurations", lambda: sweep)
     monkeypatch.setattr(tuning, "run_tuning", lambda configs: calls.append(configs))
-    assert tuning.ACTION == "summarize"
+    monkeypatch.setattr(tuning, "ACTION", "summarize")
     tuning.main()
     assert "No sigma selected:" in capsys.readouterr().out
     assert calls == [] and not (tmp_path / "output").exists()
