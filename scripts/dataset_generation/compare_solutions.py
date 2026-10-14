@@ -10,14 +10,14 @@ from scipy.interpolate import interp1d
 # CONFIGURATION
 # ============================================================
 
-MY_DATASET = Path("burgers_dataset/burgers_nu_0p0031830989_N512.npz")
-PAPER_DATASET = Path("burgers_dataset/PACMANN_Burgers.npz")
+MY_DATASET = Path(__file__).resolve().parents[2] / "data/burgers_dataset/burgers_nu_0p0031830989_N512.npz"
+PAPER_DATASET = Path(__file__).resolve().parents[2] / "data/burgers_dataset/PACMANN_Burgers.npz"
 
 # Target times to compare. Each dataset uses its nearest snapshot.
 TARGET_TIMES = [0.0, 0.25, 0.50, 0.75, 1.0]
 
 # Output directory for plots
-OUTPUT_DIR = Path("burgers_comparison")
+OUTPUT_DIR = Path(__file__).resolve().parents[2] / "data/burgers_dataset/comparison"
 
 
 # ============================================================

@@ -5,7 +5,6 @@ __pycache__/
 *.py[cod]
 
 # Reference datasets and disposable setup runs
-data/
 /output/*validation*/
 /output/*compatibility*/
 /output/archives/

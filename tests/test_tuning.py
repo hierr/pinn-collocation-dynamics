@@ -5,8 +5,8 @@ import json
 import pytest
 import yaml
 
-from scripts import run_burgers_campaign as campaign
-from scripts import run_burgers_sigma_tuning as tuning
+from scripts.run_experiments import run_burgers_campaign as campaign
+from scripts.run_experiments import run_burgers_sigma_tuning as tuning
 from src import train
 from src.burgers import load_reference
 
@@ -96,20 +96,14 @@ def test_preflight_entire_sweep_before_execution(sweep, tmp_path, monkeypatch):
     assert not (tmp_path / "output" / sweep[0]["campaign"]).exists()
 
 
-def test_sweep_order_and_readme_retention(sweep, tmp_path, monkeypatch):
-    """Execute baseline then increasing sigma and preserve an existing README."""
-    first = tmp_path / "output" / sweep[0]["campaign"]
-    first.mkdir(parents=True)
-    (first / "README.md").write_text("existing research context\n")
+def test_sweep_order(sweep, monkeypatch):
+    """Execute baseline then increasing sigma in configured order."""
     calls = []
     monkeypatch.setattr(
         campaign, "run_campaign", lambda config: calls.append(config["campaign"])
     )
     tuning.run_tuning(sweep)
     assert calls == [config["campaign"] for config in sweep]
-    assert (first / "README.md").read_text() == "existing research context\n"
-    readme = (tmp_path / "output" / sweep[1]["campaign"] / "README.md").read_text()
-    assert "#burgers-sigma-tuning-01" in readme and "docs/output_format.md" in readme
 
 
 def test_sweep_stops_on_failure(sweep, tmp_path, monkeypatch):
@@ -285,7 +279,6 @@ def test_tiny_sweep_trains_analyzes_and_summarizes(sweep, tmp_path, monkeypatch)
     assert "No sigma selected" not in result
     for config in sweep:
         directory = tmp_path / "output" / config["campaign"]
-        assert (directory / "README.md").is_file()
         method = next(iter(config["methods"]))
         for seed in config["seeds"]:
             run = directory / "burgers" / method / f"seed_{seed}"

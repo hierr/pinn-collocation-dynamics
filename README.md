@@ -80,11 +80,11 @@ VIRTUAL_ENV="$PWD/venv" uv sync --active --locked
 
 Restore the reference dataset using the [data instructions](references/upstream.md#restore-the-dataset).
 Select the YAML by editing `CONFIG_PATH` at the top of
-[`scripts/run_burgers_campaign.py`](scripts/run_burgers_campaign.py), then run from
+[`scripts/run_experiments/run_burgers_campaign.py`](scripts/run_experiments/run_burgers_campaign.py), then run from
 the repository root:
 
 ```bash
-venv/bin/python -m scripts.run_burgers_campaign
+venv/bin/python -m scripts.run_experiments.run_burgers_campaign
 ```
 
 The script takes no CLI arguments. The YAML specifies the campaign name, seeds,
@@ -115,9 +115,9 @@ into a fresh model and checked against saved predictions. Both final errors and
 upstream history-selected errors are explicitly named.
 
 ```bash
-venv/bin/python -m pytest --cov=src --cov=scripts.run_burgers_campaign --cov=scripts.run_burgers_sigma_tuning --cov-report=term-missing
+venv/bin/python -m pytest --cov=src --cov=scripts.run_experiments.run_burgers_campaign --cov=scripts.run_experiments.run_burgers_sigma_tuning --cov-report=term-missing
 venv/bin/ruff check src scripts tests
-venv/bin/ty check src tests scripts/run_burgers_campaign.py scripts/run_burgers_sigma_tuning.py
+venv/bin/ty check src tests scripts/run_experiments/run_burgers_campaign.py scripts/run_experiments/run_burgers_sigma_tuning.py
 uv lock --check
 uv pip check --python venv/bin/python
 ```
@@ -134,7 +134,7 @@ the original Burgers benchmark. See the
 [results](docs/results.md#original-benchmark-burgers-sigma-tuning), and
 [noise definition](docs/output_format.md#configuration-provenance-and-status).
 
-[`scripts/run_burgers_sigma_tuning.py`](scripts/run_burgers_sigma_tuning.py) selects
+[`scripts/run_experiments/run_burgers_sigma_tuning.py`](scripts/run_experiments/run_burgers_sigma_tuning.py) selects
 five self-contained YAMLs through `CONFIG_PATHS` at its top: PACMANN as sigma zero,
 then diffusion at `1e-5`, `1e-4`, `1e-3`, and `1e-2`. Each uses seeds 2000–2002.
 Its committed `ACTION` is currently `"run"`. To inspect existing outputs, change
@@ -142,7 +142,7 @@ it to `"summarize"`, which reads saved artifacts and prints a Markdown compariso
 without training or writing files. Then use:
 
 ```bash
-venv/bin/python -m scripts.run_burgers_sigma_tuning
+venv/bin/python -m scripts.run_experiments.run_burgers_sigma_tuning
 ```
 
 For an approved scientific launch, commit the source and configurations with
@@ -150,10 +150,9 @@ For an approved scientific launch, commit the source and configurations with
 execution within that approved scope needs no repeated permission. Existing
 occupied destinations must be resolved under the
 [recovery policy](AGENTS.md#execution-recovery).
-The script checks all destinations before starting and stops on failure. It creates short
-campaign READMEs linking to the shared design and artifact dictionary, preserving
-existing READMEs. The YAML campaign names keep sigma settings in separate output
-directories; each seed archives its actual settings.
+The script checks all destinations before starting and stops on failure. Campaign
+READMEs are maintained as documentation. The YAML campaign names keep sigma
+settings in separate output directories; each seed archives its actual settings.
 
 For independent post-processing, set `ACTION = "summarize"` again. The summary
 checks archived configurations and common source, dependency versions, data, and
@@ -169,7 +168,7 @@ freeze decision in `docs/research_context.md`. No summary JSON is created.
 ## Analyze a saved run
 
 ```bash
-venv/bin/python scripts/analyze_burgers.py --run-dir output/burgers_pilot_01/burgers/pacmann_adam/seed_1000
+venv/bin/python scripts/post_processing/analyze_burgers.py --run-dir output/burgers_pilot_01/burgers/pacmann_adam/seed_1000
 ```
 
 This regenerates only `diagnostics.json` and `diagnostics.png` from saved

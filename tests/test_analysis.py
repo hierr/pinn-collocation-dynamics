@@ -3,7 +3,11 @@
 import numpy as np
 import pytest
 
-from scripts.analyze_burgers import calculate_diagnostics, load_arrays, reconstruct_grid
+from scripts.post_processing.analyze_burgers import (
+    calculate_diagnostics,
+    load_arrays,
+    reconstruct_grid,
+)
 
 
 def test_grid_and_known_errors():

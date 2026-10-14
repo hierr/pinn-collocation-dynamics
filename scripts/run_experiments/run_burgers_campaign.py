@@ -2,7 +2,7 @@
 
 import yaml
 
-from scripts.analyze_burgers import analyze_run
+from scripts.post_processing.analyze_burgers import analyze_run
 from src.train import ROOT, run_training
 
 # Select the campaign here; scientific settings remain in the YAML file.

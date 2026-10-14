@@ -10,7 +10,7 @@ Select a diffusion scale for later evaluation on the original PACMANN Burgers
 benchmark. Compare PACMANN against diffusion candidates with common tuning seeds
 and unchanged problem, network, training, and coordinate-Adam settings; only
 diffusion varies. The selected YAMLs are listed in
-[`CONFIG_PATHS`](../../scripts/run_burgers_sigma_tuning.py); each seed directory
+[`CONFIG_PATHS`](../../scripts/run_experiments/run_burgers_sigma_tuning.py); each seed directory
 archives its executed configuration and source revision.
 
 After all planned runs and diagnostics complete, select the lowest mean final
@@ -26,9 +26,9 @@ a sharpness comparison. The noise convention is defined in the
 From the repository root, set `ACTION = "run"` in the tuning script and execute:
 
 ```bash
-venv/bin/python -m scripts.run_burgers_sigma_tuning
+venv/bin/python -m scripts.run_experiments.run_burgers_sigma_tuning
 ```
 
-The recorded sweep used this command. Set `ACTION = "summarize"` to regenerate
-its comparison from saved artifacts without training. Existing run destinations
-are protected from overwriting.
+The recorded sweep used the original module path `scripts.run_burgers_sigma_tuning`.
+Set `ACTION = "summarize"` to regenerate its comparison from saved artifacts
+without training. Existing run destinations are protected from overwriting.

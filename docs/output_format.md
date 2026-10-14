@@ -32,8 +32,8 @@ instructions and reasoning not captured by configurations or artifacts. Link to
 settings, the relevant [study phase](research_context.md), the comparison in
 [`results.md`](results.md), and this dictionary. Keep a shared design in one
 README and link from related output directories; do not repeat settings or
-create per-seed narratives. The sigma-tuning script prepares these READMEs at
-launch and preserves existing ones.
+create per-seed narratives. Maintain these READMEs as documentation; execution
+scripts write the numerical run artifacts.
 
 The trainer writes each seed directory; the analysis script adds the derived
 diagnostics. A failed or interrupted run can have only a subset of these files.
@@ -217,7 +217,7 @@ initial weight snapshot or separate model for every recorded history minimum.
 
 ## Derived analysis: `diagnostics.json` and `diagnostics.png`
 
-[`scripts/analyze_burgers.py`](../scripts/analyze_burgers.py) regenerates these
+[`scripts/post_processing/analyze_burgers.py`](../scripts/post_processing/analyze_burgers.py) regenerates these
 two files from saved predictions, history, final interior points, and config.
 It does not rerun training or require the original dataset file.
 

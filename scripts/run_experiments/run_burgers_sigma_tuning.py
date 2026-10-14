@@ -6,7 +6,7 @@ import statistics
 
 import yaml
 
-from scripts import run_burgers_campaign as campaign
+from scripts.run_experiments import run_burgers_campaign as campaign
 from src.train import ROOT
 
 # Select execution here. Summarization never launches training or writes artifacts.
@@ -66,21 +66,8 @@ def run_tuning(configs):
     for config in configs:
         campaign.check_campaign(config)
 
-    # Create short protocol links only when launching an actual campaign.
+    # Execute the matched settings in their configured order.
     for config in configs:
-        directory = ROOT / "output" / config["campaign"]
-        directory.mkdir(parents=True, exist_ok=True)
-        readme = directory / "README.md"
-        if not readme.exists():
-            readme.write_text(
-                f"# Burgers sigma tuning: {config['campaign']}\n\n"
-                "- [Protocol and interpretation](../../docs/experimental_notes.md#burgers-sigma-tuning-01)\n"
-                "- [Results](../../docs/results.md)\n"
-                "- [Output dictionary](../../docs/output_format.md)\n\n"
-                "Executed with `venv/bin/python -m scripts.run_burgers_sigma_tuning` "
-                'and `ACTION = "run"`. Each seed directory archives its configuration '
-                "and source revision.\n"
-            )
         campaign.run_campaign(config)
 
 

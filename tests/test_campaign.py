@@ -5,7 +5,7 @@ import json
 import pytest
 import yaml
 
-from scripts import run_burgers_campaign as runner
+from scripts.run_experiments import run_burgers_campaign as runner
 from src import train
 from src.burgers import load_reference
 

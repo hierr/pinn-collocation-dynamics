@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 import matplotlib.pyplot as plt
 
+DATA_DIR = Path(__file__).resolve().parents[2] / "data/burgers_dataset"
+
 
 ########################################################################
 # BURGERS SOLVER
@@ -580,7 +582,7 @@ def save_solution_for_pinn(
 
 def generate_viscosity_sweep(
     viscosities,
-    output_dir="burgers_dataset",
+    output_dir=DATA_DIR,
     T=1.0,
     N=256,
     n_snap=201,
@@ -623,7 +625,7 @@ if __name__ == "__main__":
     max_step = 0.005
 
     # Output configuration
-    output_dir = Path("burgers_dataset")
+    output_dir = DATA_DIR
     nu_tag = f"{nu:.8g}".replace(".", "p")
     filename = output_dir / f"burgers_nu_{nu_tag}_N{N}.npz"
 

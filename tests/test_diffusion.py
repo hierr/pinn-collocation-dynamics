@@ -9,7 +9,7 @@ import pytest
 import torch
 from deepxde import config as dde_config
 
-from scripts.analyze_burgers import analyze_run
+from scripts.post_processing.analyze_burgers import analyze_run
 from src import train
 from src.burgers import build_model, load_reference
 from src.sampling import PacmannAdam, PacmannDiffusion

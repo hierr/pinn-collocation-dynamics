@@ -25,8 +25,8 @@ venv/bin/python -m src.train --config config/burgers_pilot.yaml --method pacmann
 ```
 
 The training CLI has since been removed. With current code, select the YAML in
-[`scripts/run_burgers_campaign.py`](../../scripts/run_burgers_campaign.py) and run
-`venv/bin/python -m scripts.run_burgers_campaign`; see the
+[`scripts/run_experiments/run_burgers_campaign.py`](../../scripts/run_experiments/run_burgers_campaign.py) and run
+`venv/bin/python -m scripts.run_experiments.run_burgers_campaign`; see the
 [current execution instructions](../../README.md#setup-and-execution).
 
 Each run's `metadata.json` records
@@ -37,8 +37,8 @@ method and seed added. These saved run directories are protected from overwritin
 Regenerate diagnostics for the saved runs with the current analysis script:
 
 ```bash
-venv/bin/python scripts/analyze_burgers.py --run-dir output/burgers_pilot_01/burgers/fixed_hammersley/seed_1000
-venv/bin/python scripts/analyze_burgers.py --run-dir output/burgers_pilot_01/burgers/pacmann_adam/seed_1000
+venv/bin/python scripts/post_processing/analyze_burgers.py --run-dir output/burgers_pilot_01/burgers/fixed_hammersley/seed_1000
+venv/bin/python scripts/post_processing/analyze_burgers.py --run-dir output/burgers_pilot_01/burgers/pacmann_adam/seed_1000
 ```
 
 These analysis commands rewrite only the derived `diagnostics.json` and
