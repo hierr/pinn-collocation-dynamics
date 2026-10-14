@@ -7,9 +7,9 @@ This research investigates adaptive collocation methods for physics-informed
 neural networks, with a possible publication as the longer-term objective.
 
 The [research context](docs/research_context.md) records the study stages and
-scientific decisions. [Methodology](docs/methodology.md) gives reusable procedures,
-[experimental notes](docs/experimental_notes.md) hold scientific campaign
-protocols and interpretation, and [results](docs/results.md) consolidate comparisons.
+scientific decisions and study design principles. Campaign READMEs explain
+campaign-specific reasoning and execution, and
+[results](docs/results.md) consolidate comparisons and brief interpretation.
 
 ## Research questions
 
@@ -37,7 +37,7 @@ checks are separate from a completed scientific reproduction.
 src/                    Burgers definition, sampling callbacks, and training functions
 scripts/                Campaign execution and saved-run diagnostics
 config/                 Scientific campaign settings in YAML
-docs/                   Research context, methodology, experiment records, and output dictionary
+docs/                   Research context, results, and output dictionary
 references/             Source provenance and upstream implementation pin
 ```
 
@@ -51,10 +51,10 @@ existing run directory. Scientific settings belong in configurations.
 
 See the [output file dictionary](docs/output_format.md) for file contents, fields,
 array layouts, and snapshot meanings. Each scientific campaign has a README
-linking its artifacts to the experiment protocol and results; see the
+linking its artifacts to the study phase and results; see the
 [Burgers sigma-tuning campaign](output/burgers_sigma_tuning_01_baseline/README.md).
 Earlier readiness artifacts remain available but are excluded from scientific
-notes and comparison tables.
+documents and comparison tables.
 
 Add functionality only when the next experiment requires it. Begin with phase
 endpoints, final models, and selected collocation snapshots. The Burgers campaign
@@ -65,8 +65,13 @@ See [source provenance](references/upstream.md) and
 
 ## Setup and execution
 
-Use Python 3.12 and uv; conda is not required for this wheel-based stack.
-The lock pins the released DeepXDE 1.14.0 environment with PyTorch 2.7.1/cu128.
+Use Python 3.12 and uv with the local `venv`; conda is unnecessary for this
+wheel-based stack. `pyproject.toml` and `uv.lock` are authoritative for dependency
+pins, including DeepXDE 1.14.0 and PyTorch 2.7.1 with CUDA 12.8 wheels. Retain this
+released-code stack for the initial reproduction, using the PyTorch backend and
+float64. The reference host is an NVIDIA GeForce RTX 5050 Laptop GPU with driver
+595.99.02; each run records its actual device and dependency versions. Setup
+checks are disposable; document final environment choices here.
 
 ```bash
 uv venv --python 3.12 venv
@@ -120,14 +125,14 @@ uv pip check --python venv/bin/python
 Tests cover the reference checksum/order, analytic PDE residual, coordinate-Adam
 parity with the imported upstream callback, fixed constraints, run isolation,
 campaign execution order, failure handling, and training-to-analysis flow.
-See [methodology](docs/methodology.md) for the environment decision.
 
 ## Sigma tuning
 
-The diffusion sampler and a paired tuning protocol are implemented. The tuning
-comparison is incomplete and no sigma has been selected. See the
-[tuning protocol](docs/experimental_notes.md#burgers-sigma-tuning-01)
-for the noise definition, controls, seeds, and selection rule.
+The paired sigma sweep is complete and selected `1e-4` for later evaluation on
+the original Burgers benchmark. See the
+[campaign design](output/burgers_sigma_tuning_01_baseline/README.md#comparison-design),
+[results](docs/results.md#original-benchmark-burgers-sigma-tuning), and
+[noise definition](docs/output_format.md#configuration-provenance-and-status).
 
 [`scripts/run_burgers_sigma_tuning.py`](scripts/run_burgers_sigma_tuning.py) selects
 five self-contained YAMLs through `CONFIG_PATHS` at its top: PACMANN as sigma zero,
@@ -144,9 +149,9 @@ For an approved scientific launch, commit the source and configurations with
 `ACTION = "run"` and use the same command to train and analyze all 15 runs. Routine
 execution within that approved scope needs no repeated permission. Existing
 occupied destinations must be resolved under the
-[recovery policy](docs/methodology.md#execution-interruptions-and-recovery).
+[recovery policy](AGENTS.md#execution-recovery).
 The script checks all destinations before starting and stops on failure. It creates short
-campaign READMEs linking to the protocol and artifact dictionary, preserving
+campaign READMEs linking to the shared design and artifact dictionary, preserving
 existing READMEs. The YAML campaign names keep sigma settings in separate output
 directories; each seed archives its actual settings.
 
@@ -158,8 +163,8 @@ standard deviations, paired changes, and completed training time. Missing
 diagnostics count as pending even when training completed. Regenerate them with
 the analysis command below. No sigma is selected until all planned runs and
 diagnostics complete successfully; boundary winners require review. Copy the
-resulting table into `docs/results.md` and record interpretation and the freeze
-decision in experiment notes after the sweep. No summary JSON is created.
+resulting table and brief interpretation into `docs/results.md`; record the
+freeze decision in `docs/research_context.md`. No summary JSON is created.
 
 ## Analyze a saved run
 

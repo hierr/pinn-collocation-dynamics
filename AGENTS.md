@@ -36,34 +36,36 @@ Read ignored `AGENTS.local.md`, if present, at session start.
 
 - Classify work by purpose before observing outcomes: engineering validation,
   scientific development (including tuning), or frozen-setting evaluation.
-  Follow [methodology](docs/methodology.md#work-classification-and-campaign-records);
-  run duration and seed count alone do not determine scientific value.
+  Engineering validation checks readiness; development selects scientific
+  settings; evaluation tests research questions with frozen settings. Run duration
+  and seed count alone do not determine scientific value.
 - Keep scientific settings in YAML. Archive the resolved configuration in
   `output/<campaign>/<problem>/<method>/<seed>/config.yaml` at run start.
 - Never overwrite a prior run or alter original reference datasets.
 - Use archived configurations and fixed evaluation seeds for post-processing.
 - Model snapshots support evaluation, not exact training resume.
 - Use [research context](docs/research_context.md) for research questions, the
-  study plan, accepted scientific decisions, and open dependencies. Keep
-  [methodology](docs/methodology.md) for reusable procedures and final environment
-  choices. Put scientific campaign protocols and interpretation in
-  [experimental notes](docs/experimental_notes.md), compact comparisons in
+  study design, phases, accepted scientific decisions, and open dependencies.
+  Keep setup and final environment choices in [README](README.md#setup-and-execution).
+  Put comparisons and brief interpretation in
   [results](docs/results.md), and artifact meanings in
   [output format](docs/output_format.md). Keep detailed numerical records in outputs.
-- Before scientific campaigns, document objectives, controls, changed variables,
-  metrics, reproducibility requirements, and decision criteria in
-  `docs/experimental_notes.md`. Obtain approval for the experiment protocol.
-- Record scientific development and evaluation outcomes, limitations, and
-  decisions there at campaign level. Do not add engineering validation history
-  or an operational incident diary. Create report notes only when requested.
-- Each scientific campaign has a short README linking its stable experiment-notes
-  anchor, results table, and `docs/output_format.md`; keep narratives in the notes.
+- Obtain approval for the scientific objective, comparisons, evaluation, and
+  decision rules before execution. Keep campaign-specific reasoning not captured
+  by configurations or artifacts in a concise, objective
+  `output/<campaign>/README.md`, alongside its run directories.
+  Include execution instructions and links to settings, the study phase, results,
+  and `docs/output_format.md`. When several output directories share one design,
+  document it once and link from the others.
+- Do not duplicate run settings or maintain campaign diaries. Update research
+  context for consequential study decisions; keep engineering validation history
+  and operational incidents out of scientific documents unless they affect
+  interpretation. Create report notes only when requested.
 - Only physics points move; keep boundary, initial, and supervised constraints
   fixed in matched sampling comparisons. Keep point budgets matched unless
   budget is the variable explicitly under study.
 - Retain planned seeds and report numerical failures. Distinguish external
-  interruptions from scientific failures; follow the
-  [recovery policy](docs/methodology.md#execution-interruptions-and-recovery).
+  interruptions from scientific failures; follow the [recovery policy](#execution-recovery).
   Preserve completed artifacts; never select retry attempts by favorable error.
   Avoid unsupported novelty or
   superiority claims; diffusion and sharpness benefits are open questions.
@@ -71,6 +73,19 @@ Read ignored `AGENTS.local.md`, if present, at session start.
   points, logs, predictions, and diagnostics. Reference datasets remain ignored
   with restoration instructions. Setup-validation/compatibility runs are
   disposable and ignored; do not create compressed run archives by default.
+
+## Execution recovery
+
+- Retain numerical failures and planned seeds; do not silently retry them or
+  replace seeds. External interruptions are not evidence of algorithm failure.
+  An unchanged same-seed restart is recovery within the approved scope, with
+  completed or scientifically meaningful artifacts preserved. Resolve occupied
+  destinations through a separate attempt or explicitly authorized cleanup of
+  disposable incomplete artifacts; never overwrite runs or select attempts by
+  favorable error.
+- Regenerate missing diagnostics from completed training artifacts when possible.
+  Saved weights do not support exact training resume. Seek approval for changes
+  to scientific settings, budgets, or seeds.
 
 ## Change control
 

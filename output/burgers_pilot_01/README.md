@@ -1,7 +1,7 @@
 # Burgers reproduction pilot: burgers_pilot_01
 
-- [Protocol, results, limitations, and next steps](../../docs/experimental_notes.md#burgers-pilot-01)
-- [Comparison table](../../docs/results.md#burgers-reproduction-pilot--seed-1000)
+Engineering readiness artifacts; excluded from scientific comparison tables.
+
 - [Output file and field dictionary](../../docs/output_format.md)
 
 Saved runs:
@@ -15,7 +15,7 @@ Each seed directory's `config.yaml` records its executed configuration.
 
 The following historical training commands worked at revision `eba6c86`, from
 the repository root using the
-[pinned reproduction environment](../../docs/methodology.md#reproduction-environment).
+[pinned reproduction environment](../../README.md#setup-and-execution).
 The pilot used seed 1000 (`--seed-index 0`), with fixed Hammersley followed by
 PACMANN-Adam, sequentially on the host GPU:
 

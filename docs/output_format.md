@@ -1,8 +1,8 @@
 # Output file dictionary
 
 This document describes the current Burgers runner's saved artifacts. Scientific
-settings and outcomes belong in the saved configuration and experiment notes;
-this dictionary explains how to read the files.
+settings belong in archived configurations, and numerical outcomes in run
+artifacts and [results](results.md); this dictionary explains how to read the files.
 
 ## Directory layout and experiment links
 
@@ -27,16 +27,13 @@ output/<campaign>/
     diagnostics.png
 ```
 
-Each scientific campaign has a short `README.md` linking
-to its protocol/results section in
-[`experimental_notes.md`](experimental_notes.md), its comparison
-table in [`results.md`](results.md), and this dictionary. Give
-the notes section an explicit HTML anchor based on the campaign name, so the
-link remains valid when its heading changes. The notes link back to the campaign.
-This campaign-level link covers its methods and seeds; individual seed
-directories do not need another copy of the narrative.
-The sigma-tuning script prepares these links at launch and preserves an existing
-README; researchers maintain the narrative and results in the linked documents.
+Each scientific campaign has a concise, objective `README.md` with its execution
+instructions and reasoning not captured by configurations or artifacts. Link to
+settings, the relevant [study phase](research_context.md), the comparison in
+[`results.md`](results.md), and this dictionary. Keep a shared design in one
+README and link from related output directories; do not repeat settings or
+create per-seed narratives. The sigma-tuning script prepares these READMEs at
+launch and preserves existing ones.
 
 The trainer writes each seed directory; the analysis script adds the derived
 diagnostics. A failed or interrupted run can have only a subset of these files.
@@ -57,7 +54,7 @@ diagnostics. A failed or interrupted run can have only a subset of these files.
 | `revision` | Git HEAD commit at run start. This identifies the checkout revision; it does not capture uncommitted changes. |
 | `versions` | Installed version strings for DeepXDE, PyTorch, NumPy, SciPy, Matplotlib, and PyYAML. |
 | `dataset_sha256` | SHA-256 fingerprint of the input reference dataset, verified against the imported manifest. It identifies the evaluation data. |
-| `device` | PyTorch default device recorded by the runner, for example `cuda:0` or `cpu`. Final hardware choices belong in methodology; material campaign deviations belong in notes. |
+| `device` | PyTorch default device recorded by the runner, for example `cuda:0` or `cpu`. Final hardware choices belong in the repository README; disclose deviations affecting interpretation in the campaign README or results. |
 
 `status.json` contains `status`: `running`, `complete`, or `failed`. A caught
 failure also records `error`, the exception message. `complete` means the runner
@@ -67,7 +64,7 @@ pinned source commit are in [source provenance](../references/upstream.md).
 
 These are execution states, not scientific classifications. A `failed` entry
 or incomplete files alone cannot distinguish numerical failure from an external
-interruption. Apply the [recovery policy](methodology.md#execution-interruptions-and-recovery)
+interruption. Apply the [recovery policy](../AGENTS.md#execution-recovery)
 before interpreting an attempt or counting scientific failures; no additional
 scientific status field is implied.
 

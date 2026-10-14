@@ -3,10 +3,9 @@
 This independent study investigates collocation dynamics in physics-informed
 neural networks, with a possible publication as its longer-term objective.
 This document records the scientific purpose, study plan, and decisions that
-connect individual campaigns. General procedures belong in
-[methodology](methodology.md), campaign protocols and interpretation in
-[experimental notes](experimental_notes.md), and concise comparisons in
-[results](results.md).
+connect the study phases. Campaign-specific reasoning and execution instructions
+belong in campaign READMEs, comparisons and brief interpretation in
+[results](results.md), and setup instructions in the [repository README](../README.md).
 
 ## Research questions and working hypotheses
 
@@ -21,6 +20,22 @@ different quantities. The study must measure solution sharpness independently
 of adaptive point placement and evaluate both global and feature-region error.
 Residual statistics and point histories help interpret outcomes but cannot
 replace solution-error comparisons.
+
+## Study design principles
+
+Use controlled comparisons with matched settings except for the variables under
+study, and disclose deviations needed for upstream reproduction. Pair seeds,
+initialization, and initial point designs where applicable. Separate tuning from
+evaluation and freeze selected settings before evaluation, with a fair tuning
+policy and disclosed costs for competing methods.
+
+Validate reference solutions against the PDE parameters and document numerical
+accuracy when generating new data. Evaluate on fixed reference sets independent
+of collocation points, with metrics and model-selection rules chosen before
+execution. Measure sharpness and feature regions independently of adaptive
+sampling. Report repeated-seed variability, unfavorable outcomes, missing runs,
+and scientifically consequential deviations. Interpret findings within the
+tested problems, parameters, and evaluation conditions.
 
 ## Stage 1: original-benchmark reproduction and diffusion extension
 
@@ -41,9 +56,16 @@ agreement or discrepancies. One viscosity cannot establish how either method's
 benefit changes with sharpness. Separate seeds assess repeatability on the same
 reference grid, not generalization to unseen reference data or PDE parameters.
 
-The [initial sigma-tuning protocol](experimental_notes.md#burgers-sigma-tuning-01)
-is defined, but the comparison is incomplete and no sigma has been selected.
-The final ten-seed campaign protocol will follow the tuning decision.
+Initial sigma tuning is complete and selected `1e-4` for this benchmark under
+the predeclared minimum-mean final relative L2 rule. See the
+[campaign design](../output/burgers_sigma_tuning_01_baseline/README.md#comparison-design)
+and [results](results.md#original-benchmark-burgers-sigma-tuning).
+The next step is the frozen ten-seed reproduction and diffusion comparison;
+its protocol remains to be approved. This benchmark-specific choice does not
+establish a general diffusion benefit or an effect across solution sharpness.
+The planned evaluation seeds are 1000–1009, excluded from sigma tuning;
+seed 1000 was previously inspected during readiness checks, which must be
+disclosed when reporting evaluation.
 
 ## Stage 2: parameterized sharpness study
 
@@ -58,8 +80,9 @@ For the main parameterized study, select one sigma per PDE family on a small
 development set spanning the intended regimes, then keep it fixed across that
 family's final parameter sweep. Give development conditions equal weight using
 errors normalized to their matched PACMANN baselines. The exact aggregate score
-belongs in the campaign protocol. A benchmark-specific sigma from Stage 1 is a
-candidate for this development search, not automatically the final choice.
+must be specified before execution in the campaign README. A benchmark-specific
+sigma from Stage 1 is a candidate for this development search, not automatically
+the final choice.
 
 Use separate tuning and evaluation seeds, and include parameter values excluded
 from tuning when claiming transfer across the range. Different PDE families may
@@ -86,3 +109,14 @@ does not answer the sharpness question.
 - Resolve reference generation, parameter ranges, sharpness metrics, and the
   final parameterized protocol before making cross-regime claims. Negative or
   uncertain outcomes remain valid results within the tested scope.
+
+## Supporting references
+
+- [NeurIPS paper checklist](https://neurips.cc/public/guides/PaperChecklist):
+  experimental settings, reproducibility, uncertainty, and compute reporting.
+- [Research-code release guidance](https://github.com/paperswithcode/releasing-research-code):
+  documented training, evaluation, environments, and saved artifacts.
+- [Cawley and Talbot, 2010](https://www.jmlr.org/papers/v11/cawley10a.html):
+  selection bias and the distinction between selection and evaluation.
+- [Sivaprasad et al., 2020](https://proceedings.mlr.press/v119/sivaprasad20a.html):
+  accounting for hyperparameter tuning effort in method comparisons.
