@@ -169,19 +169,31 @@ def plot_diagnostics(path, x, times, reference, predicted, history, points, conf
     axes[0, 1].set(xlabel="x", ylabel="t", title="Final absolute error")
     fig.colorbar(image, ax=axes[0, 1])
 
-    # Display the final interior population without boundary/initial constraints.
-    axes[1, 0].scatter(points[:, 0], points[:, 1], s=2)
+    # Place the final interior population over the reference solution.
+    solution = axes[1, 0].pcolormesh(
+        x, times, reference, shading="auto", cmap="RdBu_r", vmin=-1, vmax=1, zorder=0
+    )
+    fig.colorbar(solution, ax=axes[1, 0], label="Reference u(x, t)")
+    axes[1, 0].scatter(points[:, 0], points[:, 1], s=5, color="black", zorder=3)
     axes[1, 0].set(xlabel="x", ylabel="t", title="Final interior collocation points")
 
     # Compare representative Burgers slices at the nearest saved evaluation times.
     for time in (0.25, 0.50, 0.75, 0.99):
         index = int(np.argmin(np.abs(times - time)))
         (line,) = axes[1, 1].plot(
-            x, reference[index], label=f"t={times[index]:.2f} reference"
+            x,
+            reference[index],
+            label=f"t={times[index]:.2f} reference",
+            alpha=0.55,
+            zorder=2,
         )
-        axes[1, 1].plot(x, predicted[index], "--", color=line.get_color())
+        axes[1, 1].plot(x, predicted[index], "--", color=line.get_color(), zorder=3)
     axes[1, 1].set(xlabel="x", ylabel="u", title="Final solution (prediction dashed)")
     axes[1, 1].legend(fontsize=7)
+    # Keep thin grids above heatmaps and below curves and points.
+    for ax in axes.flat:
+        ax.set_axisbelow("line")
+        ax.grid(True, linewidth=0.4, color="0.5", alpha=0.35)
     fig.suptitle(
         f"{config['selected_method']}: Burgers, seed {config['selected_seed']}"
     )
