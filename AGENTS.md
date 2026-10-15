@@ -4,6 +4,12 @@ Read ignored `AGENTS.local.md`, if present, at session start.
 
 ## Scope
 
+- Keep `main` focused on accepted implementations, frozen evaluation settings,
+  full evaluation campaigns, and concise accepted conclusions. Dataset checks
+  live on persistent `dataset-validation`; development runs and tuning settings
+  live on persistent `hyperparameter-tuning`. Transfer selected code or decisions
+  with their source commit; do not merge entire workstreams and their artifacts.
+
 - Communicate and write code and documentation in English.
 - This is an independent research repository, separate from coursework repositories.
   Start small, use targeted diffs, and generalize only when another experiment
@@ -70,8 +76,9 @@ Read ignored `AGENTS.local.md`, if present, at session start.
   Avoid unsupported novelty or
   superiority claims; diffusion and sharpness benefits are open questions.
 - Track scientific run directories directly in Git, including configs, models,
-  points, logs, predictions, and diagnostics. Reference datasets remain ignored
-  with restoration instructions. Setup-validation/compatibility runs are
+  points, logs, predictions, and diagnostics. Reference datasets are tracked;
+  preserve their provenance and restoration instructions.
+  Setup-validation/compatibility runs are
   disposable and ignored; do not create compressed run archives by default.
 
 ## Execution recovery

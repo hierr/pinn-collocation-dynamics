@@ -134,9 +134,9 @@ iteration. Minimum observed test errors are descriptive; they do not select
 the primary result. The final weights are reloaded into a fresh model and checked
 against final predictions during execution; no separate reload metric is stored.
 
-The campaign protocol determines which metric is primary. The current sigma
-search selects using `final_relative_l2`, while upstream-style reporting retains
-the training-loss-selected errors; these answer different comparisons.
+The approved campaign protocol determines which metric is primary. Final-model
+errors and training-loss-selected errors answer different comparisons; identify
+the chosen reporting rule before execution.
 
 ## Recorded convergence: `history.npz`
 

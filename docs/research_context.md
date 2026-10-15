@@ -37,65 +37,58 @@ sampling. Report repeated-seed variability, unfavorable outcomes, missing runs,
 and scientifically consequential deviations. Interpret findings within the
 tested problems, parameters, and evaluation conditions.
 
-## Stage 1: original-benchmark reproduction and diffusion extension
+## Research workstreams
 
-Use the original PACMANN Burgers reference dataset at viscosity `0.01/pi` and
-the released training and sampling settings. The planned ten-seed comparison
-includes fixed Hammersley, PACMANN-Adam, and PACMANN with diffusion. First tune
-sigma on this same benchmark using separate tuning seeds, then freeze it before
-the ten-seed evaluation. Sigma zero remains a valid outcome.
+Use three persistent branches, retaining each workstream's history:
 
-The unmodified methods assess reproduction of the upstream reported results;
-the diffusion variant assesses a modification under those benchmark conditions.
-Preserve and disclose upstream behavior, including unequal PDE populations and
-possible L-BFGS iteration overshoot. This reproduction is distinct from a later
-comparison with strictly matched populations and executed budgets.
+- `dataset-validation`: reference generation, validation scripts, and evidence.
+- `hyperparameter-tuning`: development campaigns, configurations, and selections.
+- `main`: accepted implementations and conclusions, frozen evaluation settings,
+  and full evaluation results.
 
-This stage can establish benchmark-specific diffusion evidence and reproduction
-agreement or discrepancies. One viscosity cannot establish how either method's
-benefit changes with sharpness. Separate seeds assess repeatability on the same
-reference grid, not generalization to unseen reference data or PDE parameters.
+Transfer selected code, configurations, or conclusions with the source commit.
+Avoid whole-branch merges that import unrelated campaigns. Branch separation
+organizes the repository; independent tuning and evaluation seeds and frozen
+settings provide scientific separation.
 
-Initial sigma tuning is complete and selected `1e-4` for this benchmark under
-the predeclared minimum-mean final relative L2 rule. See the
-[campaign design](../output/burgers_sigma_tuning_01_baseline/README.md#comparison-design)
-and [results](results.md#original-benchmark-burgers-sigma-tuning).
-The next step is the frozen ten-seed reproduction and diffusion comparison;
-its protocol remains to be approved. This benchmark-specific choice does not
-establish a general diffusion benefit or an effect across solution sharpness.
-The planned evaluation seeds are 1000–1009, excluded from sigma tuning;
-seed 1000 was previously inspected during readiness checks, which must be
-disclosed when reporting evaluation.
+## Reference validation and current evidence
 
-## Stage 2: parameterized sharpness study
+The collaborator's Chebyshev-collocation/Radau Burgers solver provides generated
+references. At viscosity `0.01/pi`, N1024 was checked against PACMANN on its
+original grid and accepted for this benchmark; see the
+[validation result](results.md#generated-burgers-reference-validation).
+Other viscosities require their own numerical-accuracy checks.
 
-Generate matching reference solutions over a parameter range containing smooth,
-intermediate, and sharp regimes. Burgers viscosity is the first candidate.
-Our professor's proposed high-order MATLAB solver is a potential source; its
-availability and numerical accuracy still need to be established. Additional
-PDE families require their own validated reference solutions. We do not need
-these new datasets to complete Stage 1.
+The earlier pilot remains in Git history; the original-reference sigma sweep
+is retained on `hyperparameter-tuning`. They informed development; they are not
+the main frozen-setting evaluation. The historical `1e-4` selection does not
+freeze sigma for the new generated-reference study. No full ten-seed evaluation
+has been completed.
 
-For the main parameterized study, select one sigma per PDE family on a small
-development set spanning the intended regimes, then keep it fixed across that
-family's final parameter sweep. Give development conditions equal weight using
-errors normalized to their matched PACMANN baselines. The exact aggregate score
-must be specified before execution in the campaign README. A benchmark-specific
-sigma from Stage 1 is a candidate for this development search, not automatically
-the final choice.
+## Parameterized sharpness study
 
-Use separate tuning and evaluation seeds, and include parameter values excluded
-from tuning when claiming transfer across the range. Different PDE families may
-select different sigmas. Per-condition tuning may be a follow-up, but it answers
-how diffusion performs after local adjustment rather than the main question
-about performance as sharpness changes with fixed method settings.
+Start with Burgers references over a viscosity range spanning smooth,
+intermediate, and sharp regimes. Use the generated references after checking
+numerical accuracy. Tune diffusion separately at each viscosity with development
+seeds, then freeze settings before ten-seed comparisons of fixed Hammersley,
+upstream random resampling, RAD, PACMANN, and PACMANN with diffusion. Other PDE
+families can follow later.
 
-The intended broader comparison includes fixed Hammersley, upstream random
-resampling, RAD, PACMANN, and PACMANN with diffusion. Exact resampling settings,
-parameter ranges, sharpness measures, feature regions, and training budgets
-remain to be specified before that campaign. Examine the change in relative
-method benefit across regimes; a method ranking at one parameter value alone
-does not answer the sharpness question.
+This design tests performance after local tuning at each viscosity. It does not
+test transfer of one fixed sigma across the range. Disclose tuning costs and
+apply a fair tuning policy for competing methods. A ranking at one viscosity
+alone does not answer how relative benefit changes with sharpness.
+
+Parameter values, sharpness measures, feature regions, tuning grids and selection
+rules, evaluation seeds, point populations, and training budgets remain to be
+specified in an approved campaign protocol. Preserve released-code behavior
+when assessing reproduction, including its unequal PDE populations and possible
+L-BFGS overshoot; specify matched controls for the broader method comparison.
+
+The trainer currently loads the original PACMANN reference and implements fixed
+Hammersley, PACMANN-Adam, and PACMANN with diffusion. Configurable generated-data
+loading and the other two samplers remain implementation work. The upstream
+settings template is not an approved evaluation configuration.
 
 ## Decisions and open dependencies
 

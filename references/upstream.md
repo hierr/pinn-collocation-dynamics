@@ -25,7 +25,8 @@ and local paths, byte counts, Git blob SHA-1, and SHA-256 for all five files.
 The import was verified against upstream Git blob IDs before installation.
 
 The reference dataset is locally available at `data/burgers/Burgers.npz` and is
-ignored by Git. Its arrays are float64: `x` has shape (256, 1), `t` (100, 1),
+tracked in Git. The identical dataset used in validation is
+`data/burgers_dataset/PACMANN_Burgers.npz`. Its arrays are float64: `x` has shape (256, 1), `t` (100, 1),
 and `usol` (256, 100). These header/archive checks do not validate numerical
 accuracy. The upstream README attributes the Burgers scripts/data to DeepXDE
 examples; the paper attributes the spectral reference solution to Raissi et al.
