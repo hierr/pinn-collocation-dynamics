@@ -1,5 +1,6 @@
-campaign: burgers_pilot_01
-seeds: [1000]
+# Template only: approve the campaign protocol and set seeds before execution.
+campaign: burgers_template
+seeds: []
 problem:
   x_bounds: [-1.0, 1.0]
   t_bounds: [0.0, 0.99]

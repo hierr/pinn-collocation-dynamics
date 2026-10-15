@@ -1,6 +1,6 @@
 # Burgers sigma tuning: burgers_sigma_tuning_01_baseline
 
-- [Study phase](../../docs/research_context.md#stage-1-original-benchmark-reproduction-and-diffusion-extension)
+- [Study phase](../../docs/research_context.md#current-development-and-evaluation-plan)
 - [Results and setting directories](../../docs/results.md#original-benchmark-burgers-sigma-tuning)
 - [Output dictionary](../../docs/output_format.md)
 

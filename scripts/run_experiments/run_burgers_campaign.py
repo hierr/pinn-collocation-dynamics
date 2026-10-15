@@ -6,10 +6,9 @@ from scripts.post_processing.analyze_burgers import analyze_run
 from src.train import ROOT, run_training
 
 # Select the campaign here; scientific settings remain in the YAML file.
-CONFIG_PATH = ROOT / "config/burgers_pilot.yaml"
+CONFIG_PATH = ROOT / "config/burgers_template.yaml"
 
 
-## Scientific research workflow and documentation
 def check_campaign(config: dict):
     """Check selectors and all run destinations without creating artifacts."""
     campaign = config["campaign"]

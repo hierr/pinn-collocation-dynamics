@@ -4,6 +4,11 @@ Read ignored `AGENTS.local.md`, if present, at session start.
 
 ## Scope
 
+- This persistent `hyperparameter-tuning` branch retains development campaigns.
+  Dataset validation lives on `dataset-validation`; accepted implementations and
+  full frozen-setting evaluations live on `main`. Transfer selected commits,
+  configurations, or conclusions without merging entire workstreams.
+
 - Communicate and write code and documentation in English.
 - This is an independent research repository, separate from coursework repositories.
   Start small, use targeted diffs, and generalize only when another experiment
@@ -70,9 +75,9 @@ Read ignored `AGENTS.local.md`, if present, at session start.
   Avoid unsupported novelty or
   superiority claims; diffusion and sharpness benefits are open questions.
 - Track scientific run directories directly in Git, including configs, models,
-  points, logs, predictions, and diagnostics. Reference datasets remain ignored
-  with restoration instructions. Setup-validation/compatibility runs are
-  disposable and ignored; do not create compressed run archives by default.
+  points, logs, predictions, and diagnostics. Reference datasets are tracked;
+  preserve their provenance and restoration instructions.
+  Setup-validation/compatibility runs are disposable and ignored; do not create compressed run archives by default.
 
 ## Execution recovery
 

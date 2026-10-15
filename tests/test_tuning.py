@@ -66,16 +66,16 @@ def save_completed(configs, root, errors=None):
     return paths
 
 
-def test_prepared_grid_matches_pilot(sweep):
+def test_prepared_grid_matches_upstream_template(sweep):
     """Keep all full-budget controls and three tuning seeds consistent."""
     tuning.check_tuning_configs(sweep)
-    pilot = yaml.safe_load(
-        (tuning.CONFIG_PATHS[0].parent / "burgers_pilot.yaml").read_text()
+    template = yaml.safe_load(
+        (tuning.CONFIG_PATHS[0].parent / "burgers_template.yaml").read_text()
     )
     assert sweep[0]["seeds"] == [2000, 2001, 2002]
     for config in sweep:
         for field in ("problem", "network", "training"):
-            assert config[field] == pilot[field]
+            assert config[field] == template[field]
     assert [
         config["methods"]["pacmann_diffusion"]["sigma"] for config in sweep[1:]
     ] == [1e-5, 1e-4, 1e-3, 1e-2]
