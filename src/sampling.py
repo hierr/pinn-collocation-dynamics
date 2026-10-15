@@ -1,4 +1,4 @@
-"""Implement PACMANN coordinate-Adam movement and its diffusion extension.
+"""Implement fixed, resampled, residual-adaptive, and PACMANN collocation.
 
 Adapted from PACMANN, copyright 2025 C. Visser, A. Heinlein, B. Giovanardi.
 Apache-2.0 license: references/pacmann/burgers/LICENSE.
@@ -20,6 +20,120 @@ class FixedHammersley(dde.callbacks.Callback):
         """Initialize the fixed method with zero movement events."""
         super().__init__()
         self.events = 0
+
+
+class RandomResampling(dde.callbacks.Callback):
+    """Replace interior physics points uniformly at the Adam-only cadence."""
+
+    def __init__(self, *, interior_points: int, period: int):
+        """Initialize the population size and persistent resampling counter."""
+        super().__init__()
+        if type(period) is not int or period <= 0:
+            raise ValueError("Resampling period must be a positive integer")
+        self.interior_count = interior_points
+        self.period = period
+        self.adam_steps = 0
+        self.events = 0
+
+    def on_epoch_end(self):
+        """Replace the interior population after each configured Adam interval."""
+        model = self.model
+        if model is None:
+            raise RuntimeError("Callback is not attached to a model")
+        if model.opt_name != "adam":
+            return
+        self.adam_steps += 1
+        if self.adam_steps % self.period:
+            return
+
+        # Match upstream's fresh pseudorandom uniform interior population.
+        data = model.data
+        constraints = data.train_x_bc.copy()
+        points = data.geom.random_points(self.interior_count, random="pseudo")
+        data.replace_with_anchors(points)
+        if not np.array_equal(data.train_x_bc, constraints):
+            raise RuntimeError("Constraint coordinates changed during resampling")
+        self.events += 1
+
+
+class RAD(dde.callbacks.Callback):
+    """Select a replacement physics population using residual-based probabilities."""
+
+    def __init__(
+        self,
+        *,
+        interior_points: int,
+        period: int,
+        candidate_points: int,
+        k: float,
+        c: float,
+        batch_size: int,
+    ):
+        """Initialize candidate scoring, weighted selection, and the Adam counter."""
+        super().__init__()
+        if type(period) is not int or period <= 0:
+            raise ValueError("Resampling period must be a positive integer")
+        if type(candidate_points) is not int or candidate_points < interior_points:
+            raise ValueError("RAD candidate count must cover the interior population")
+        if type(batch_size) is not int or batch_size <= 0:
+            raise ValueError("RAD batch size must be a positive integer")
+        if not np.isfinite([k, c]).all() or k < 0 or c < 0:
+            raise ValueError("RAD k and c must be finite and nonnegative")
+        self.interior_count = interior_points
+        self.period = period
+        self.candidate_points = candidate_points
+        self.k, self.c = k, c
+        self.batch_size = batch_size
+        self.adam_steps = 0
+        self.events = 0
+
+    def on_epoch_end(self):
+        """Score fresh candidates and replace points by weighted sampling."""
+        model = self.model
+        if model is None:
+            raise RuntimeError("Callback is not attached to a model")
+        if model.opt_name != "adam":
+            return
+        self.adam_steps += 1
+        if self.adam_steps % self.period:
+            return
+        data = model.data
+        constraints = data.train_x_bc.copy()
+
+        # Score all candidates in bounded batches before normalizing globally.
+        candidates = data.geom.random_points(self.candidate_points, random="pseudo")
+        residuals = (
+            np.concatenate(
+                [
+                    model.predict(
+                        candidates[start : start + self.batch_size], operator=data.pde
+                    )
+                    for start in range(0, self.candidate_points, self.batch_size)
+                ]
+            )
+            .astype(np.float64)
+            .ravel()
+        )
+        if not np.isfinite(residuals).all():
+            raise FloatingPointError("Non-finite RAD candidate residual")
+        scores = np.abs(residuals) ** self.k
+        mean_score = scores.mean()
+        # A zero residual field has no preferred region; avoid upstream's 0/0.
+        weights = (
+            np.ones_like(scores) if mean_score == 0 else scores / mean_score + self.c
+        )
+        probabilities = weights / weights.sum()
+        if not np.isfinite(probabilities).all() or (probabilities < 0).any():
+            raise FloatingPointError("Invalid RAD sampling probabilities")
+
+        # Keep the point budget fixed and sample candidate indices without replacement.
+        indices = np.random.choice(
+            len(candidates), self.interior_count, replace=False, p=probabilities
+        )
+        data.replace_with_anchors(candidates[indices])
+        if not np.array_equal(data.train_x_bc, constraints):
+            raise RuntimeError("Constraint coordinates changed during resampling")
+        self.events += 1
 
 
 class PacmannAdam(dde.callbacks.Callback):

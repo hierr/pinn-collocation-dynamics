@@ -9,17 +9,19 @@ belong in campaign READMEs, comparisons and brief interpretation in
 
 ## Research questions and working hypotheses
 
-1. Does the relative benefit of residual-guided collocation over sampling
-   baselines increase as the solution develops sharper, localized features?
-2. Does adding stochastic diffusion to PACMANN improve solution accuracy, and
-   does that effect depend on the solution regime?
+1. How does the benefit of point-adaptive collocation over sampling baselines
+   change across solution-sharpness regimes, for solution and PDE-residual error?
+2. Does adding stochastic diffusion to PACMANN improve solution and PDE-residual
+   accuracy, and does that effect depend on the solution regime?
 
 Our intuition motivates these questions; neither benefit is established.
 Sharp solution gradients and coordinate gradients of the residual score are
 different quantities. The study must measure solution sharpness independently
 of adaptive point placement and evaluate both global and feature-region error.
-Residual statistics and point histories help interpret outcomes but cannot
-replace solution-error comparisons.
+Solution error and independently evaluated PDE-residual error are distinct
+outcomes; improvements in one do not imply improvements in the other. Point
+histories help interpret these outcomes. Upstream reproduction checks the
+implementation; the main objective is a controlled comparison across regimes.
 
 ## Study design principles
 
@@ -59,11 +61,13 @@ original grid and accepted for this benchmark; see the
 [validation result](results.md#generated-burgers-reference-validation).
 Other viscosities require their own numerical-accuracy checks.
 
-The earlier pilot remains in Git history; the original-reference sigma sweep
-is retained on `hyperparameter-tuning`. They informed development; they are not
-the main frozen-setting evaluation. The historical `1e-4` selection does not
-freeze sigma for the new generated-reference study. No full ten-seed evaluation
-has been completed.
+The controlled N1024 sigma sweep completed fifteen runs over three paired
+development seeds at `nu = 0.01/pi`. It selected `sigma = 1e-4` by mean final
+solution relative L2, then assessed residual error at that same setting. Carry
+this candidate to evaluation on new seeds at this viscosity; it does not select
+settings for other viscosities. See the [development result](results.md#n1024-diffusion-development-selection).
+Earlier pilot and tuning artifacts remain in Git history or on
+`hyperparameter-tuning`. No full ten-seed evaluation has been completed.
 
 ## Parameterized sharpness study
 
@@ -81,14 +85,59 @@ alone does not answer how relative benefit changes with sharpness.
 
 Parameter values, sharpness measures, feature regions, tuning grids and selection
 rules, evaluation seeds, point populations, and training budgets remain to be
-specified in an approved campaign protocol. Preserve released-code behavior
-when assessing reproduction, including its unequal PDE populations and possible
-L-BFGS overshoot; specify matched controls for the broader method comparison.
+specified in an approved campaign protocol. The controlled study matches
+interior PDE populations and fixed constraints across methods, while retaining
+the shared upstream optimizer schedule and its L-BFGS stopping behavior.
 
-The trainer currently loads the original PACMANN reference and implements fixed
-Hammersley, PACMANN-Adam, and PACMANN with diffusion. Configurable generated-data
-loading and the other two samplers remain implementation work. The upstream
-settings template is not an approved evaluation configuration.
+The trainer loads the generated reference selected by YAML and keeps training
+separate from final-checkpoint evaluation. Fixed Hammersley, upstream random
+resampling, RAD, PACMANN-Adam, and PACMANN with diffusion are implemented.
+The template retains upstream RAD settings rather than separately tuning RAD;
+the final protocol must disclose this tuning policy and the methods' costs.
+Sharpness and feature-region evaluation remain future work. The general settings
+template is not an approved campaign.
+
+Accepted training and evaluation changes were transferred from `59e2de8`, with
+plot improvements from `95c02f8`. Tuning evidence remains on its development
+branch; these transfers do not import its campaigns.
+
+## Accepted controls and evaluation policy
+
+- Match interior PDE point counts from the start and keep identical boundary
+  and initial-condition constraints fixed across methods. Remove the released
+  implementation's method-dependent inclusion of constraints in the PDE loss.
+- Match network architecture, loss weights, and optimizer stages and budgets
+  across methods. Start with shared settings across viscosities; any change
+  needs a stated experimental rationale. Record actual optimizer work and
+  runtime, since equal training schedules do not imply equal computation.
+- Select sigma by the lowest mean final-model solution relative L2 over
+  development seeds at each viscosity, including zero as a valid candidate.
+  Evaluate the same frozen setting for PDE-residual error. Do not choose a
+  second sigma for residual error or combine the outcomes into an undeclared
+  selection score. Report improvements and tradeoffs separately.
+- Evaluate solution error against validated reference values on fixed
+  coordinates. Evaluate PDE-residual RMS on a common fixed interior evaluation
+  set independent of point adaptation, using derivatives of the trained PINN.
+  Training residuals at each method's own collocation points are diagnostics,
+  not the residual comparison. Report boundary and initial-condition errors
+  separately; do not normalize residual error by the zero exact residual.
+- Use ordinary relative L2 and MSE on a common uniform solution grid: initially
+  1,024 spatial points including the boundaries, and the 199 native uniformly
+  spaced reference times through `0.99`. Interpolate the generated Chebyshev
+  reference only in space using barycentric interpolation; infer the PINN
+  directly at these coordinates. Count each space-time point equally. Use
+  ordinary RMSE for boundary and initial-condition errors, and a fixed uniform
+  interior midpoint grid for residual RMS. Check evaluation resolution before
+  tuning each sharper regime.
+- Define sharpness and feature regions from the reference solution independently
+  of adaptive sampling. Compare method benefits across regimes using global and
+  feature-region errors, rather than inferring a sharpness effect from a single
+  viscosity or method ranking.
+- Freeze settings before ten-seed evaluation using seeds excluded from tuning
+  and previously inspected readiness runs. Pair seeds across methods and verify
+  matching initial weights and point designs. Use final-model errors, retain
+  individual outcomes and failures, and report means, sample variability, and
+  paired comparisons. Do not retune on the final evaluation results.
 
 ## Decisions and open dependencies
 
@@ -97,8 +146,16 @@ settings template is not an approved evaluation configuration.
   positive result for the other.
 - Treat tuning as scientific development and the frozen ten-seed comparisons as
   the main evaluation evidence. Engineering readiness checks are separate.
-- Preserve upstream settings for reproduction; specify matched controls and a
-  fair tuning policy for subsequent method comparisons.
+- Retain DeepXDE 1.14's existing L-BFGS driver for the first frozen comparison,
+  matching the procedure used for sigma selection. It may exceed the configured
+  stage iteration and function-evaluation limits; report actual iterations,
+  function evaluations, and runtime rather than claiming identical computation.
+  A strict-cap change would require reviewing tuning under that changed training
+  procedure.
+- At `nu = 0.01/pi`, doubling the solution grid from 1,024 to 2,048 spatial
+  points changed relative L2 by less than 0.003% relative in a six-model check.
+  Uniform-grid and native-grid quadrature scores differed by less than 0.25%
+  relative. Recheck resolution for sharper regimes.
 - Resolve reference generation, parameter ranges, sharpness metrics, and the
   final parameterized protocol before making cross-regime claims. Negative or
   uncertain outcomes remain valid results within the tested scope.

@@ -23,9 +23,26 @@ Evidence is retained on `dataset-validation`, commit `3a7b653`, in
 The latter includes the comparison READMEs, N512/N1024 solver comparisons,
 three-model error table and figure, and unchanged source-model inputs.
 
+## N1024 diffusion development selection
+
+At `nu = 0.01/pi`, the controlled generated-reference sweep compared PACMANN
+with diffusion scales `1e-5`, `1e-4`, `1e-3`, and `1e-2` over paired development
+seeds 3000–3002. The minimum mean final solution relative L2 selected `sigma=1e-4`:
+**0.07963%**, versus **0.14039%** for PACMANN without diffusion. Solution error
+improved in two of three seeds. At that same selected sigma, mean independent
+residual RMS was **0.003648**, versus **0.004322**, also improving in two seeds.
+
+This is a development selection at one viscosity, not evidence of a general
+diffusion benefit or a sharpness effect. DeepXDE's L-BFGS driver sometimes
+exceeded the configured stage iteration and function-evaluation limits; shared
+settings did not imply equal realized computation. Evaluate the selected
+candidate on new seeds.
+
+Detailed comparisons and artifacts remain on `hyperparameter-tuning`, source
+commit [`7fffcb6`](https://github.com/hierr/pinn-collocation-dynamics/commit/7fffcb600c62208958d5681d1bcf3cf5a8618148).
+
 ## Evaluation status
 
-No full frozen-setting ten-seed evaluation has been completed. Earlier
-original-reference tuning runs and their comparison remain on
-`hyperparameter-tuning`; they do not select settings for the new
-per-viscosity generated-reference study. See the [study plan](research_context.md).
+No full frozen-setting ten-seed evaluation has been completed. The N1024
+selection applies only at `nu = 0.01/pi`; other viscosities require their own
+reference checks and development tuning. See the [study plan](research_context.md).

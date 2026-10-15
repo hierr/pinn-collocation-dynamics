@@ -24,9 +24,10 @@ No project-wide license is assigned by importing the upstream license.
 and local paths, byte counts, Git blob SHA-1, and SHA-256 for all five files.
 The import was verified against upstream Git blob IDs before installation.
 
-The reference dataset is locally available at `data/burgers/Burgers.npz` and is
-tracked in Git. The identical dataset used in validation is
-`data/burgers_dataset/PACMANN_Burgers.npz`. Its arrays are float64: `x` has shape (256, 1), `t` (100, 1),
+The reference dataset is tracked at `data/burgers_dataset/PACMANN_Burgers.npz`.
+The immutable import manifest records its historical local path,
+`data/burgers/Burgers.npz`; restoration below uses the retained canonical path.
+Its arrays are float64: `x` has shape (256, 1), `t` (100, 1),
 and `usol` (256, 100). These header/archive checks do not validate numerical
 accuracy. The upstream README attributes the Burgers scripts/data to DeepXDE
 examples; the paper attributes the spectral reference solution to Raissi et al.
@@ -51,7 +52,7 @@ with urllib.request.urlopen(item['url'], timeout=60) as response:
     content = response.read()
 assert len(content) == item['bytes'], 'Unexpected download size'
 assert hashlib.sha256(content).hexdigest() == item['sha256'], 'Checksum mismatch'
-target = Path(item['local_path'])
+target = Path('data/burgers_dataset/PACMANN_Burgers.npz')
 if target.exists():
     assert target.read_bytes() == content, 'Conflicting local dataset'
 else:
@@ -77,32 +78,57 @@ The paper is DOI 10.1016/j.cma.2025.118723, Sections 2 and 3.1, Tables 1-3.
 | Point bookkeeping | 2,500 interior, 80 boundary, 160 initial; callback first uses `train_x[480:]` | Validate DeepXDE's actual arrays and counts; keep constraints fixed. |
 | Network | Float64; four 64-neuron tanh layers; Glorot normal | Preserve precision, architecture, and initialization. |
 | Sampling baseline | Paper uses Hammersley; callback-free default distribution comes from DeepXDE | Verify the pinned library default; do not silently replace it with Halton. |
-| Error selection | Code exports error at minimum recorded training loss and minimum observed test errors | Reproduce named outputs and additionally record final error; agree on comparison policy before runs. |
+| Error selection | Code exports error at minimum recorded training loss and minimum observed test errors | The controlled study instead evaluates the final checkpoint, using the agreed comparison policy. |
 | Software | Paper mentions PyTorch 1.12.1; released requirements pin PyTorch 2.7.1 and DeepXDE 1.14.0 | Choose a compatible locked project environment and disclose differences. |
 | Seeds / failures | Ten repetitions; paper describes replacing occasional failed initializations | Use explicit planned seeds and retain/report failures as repository policy requires; disclose the protocol difference. |
 
 No published result has been reproduced.
 
-## Implemented reproduction choices
+## Controlled-study choices
 
-The maintained code uses [0, 0.99], float64, explicit Hammersley sampling,
-coordinate-Adam epsilon 1e-7 outside the square root, and fresh coordinate moments
-at each event. Escaped points are replaced only after all 15 movement steps.
-Network optimizer state resets at each alternating stage. Planned seeds are
-1000–1009; failed seeds are retained rather than replaced.
+The maintained implementation uses [0, 0.99], float64, explicit Hammersley
+initialization, coordinate-Adam epsilon 1e-7 outside the square root, and fresh
+coordinate moments at each movement event. Escaped points are replaced after
+all movement steps. Network optimizer state resets at each alternating stage.
+Campaign YAMLs specify seeds; failures are retained rather than replaced.
 
-DeepXDE initially includes 240 initial/boundary points in the PDE population:
-2,740 PDE coordinates and 240 fixed constraint coordinates (duplicated in the
-combined training array). Upstream `train_x[480:]` selects the 2,500 interior
-points. The maintained callback selects the corresponding tail of `train_x_all`,
-then replaces PDE anchors with those 2,500 points. The static baseline retains
-2,740 PDE coordinates. This released-code population difference is preserved
-and disclosed; a later matched-budget study must address it explicitly.
+The released implementation starts with 2,740 PDE coordinates: 2,500 interior
+points and 240 initial/boundary points. Upstream `train_x[480:]` selects the
+2,500 interior points, so the adaptive method later uses fewer PDE points than
+the static baseline. The controlled implementation instead uses the configured
+interior PDE population from initialization for every method, while keeping the
+same initial/boundary constraints fixed.
 
 PyTorch is pinned to 2.7.1 with CUDA 12.8 wheels, rather than the paper's 1.12.1.
 The runner updates DeepXDE's derived L-BFGS per-call limits alongside its public
 options; version 1.14.0 otherwise leaves those limits at import-time defaults.
-This matters for short validation limits; the full 3,000-iteration configuration
-retains 1,000 iterations per call. Actual optimizer iterations are archived.
-Final-weight errors and upstream history-selected errors are saved separately.
-Engineering checks do not establish agreement with published numerical results.
+The full 3,000-iteration configuration retains 1,000 iterations per call.
+DeepXDE checks `maxiter` between calls and derives a per-call function-evaluation
+limit from `maxfun`; neither is a strict overall stage cap. For the PyTorch
+backend, positive `maxls` enables strong-Wolfe line search with PyTorch's default
+limit of 25; the configured value 50 is not passed as a numerical limit.
+Actual optimizer iterations and function evaluations are archived.
+
+The first frozen comparison retains this L-BFGS driver, including its possible
+stage-limit overshoot, to match sigma development. Shared optimizer settings do
+not imply identical computation; compare recorded work and runtime.
+
+Random resampling follows the released callback: every 50 Adam steps it replaces
+the interior population with pseudorandom uniform points, not another Hammersley
+design. RAD uses 100,000 fresh pseudorandom candidates at the same cadence,
+weights `abs(residual) / mean(abs(residual)) + 1`, and selects without replacement.
+The maintained RAD callback batches residual predictions before global
+normalization to limit memory. An exactly zero residual field uses uniform
+probabilities instead of the released callback's undefined division. Both
+methods retain the controlled study's matched PDE populations and fixed
+constraints; neither updates points during L-BFGS.
+
+Accepted training/evaluation code was transferred from development commit
+`59e2de8`, and plot improvements from `95c02f8`. The source snapshot above remains
+unchanged; tuning configurations and run artifacts remain on their branch.
+
+Final-checkpoint evaluation uses a uniform grid with spatially interpolated
+generated references and an independent residual grid. Errors are not selected
+from training-history minima. These are controlled-study choices, not a claim
+of published-result reproduction. See the
+[accepted study controls](../docs/research_context.md#accepted-controls-and-evaluation-policy).

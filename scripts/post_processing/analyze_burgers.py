@@ -1,4 +1,4 @@
-"""Calculate error diagnostics and plot one saved Burgers run."""
+"""Evaluate the final Burgers model and plot one saved run."""
 
 import argparse
 import json
@@ -6,11 +6,83 @@ from pathlib import Path
 
 import matplotlib
 import numpy as np
+import torch
 import yaml
+
+from src.artifacts import write_json
+from src.burgers import build_model, load_reference
+
+# Import DeepXDE after src selects the PyTorch backend.
+from deepxde import config as dde_config  # isort: skip
 
 # Render plots without requiring an interactive display.
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def predict_batches(model, coordinates, batch_size: int, operator=None):
+    """Return predictions or PDE derivatives in bounded batches."""
+    values = np.concatenate(
+        [
+            model.predict(coordinates[start : start + batch_size], operator=operator)
+            for start in range(0, len(coordinates), batch_size)
+        ]
+    )
+    if not np.isfinite(values).all():
+        raise FloatingPointError("Non-finite final evaluation")
+    return values
+
+
+def solution_errors(reference, prediction):
+    """Return ordinary solution MSE and relative L2 on one common grid."""
+    reference_norm = np.sum(reference**2)
+    if reference_norm <= 0:
+        raise ValueError("Relative L2 is undefined for a zero reference norm")
+    squared_error = np.sum((prediction - reference) ** 2)
+    return {
+        "final_mse": float(squared_error / reference.size),
+        "final_relative_l2": float(np.sqrt(squared_error / reference_norm)),
+    }
+
+
+def residual_rms(model, problem, nx: int, nt: int, batch_size: int):
+    """Return PDE-residual RMS on a fixed uniform interior midpoint grid."""
+    xmin, xmax = problem["x_bounds"]
+    tmin, tmax = problem["t_bounds"]
+    x = xmin + (np.arange(nx) + 0.5) * (xmax - xmin) / nx
+    times = tmin + (np.arange(nt) + 0.5) * (tmax - tmin) / nt
+    xx, tt = np.meshgrid(x, times)
+    coordinates = np.column_stack((xx.ravel(), tt.ravel()))
+    values = predict_batches(model, coordinates, batch_size, operator=model.data.pde)
+    return float(np.sqrt(np.mean(values**2)))
+
+
+def evaluate_final(model, coordinates, reference, problem, settings):
+    """Return final predictions and solution, PDE, boundary, and initial errors."""
+    batch_size = settings["batch_size"]
+    prediction = predict_batches(model, coordinates, batch_size)
+    metrics = solution_errors(reference, prediction)
+
+    # Evaluate the PDE on points independent of the training and reference grids.
+    metrics["final_residual_rms"] = residual_rms(
+        model, problem, settings["residual_nx"], settings["residual_nt"], batch_size
+    )
+
+    # Evaluate boundary and initial constraints on the same uniform solution grid.
+    x = np.unique(coordinates[:, 0])
+    times = np.unique(coordinates[:, 1])
+    bx, bt = np.meshgrid(problem["x_bounds"], times)
+    boundary = np.column_stack((bx.ravel(), bt.ravel()))
+    boundary_values = predict_batches(model, boundary, batch_size).reshape(-1, 2)
+    metrics["boundary_rmse"] = float(np.sqrt(np.mean(boundary_values**2)))
+    initial = np.column_stack((x, np.full(len(x), problem["t_bounds"][0])))
+    initial_values = predict_batches(model, initial, batch_size).ravel()
+    metrics["initial_rmse"] = float(
+        np.sqrt(np.mean((initial_values + np.sin(np.pi * x)) ** 2))
+    )
+    return prediction, metrics
 
 
 def load_arrays(path: Path):
@@ -24,22 +96,21 @@ def load_arrays(path: Path):
 
 
 def load_artifacts(run: Path):
-    """Return saved predictions, history, final interior points, and config."""
+    """Return saved predictions, history, and final interior points."""
     predictions = load_arrays(run / "predictions.npz")
     history = load_arrays(run / "history.npz")
     points = load_arrays(run / "points/final.npz")["interior"]
-    config = yaml.safe_load((run / "config.yaml").read_text())
     # Check shapes needed for the convergence and point plots.
     steps = history["steps"]
-    for name in ("loss_train", "metrics_test"):
+    for name in ("loss_train", "loss_test"):
         values = history[name]
         if values.ndim != 2 or len(values) != len(steps):
             raise ValueError(f"History {name} must have one row per recorded step")
-    if steps.ndim != 1 or history["metrics_test"].shape[1] < 2:
-        raise ValueError("History must contain steps and MSE/relative-L2 columns")
+    if steps.ndim != 1:
+        raise ValueError("History steps must be one-dimensional")
     if points.ndim != 2 or points.shape[1] != 2:
         raise ValueError("Interior points must contain [x, t] coordinate pairs")
-    return predictions, history, points, config
+    return predictions, history, points
 
 
 def reconstruct_grid(predictions):
@@ -64,8 +135,7 @@ def reconstruct_grid(predictions):
 
 
 def calculate_diagnostics(x, times, reference, predicted):
-    """Return maximum absolute error and relative L2 error at each saved time."""
-    # Normalize each time slice by its own reference solution norm.
+    """Return maximum absolute error and ordinary relative L2 at each saved time."""
     norms = np.linalg.norm(reference, axis=1)
     if np.any(norms == 0):
         raise ValueError("Per-time relative L2 is undefined for a zero reference norm")
@@ -82,36 +152,48 @@ def calculate_diagnostics(x, times, reference, predicted):
 def plot_diagnostics(path, x, times, reference, predicted, history, points, config):
     """Save convergence, final errors, interior points, and solution slices."""
     fig, axes = plt.subplots(2, 2, figsize=(12, 8), constrained_layout=True)
-    # Show the recorded training objective alongside reference prediction error.
+    # Show the recorded optimizer training and test losses.
     axes[0, 0].semilogy(
         history["steps"], np.sum(history["loss_train"], axis=1), label="Training loss"
     )
     axes[0, 0].semilogy(
-        history["steps"], history["metrics_test"][:, 1], label="Relative L2"
+        history["steps"], np.sum(history["loss_test"], axis=1), label="Test loss"
     )
     axes[0, 0].set(xlabel="Global optimizer step", title="Recorded convergence")
     axes[0, 0].legend()
 
-    # Locate final prediction errors on the original reference grid.
+    # Locate final prediction errors using the saved evaluation coordinates.
     image = axes[0, 1].pcolormesh(
         x, times, np.abs(predicted - reference), shading="auto"
     )
     axes[0, 1].set(xlabel="x", ylabel="t", title="Final absolute error")
     fig.colorbar(image, ax=axes[0, 1])
 
-    # Display the final interior population without boundary/initial constraints.
-    axes[1, 0].scatter(points[:, 0], points[:, 1], s=2)
+    # Place the final interior population over the reference solution.
+    solution = axes[1, 0].pcolormesh(
+        x, times, reference, shading="auto", cmap="RdBu_r", vmin=-1, vmax=1, zorder=0
+    )
+    fig.colorbar(solution, ax=axes[1, 0], label="Reference u(x, t)")
+    axes[1, 0].scatter(points[:, 0], points[:, 1], s=5, color="black", zorder=3)
     axes[1, 0].set(xlabel="x", ylabel="t", title="Final interior collocation points")
 
     # Compare representative Burgers slices at the nearest saved evaluation times.
     for time in (0.25, 0.50, 0.75, 0.99):
         index = int(np.argmin(np.abs(times - time)))
         (line,) = axes[1, 1].plot(
-            x, reference[index], label=f"t={times[index]:.2f} reference"
+            x,
+            reference[index],
+            label=f"t={times[index]:.2f} reference",
+            alpha=0.55,
+            zorder=2,
         )
-        axes[1, 1].plot(x, predicted[index], "--", color=line.get_color())
+        axes[1, 1].plot(x, predicted[index], "--", color=line.get_color(), zorder=3)
     axes[1, 1].set(xlabel="x", ylabel="u", title="Final solution (prediction dashed)")
     axes[1, 1].legend(fontsize=7)
+    # Keep thin grids above heatmaps and below curves and points.
+    for ax in axes.flat:
+        ax.set_axisbelow("line")
+        ax.grid(True, linewidth=0.4, color="0.5", alpha=0.35)
     fig.suptitle(
         f"{config['selected_method']}: Burgers, seed {config['selected_seed']}"
     )
@@ -120,11 +202,75 @@ def plot_diagnostics(path, x, times, reference, predicted, history, points, conf
 
 
 def analyze_run(run: Path):
-    """Regenerate derived diagnostics without changing saved training artifacts."""
-    predictions, history, points, config = load_artifacts(run)
+    """Evaluate missing final artifacts and regenerate diagnostics from a saved run."""
+    config = yaml.safe_load((run / "config.yaml").read_text())
+    predictions_path = run / "predictions.npz"
+    metrics_path = run / "metrics.json"
+
+    # Evaluate controlled runs from saved weights; retain completed evaluation artifacts.
+    if not predictions_path.exists() or not metrics_path.exists():
+        settings = config["evaluation"]
+        coordinates, reference, fingerprint = load_reference(
+            ROOT, config["problem"], settings["solution_nx"]
+        )
+        metadata = json.loads((run / "metadata.json").read_text())
+        if fingerprint != metadata["dataset_sha256"]:
+            raise ValueError("Reference dataset differs from the training fingerprint")
+        dde_config.set_default_float("float64")
+        model, _ = build_model(config["problem"], config["network"])
+        model.compile("adam", lr=config["training"]["learning_rate"])
+        model.net.load_state_dict(
+            torch.load(
+                run / "models/final.pt",
+                map_location=torch.get_default_device(),
+                weights_only=True,
+            )
+        )
+        prediction, metrics = evaluate_final(
+            model, coordinates, reference, config["problem"], settings
+        )
+        stages = json.loads((run / "training.json").read_text())["stages"]
+        metrics["training_seconds"] = sum(stage["seconds"] for stage in stages)
+        metrics["movement_events"] = sum(stage["movement_events"] for stage in stages)
+
+        # Recover only when the retained counterpart agrees with checkpoint evaluation.
+        if predictions_path.exists():
+            saved = load_arrays(predictions_path)
+            for name, values in (
+                ("coordinates", coordinates),
+                ("reference", reference),
+                ("prediction", prediction),
+            ):
+                if saved[name].shape != values.shape or not np.allclose(
+                    saved[name], values, rtol=1e-10, atol=1e-12
+                ):
+                    raise ValueError(
+                        f"Existing predictions.npz {name} differs from checkpoint evaluation"
+                    )
+        elif metrics_path.exists():
+            saved_metrics = json.loads(metrics_path.read_text())
+            for name, value in metrics.items():
+                if name not in saved_metrics or not np.isclose(
+                    saved_metrics[name], value, rtol=1e-10, atol=1e-12
+                ):
+                    raise ValueError(
+                        f"Existing metrics.json {name} differs from checkpoint evaluation"
+                    )
+
+        if not predictions_path.exists():
+            np.savez_compressed(
+                predictions_path,
+                coordinates=coordinates,
+                reference=reference,
+                prediction=prediction,
+            )
+        if not metrics_path.exists():
+            write_json(metrics_path, metrics)
+
+    predictions, history, points = load_artifacts(run)
     x, times, reference, predicted = reconstruct_grid(predictions)
     diagnostics = calculate_diagnostics(x, times, reference, predicted)
-    # Save additional error analysis separately from the trainer's metric summary.
+    # Save derived diagnostics separately from the final metric summary.
     (run / "diagnostics.json").write_text(
         json.dumps(diagnostics, indent=2, allow_nan=False) + "\n"
     )

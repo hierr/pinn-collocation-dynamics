@@ -32,7 +32,14 @@ def prepare_run(config: dict, method: str, seed: int, dataset_sha256: str, root:
     ):
         raise ValueError("Campaign must be one ordinary path component")
     if (
-        method not in ("fixed_hammersley", "pacmann_adam", "pacmann_diffusion")
+        method
+        not in (
+            "fixed_hammersley",
+            "random_resampling",
+            "rad",
+            "pacmann_adam",
+            "pacmann_diffusion",
+        )
         or method not in config["methods"]
     ):
         raise ValueError("Unknown sampling method")

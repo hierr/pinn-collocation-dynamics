@@ -2,7 +2,9 @@
 
 import json
 
+import numpy as np
 import pytest
+import torch
 import yaml
 
 from scripts.run_experiments import run_burgers_campaign as runner
@@ -139,31 +141,59 @@ def test_failure_stops_campaign_and_preserves_artifacts(
 
 
 def test_small_campaign_generates_training_and_diagnostics(
-    config, tmp_path, monkeypatch
+    all_methods_config, tmp_path, monkeypatch
 ):
-    """Exercise both real methods and their analysis in disposable output."""
-    reference = load_reference(train.ROOT)
+    """Exercise all five methods with matched initial weights, points, and analysis."""
+    config = all_methods_config
+    reference = load_reference(
+        train.ROOT, config["problem"], config["evaluation"]["solution_nx"]
+    )
     monkeypatch.setattr(train, "ROOT", tmp_path)
     monkeypatch.setattr(runner, "ROOT", tmp_path)
-    monkeypatch.setattr(train, "load_reference", lambda root: reference)
+    monkeypatch.setattr(
+        train, "load_reference", lambda root, problem, solution_nx: reference
+    )
     monkeypatch.setattr(
         "src.artifacts.subprocess.check_output",
         lambda *args, **kwargs: "test-revision\n",
     )
+    initial_weights = []
+    build_model = train.build_model
+
+    def capture_initial_weights(**kwargs):
+        """Capture construction-time weights before each method starts training."""
+        model, gradient = build_model(**kwargs)
+        initial_weights.append(
+            {
+                name: value.detach().clone()
+                for name, value in model.net.state_dict().items()
+            }
+        )
+        return model, gradient
+
+    monkeypatch.setattr(train, "build_model", capture_initial_weights)
     config["network"]["layers"] = [2, 8, 1]
     config["training"].update(phases=1, adam_steps=2, display_every=1)
     config["training"]["lbfgs"].update(maxiter=2, maxfun=3)
     config["methods"]["pacmann_adam"].update(period=2, steps=1)
     runner.run_campaign(config)
+    initial_points = []
     for method in config["methods"]:
         run = (
             tmp_path / "output" / config["campaign"] / "burgers" / method / "seed_1000"
         )
         assert json.loads((run / "status.json").read_text()) == {"status": "complete"}
         metrics = json.loads((run / "metrics.json").read_text())
-        assert metrics["movement_events"] == (1 if method == "pacmann_adam" else 0)
+        assert metrics["movement_events"] == (0 if method == "fixed_hammersley" else 1)
         diagnostics = json.loads((run / "diagnostics.json").read_text())
         assert diagnostics["maximum_absolute_error"] >= 0
         assert (run / "models/final.pt").is_file()
         assert (run / "predictions.npz").is_file()
         assert (run / "diagnostics.png").stat().st_size > 0
+        with np.load(run / "points/initial.npz") as points:
+            initial_points.append({name: points[name].copy() for name in points.files})
+    for weights, points in zip(initial_weights[1:], initial_points[1:]):
+        for name, value in weights.items():
+            torch.testing.assert_close(value, initial_weights[0][name], rtol=0, atol=0)
+        for name, value in points.items():
+            np.testing.assert_array_equal(value, initial_points[0][name])

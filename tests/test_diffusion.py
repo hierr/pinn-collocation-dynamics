@@ -35,10 +35,9 @@ def make_sampler(**overrides):
 
 def attach_sampler(sampler, config, predict):
     """Attach the callback to real DeepXDE point bookkeeping and a known gradient."""
-    coordinates, values, _ = load_reference(train.ROOT)
     dde_config.set_random_seed(2000)
     dde_config.set_default_float("float64")
-    model, _ = build_model(config["problem"], config["network"], coordinates, values)
+    model, _ = build_model(config["problem"], config["network"])
     sampler.model = SimpleNamespace(data=model.data, predict=predict, opt_name="adam")
     return model.data
 
@@ -201,9 +200,13 @@ def test_tiny_training_zero_sigma_parity_and_positive_diffusion(
     config, tmp_path, monkeypatch
 ):
     """Verify final weights/history parity and real noisy training plus diagnostics."""
-    reference = load_reference(train.ROOT)
+    reference = load_reference(
+        train.ROOT, config["problem"], config["evaluation"]["solution_nx"]
+    )
     monkeypatch.setattr(train, "ROOT", tmp_path)
-    monkeypatch.setattr(train, "load_reference", lambda root: reference)
+    monkeypatch.setattr(
+        train, "load_reference", lambda root, problem, solution_nx: reference
+    )
     monkeypatch.setattr(
         "src.artifacts.subprocess.check_output",
         lambda *args, **kwargs: "test-revision\n",
@@ -217,6 +220,8 @@ def test_tiny_training_zero_sigma_parity_and_positive_diffusion(
     )
     original = train.run_training(config, "pacmann_adam", 1000)
     zero = train.run_training(config, "pacmann_diffusion", 1000)
+    analyze_run(original)
+    analyze_run(zero)
     for name in ("predictions.npz", "history.npz", "points/final.npz"):
         with np.load(original / name) as expected, np.load(zero / name) as actual:
             for key in expected.files:
