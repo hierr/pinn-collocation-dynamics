@@ -1,13 +1,15 @@
 """Check common-grid interpolation and saved-weight evaluation with analytic data."""
 
 import csv
-import json
 
 import numpy as np
 import torch
 import yaml
 
-from scripts.post_processing import validate_burgers_reference as validation
+from scripts.dataset_generation.validation import (
+    burguers_compare_pinn_solutions as validation,
+)
+from scripts.dataset_generation.validation import burguers_compare_solvers
 from src.burgers import FNN
 
 
@@ -36,7 +38,7 @@ def test_reference_check_on_polynomial_solutions(tmp_path, monkeypatch):
             x=nodes,
             t=snapshots,
             U=values,
-            config_json=np.array(json.dumps({"nu": 0.01 / np.pi})),
+            nu=np.float64(0.01 / np.pi),
         )
 
     # Save independently evaluated weights and predictions as the input artifacts.
@@ -63,19 +65,22 @@ def test_reference_check_on_polynomial_solutions(tmp_path, monkeypatch):
         )
 
     validation.main()
-    with (output / "reference_errors.csv").open() as handle:
-        references = list(csv.DictReader(handle))
-    assert len(references) == 3
-    assert max(float(row["maximum_absolute_error"]) for row in references) < 1e-12
     with (output / "model_errors.csv").open() as handle:
         models = list(csv.DictReader(handle))
-    assert len(models) == 15
-    assert {row["grid"] for row in models} == {"native", "original"}
+    assert len(models) == 9
     for seed in validation.SEEDS:
         common = [
-            float(row["relative_l2"])
-            for row in models
-            if int(row["seed"]) == seed and row["grid"] == "original"
+            float(row["relative_l2"]) for row in models if int(row["seed"]) == seed
         ]
         np.testing.assert_allclose(common, common[0], rtol=1e-12)
     assert (output / "comparison.png").is_file()
+
+    # The colleague's comparison must also recover identical polynomial references.
+    metrics = burguers_compare_solvers.calculate_overall_errors(
+        burguers_compare_solvers.load_my_dataset(
+            data / "burgers_nu_0p0031830989_N1024.npz"
+        ),
+        burguers_compare_solvers.load_paper_dataset(data / "PACMANN_Burgers.npz"),
+        tmp_path / "colleague_comparison",
+    )
+    assert metrics["max_absolute_error"] < 1e-12

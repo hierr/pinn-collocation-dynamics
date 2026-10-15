@@ -1,0 +1,9 @@
+Overall space-time error metrics
+Time range: [0.0, 0.99]
+Spatial range: [-1.0, 1.0]
+Common grid: 100 x 256
+Global relative L2 error: 6.6435372707e-04
+Global absolute L2 norm: 6.5301986732e-02
+Root mean square error: 4.0813741707e-04
+Mean absolute error: 5.1173471904e-05
+Maximum absolute error: 8.6170579862e-03

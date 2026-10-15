@@ -3,21 +3,22 @@ from pathlib import Path
 
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.interpolate import interp1d
+from scipy.interpolate import BarycentricInterpolator
 
 
 # ============================================================
 # CONFIGURATION
 # ============================================================
 
-MY_DATASET = Path(__file__).resolve().parents[2] / "data/burgers_dataset/burgers_nu_0p0031830989_N512.npz"
-PAPER_DATASET = Path(__file__).resolve().parents[2] / "data/burgers_dataset/PACMANN_Burgers.npz"
+RESOLUTION = 1024
+MY_DATASET = Path(__file__).resolve().parents[3] / f"data/burgers_dataset/burgers_nu_0p0031830989_N{RESOLUTION}.npz"
+PAPER_DATASET = Path(__file__).resolve().parents[3] / "data/burgers_dataset/PACMANN_Burgers.npz"
 
-# Target times to compare. Each dataset uses its nearest snapshot.
-TARGET_TIMES = [0.0, 0.25, 0.50, 0.75, 1.0]
+# Shared snapshot times for the comparison plots.
+TARGET_TIMES = [0.0, 0.25, 0.50, 0.75, 0.99]
 
 # Output directory for plots
-OUTPUT_DIR = Path(__file__).resolve().parents[2] / "data/burgers_dataset/comparison"
+OUTPUT_DIR = Path(__file__).resolve().parents[3] / f"data/burgers_dataset/reference_comparison/n{RESOLUTION}_reference_grid"
 
 
 # ============================================================
@@ -171,25 +172,19 @@ def plot_solutions_overlay(my_data, paper_data, target_times, output_dir):
 
 def plot_difference(my_data, paper_data, target_times, output_dir):
     """
-    Interpolate both solutions onto a common spatial grid and plot
-    my solution minus the PACMANN paper solution.
-
-    The comparison is performed at each dataset's nearest snapshot
-    to the requested time. The actual times are reported in the title.
+    Plot solver minus PACMANN on the original grid at matching snapshot times.
     """
     output_dir.mkdir(parents=True, exist_ok=True)
 
     x_my = my_data["x"]
     x_paper = paper_data["x"]
 
-    # Compare only over the overlapping spatial domain.
-    x_min = max(np.min(x_my), np.min(x_paper))
-    x_max = min(np.max(x_my), np.max(x_paper))
-
-    if x_min >= x_max:
-        raise ValueError("The datasets have no overlapping spatial domain.")
-
-    x_common = np.linspace(x_min, x_max, 1000)
+    # Keep PACMANN values unchanged and interpolate only the Chebyshev solution.
+    if x_paper.min() < x_my.min() or x_paper.max() > x_my.max():
+        raise ValueError("The solver grid must cover the PACMANN spatial domain.")
+    x_common = x_paper
+    weights = (-1.0) ** np.arange(len(x_my))
+    weights[[0, -1]] *= 0.5
 
     fig, axes = plt.subplots(
         len(target_times),
@@ -199,26 +194,12 @@ def plot_difference(my_data, paper_data, target_times, output_dir):
     )
 
     for i, target in enumerate(target_times):
-        t_my, u_my = nearest_snapshot(my_data, target)
         t_paper, u_paper = nearest_snapshot(paper_data, target)
-
-        # Sort spatial coordinates before interpolation.
-        order_my = np.argsort(x_my)
-        order_paper = np.argsort(x_paper)
-
-        u_my_common = interp1d(
-            x_my[order_my],
-            u_my[order_my],
-            kind="linear",
-            bounds_error=True,
-        )(x_common)
-
-        u_paper_common = interp1d(
-            x_paper[order_paper],
-            u_paper[order_paper],
-            kind="linear",
-            bounds_error=True,
-        )(x_common)
+        t_my, u_my = nearest_snapshot(my_data, t_paper)
+        if t_my != t_paper:
+            raise ValueError("The solver dataset lacks the requested PACMANN snapshot.")
+        u_my_common = BarycentricInterpolator(x_my, u_my, wi=weights)(x_common)
+        u_paper_common = u_paper
 
         difference = u_my_common - u_paper_common
 
@@ -336,9 +317,7 @@ def plot_side_by_side(my_data, paper_data, output_dir):
 
 def calculate_overall_errors(my_data, paper_data, output_dir):
     """
-    Interpolate both datasets onto a common space-time grid and
-    calculate global relative L2, RMS, mean absolute, and maximum
-    absolute errors.
+    Calculate solver-reference errors on the original PACMANN space-time grid.
     """
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -356,48 +335,24 @@ def calculate_overall_errors(my_data, paper_data, output_dir):
     x_my, t_my, U_my = sorted_data(my_data)
     x_paper, t_paper, U_paper = sorted_data(paper_data)
 
-    # Determine the overlapping space-time domain.
-    x_min = max(x_my.min(), x_paper.min())
-    x_max = min(x_my.max(), x_paper.max())
-    t_min = max(t_my.min(), t_paper.min())
-    t_max = min(t_my.max(), t_paper.max())
+    # Select exact reference times without temporal interpolation.
+    x_common, t_common = x_paper, t_paper
+    indices = np.argmin(np.abs(t_my[:, None] - t_common[None, :]), axis=0)
+    if not np.array_equal(t_my[indices], t_common):
+        raise ValueError("The solver dataset lacks exact PACMANN snapshot times.")
+    if x_paper.min() < x_my.min() or x_paper.max() > x_my.max():
+        raise ValueError("The solver grid must cover the PACMANN spatial domain.")
 
-    if x_min >= x_max or t_min >= t_max:
-        raise ValueError(
-            "The datasets have no overlapping space-time domain."
-        )
-
-    # Common evaluation grid.
-    n_x = 1000
-    n_t = 500
-
-    x_common = np.linspace(x_min, x_max, n_x)
-    t_common = np.linspace(t_min, t_max, n_t)
-
-    # Interpolate in space, then in time.
-    def interpolate_space_time(x, t, U):
-        # First interpolate each temporal snapshot in space.
-        U_space = np.empty((len(t), n_x))
-
-        for i in range(len(t)):
-            U_space[i] = np.interp(
-                x_common, x, U[i]
-            )
-
-        # Then interpolate in time at each common spatial point.
-        U_common = np.empty((n_t, n_x))
-
-        for j in range(n_x):
-            U_common[:, j] = np.interp(
-                t_common, t, U_space[:, j]
-            )
-
-        return U_common
-
-    U_my_common = interpolate_space_time(x_my, t_my, U_my)
-    U_paper_common = interpolate_space_time(
-        x_paper, t_paper, U_paper
-    )
+    # Interpolate only the Chebyshev solution onto the unchanged reference grid.
+    weights = (-1.0) ** np.arange(len(x_my))
+    weights[[0, -1]] *= 0.5
+    U_my_common = BarycentricInterpolator(
+        x_my, U_my[indices], axis=1, wi=weights
+    )(x_common)
+    U_paper_common = U_paper
+    n_t, n_x = U_paper_common.shape
+    x_min, x_max = x_common.min(), x_common.max()
+    t_min, t_max = t_common.min(), t_common.max()
 
     difference = U_my_common - U_paper_common
     abs_difference = np.abs(difference)
