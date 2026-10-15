@@ -1,0 +1,99 @@
+{
+  "stages": [
+    {
+      "phase": 1,
+      "optimizer": "adam",
+      "seconds": 100.75711061099992,
+      "global_step": 7000,
+      "optimizer_iterations": 7000,
+      "movement_events": 140,
+      "pde_points": 2500
+    },
+    {
+      "phase": 1,
+      "optimizer": "L-BFGS",
+      "seconds": 75.75154048900004,
+      "global_step": 10000,
+      "optimizer_iterations": 3000,
+      "movement_events": 0,
+      "pde_points": 2500,
+      "function_evaluations": 3270
+    },
+    {
+      "phase": 2,
+      "optimizer": "adam",
+      "seconds": 100.9872718889992,
+      "global_step": 17000,
+      "optimizer_iterations": 7000,
+      "movement_events": 140,
+      "pde_points": 2500
+    },
+    {
+      "phase": 2,
+      "optimizer": "L-BFGS",
+      "seconds": 76.96891602999949,
+      "global_step": 20000,
+      "optimizer_iterations": 3000,
+      "movement_events": 0,
+      "pde_points": 2500,
+      "function_evaluations": 3313
+    },
+    {
+      "phase": 3,
+      "optimizer": "adam",
+      "seconds": 100.97356585100079,
+      "global_step": 27000,
+      "optimizer_iterations": 7000,
+      "movement_events": 140,
+      "pde_points": 2500
+    },
+    {
+      "phase": 3,
+      "optimizer": "L-BFGS",
+      "seconds": 76.73600602500028,
+      "global_step": 30000,
+      "optimizer_iterations": 3000,
+      "movement_events": 0,
+      "pde_points": 2500,
+      "function_evaluations": 3319
+    },
+    {
+      "phase": 4,
+      "optimizer": "adam",
+      "seconds": 100.71438364499954,
+      "global_step": 37000,
+      "optimizer_iterations": 7000,
+      "movement_events": 140,
+      "pde_points": 2500
+    },
+    {
+      "phase": 4,
+      "optimizer": "L-BFGS",
+      "seconds": 100.13971407200006,
+      "global_step": 40388,
+      "optimizer_iterations": 3388,
+      "movement_events": 0,
+      "pde_points": 2500,
+      "function_evaluations": 4712
+    },
+    {
+      "phase": 5,
+      "optimizer": "adam",
+      "seconds": 100.80590761499934,
+      "global_step": 47388,
+      "optimizer_iterations": 7000,
+      "movement_events": 140,
+      "pde_points": 2500
+    },
+    {
+      "phase": 5,
+      "optimizer": "L-BFGS",
+      "seconds": 101.12779503899947,
+      "global_step": 50876,
+      "optimizer_iterations": 3488,
+      "movement_events": 0,
+      "pde_points": 2500,
+      "function_evaluations": 4720
+    }
+  ]
+}

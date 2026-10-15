@@ -52,8 +52,13 @@ with their source commit; do not merge entire workstreams and their artifacts.
 
 The current [sigma-tuning campaign](../output/burgers_sigma_tuning_n1024_baseline/README.md)
 uses the validated generated N1024 reference at `nu = 0.01/pi`, matched PDE
-populations, and three paired development seeds per setting. It is prepared for
-remote GPU execution; no sigma has been selected under these controls.
+populations, and three paired development seeds per setting. All 15 planned runs
+completed. The development-selected candidate is `sigma = 1e-4`, based on the
+lowest mean final solution relative L2; residual error was then assessed at that
+same setting. Carry this candidate to a new-seed frozen-setting evaluation at
+this viscosity. It does not determine settings at other viscosities or establish
+an effect across sharpness regimes. See the [results](results.md) for the paired
+comparisons.
 
 The broader study will use generated Burgers references over a viscosity range spanning
 smooth, intermediate, and sharp regimes. The N1024 reference at `0.01/pi` was
@@ -115,6 +120,11 @@ Additional samplers and sharpness/feature-region evaluation remain future work.
   positive result for the other.
 - Treat tuning as scientific development and the frozen ten-seed comparisons as
   the main evaluation evidence. Engineering readiness checks are separate.
+- Resolve L-BFGS stopping before frozen-setting evaluation. The current
+  development sweep used DeepXDE's batched driver, which can exceed the
+  configured stage iteration limit. Decide whether to enforce a strict cap or
+  retain that stopping behavior, consistently across methods, and continue
+  recording actual optimizer work.
 - At `nu = 0.01/pi`, a six-model evaluation check supported uniform-grid scoring:
   moving from 1,024 to 2,048 spatial points changed relative L2 by less than
   0.003% relative, and ordinary uniform-grid scores differed from native-grid

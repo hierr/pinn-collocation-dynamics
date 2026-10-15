@@ -26,13 +26,21 @@ errors, sample SD, and paired changes. Use the same selected sigma for residual
 error; do not select a second residual-optimal setting. Preserve failures and
 unfinished runs; do not select from only the successful subset.
 
+## Optimizer work
+
+DeepXDE 1.14's PyTorch L-BFGS driver checks `maxiter` between optimizer calls.
+Some stages therefore exceeded the configured 3,000-iteration limit; the
+observed range was 3,000–3,620. Settings are matched across methods, while actual
+optimizer work varies. Each run's `training.json` records stage iterations,
+function evaluations, and time.
+
 ## Remote execution
 
 Pull `hyperparameter-tuning`, use the existing environment, and verify CUDA
 execution before starting. From the repository root, with `ACTION = "run"`:
 
 ```bash
-venv/bin/python -m scripts.run_experiments.run_burgers_sigma_tuning
+.venv/bin/python -m scripts.run_experiments.run_burgers_sigma_tuning
 ```
 
 Set `ACTION = "summarize"` in that script and use the same command to print saved

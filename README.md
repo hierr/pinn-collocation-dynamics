@@ -9,10 +9,10 @@ branches, citing the source commit, rather than merging entire workstreams.
 ## Current development campaign
 
 The [N1024 sigma sweep](output/burgers_sigma_tuning_n1024_baseline/README.md)
-is prepared for execution on the remote GPU machine. It compares PACMANN and
-PACMANN with diffusion on the validated generated Burgers reference at
-`nu = 0.01/pi`, using matched training controls and three paired development
-seeds per setting. No results or sigma selection are recorded yet.
+completed all 15 planned runs on the validated generated Burgers reference at
+`nu = 0.01/pi`, with matched controls and three paired development seeds per
+setting. The development-selected candidate is `sigma = 1e-4`; it awaits
+evaluation on new seeds. See [results](docs/results.md) for the comparison.
 
 Tune separately at each Burgers viscosity, then evaluate the frozen settings
 for solution and independent PDE-residual error on ten new seeds. The
@@ -21,8 +21,10 @@ record the accepted controls; [results](docs/results.md) will consolidate outcom
 
 ## Setup and execution
 
-Use Python 3.12 and the existing uv-managed `venv`; conda is unnecessary. The
-locked stack includes DeepXDE 1.14.0 and PyTorch 2.7.1 with CUDA 12.8 wheels.
+Use Python 3.12 and the existing uv-managed local `venv`; conda is unnecessary.
+The locked stack includes DeepXDE 1.14.0 and PyTorch 2.7.1 with CUDA 12.8
+wheels. Remote training used `hier-wsl` with its existing `.venv`, Python
+3.12.12, an NVIDIA GeForce RTX 5070 (driver 617.42), and CUDA device `cuda:0`.
 The backend is PyTorch with float64; saved metadata records the training device,
 source revision, dataset fingerprint, and dependency versions.
 
@@ -31,12 +33,12 @@ uv venv --python 3.12 venv
 VIRTUAL_ENV="$PWD/venv" uv sync --active --locked
 ```
 
-After pulling `hyperparameter-tuning` on the remote machine and checking GPU
-readiness, use the existing environment and run the prepared sweep:
+After pulling `hyperparameter-tuning` on `hier-wsl`, use the existing remote
+environment and run the sweep from `/home/hiero/pinn-collocation-dynamics`:
 `ACTION = "run"` is selected in `scripts/run_experiments/run_burgers_sigma_tuning.py`.
 
 ```bash
-venv/bin/python -m scripts.run_experiments.run_burgers_sigma_tuning
+.venv/bin/python -m scripts.run_experiments.run_burgers_sigma_tuning
 ```
 
 Select `ACTION = "summarize"` in the same script to print the comparison without
