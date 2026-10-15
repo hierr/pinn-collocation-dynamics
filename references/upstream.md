@@ -78,38 +78,35 @@ The paper is DOI 10.1016/j.cma.2025.118723, Sections 2 and 3.1, Tables 1-3.
 | Point bookkeeping | 2,500 interior, 80 boundary, 160 initial; callback first uses `train_x[480:]` | Validate DeepXDE's actual arrays and counts; keep constraints fixed. |
 | Network | Float64; four 64-neuron tanh layers; Glorot normal | Preserve precision, architecture, and initialization. |
 | Sampling baseline | Paper uses Hammersley; callback-free default distribution comes from DeepXDE | Verify the pinned library default; do not silently replace it with Halton. |
-| Error selection | Code exports error at minimum recorded training loss and minimum observed test errors | Reproduce named outputs and additionally record final error; agree on comparison policy before runs. |
+| Error selection | Code exports error at minimum recorded training loss and minimum observed test errors | The controlled study instead evaluates the final checkpoint, using the agreed comparison policy. |
 | Software | Paper mentions PyTorch 1.12.1; released requirements pin PyTorch 2.7.1 and DeepXDE 1.14.0 | Choose a compatible locked project environment and disclose differences. |
 | Seeds / failures | Ten repetitions; paper describes replacing occasional failed initializations | Use explicit planned seeds and retain/report failures as repository policy requires; disclose the protocol difference. |
 
 No published result has been reproduced.
 
-## Historical reproduction choices
+## Controlled-study choices
 
-The retained original-reference runs use [0, 0.99], float64, explicit Hammersley sampling,
-coordinate-Adam epsilon 1e-7 outside the square root, and fresh coordinate moments
-at each event. Escaped points are replaced only after all 15 movement steps.
-Network optimizer state resets at each alternating stage. Planned seeds are
-1000–1009; failed seeds are retained rather than replaced.
+The maintained implementation uses [0, 0.99], float64, explicit Hammersley
+initialization, coordinate-Adam epsilon 1e-7 outside the square root, and fresh
+coordinate moments at each movement event. Escaped points are replaced after
+all movement steps. Network optimizer state resets at each alternating stage.
+Campaign YAMLs specify seeds; failures are retained rather than replaced.
 
-DeepXDE initially includes 240 initial/boundary points in the PDE population:
-2,740 PDE coordinates and 240 fixed constraint coordinates (duplicated in the
-combined training array). Upstream `train_x[480:]` selects the 2,500 interior
-points. The maintained callback selects the corresponding tail of `train_x_all`,
-then replaces PDE anchors with those 2,500 points. The static baseline retains
-2,740 PDE coordinates. This released-code population difference is preserved
-and disclosed; a later matched-budget study must address it explicitly.
+The released implementation starts with 2,740 PDE coordinates: 2,500 interior
+points and 240 initial/boundary points. Upstream `train_x[480:]` selects the
+2,500 interior points, so the adaptive method later uses fewer PDE points than
+the static baseline. The controlled implementation instead uses the configured
+interior PDE population from initialization for every method, while keeping the
+same initial/boundary constraints fixed.
 
 PyTorch is pinned to 2.7.1 with CUDA 12.8 wheels, rather than the paper's 1.12.1.
 The runner updates DeepXDE's derived L-BFGS per-call limits alongside its public
 options; version 1.14.0 otherwise leaves those limits at import-time defaults.
-This matters for short validation limits; the full 3,000-iteration configuration
-retains 1,000 iterations per call. Actual optimizer iterations are archived.
-Final-weight errors and upstream history-selected errors are saved separately.
-Engineering checks do not establish agreement with published numerical results.
+The full 3,000-iteration configuration retains 1,000 iterations per call; actual
+optimizer work is archived.
 
-New controlled runs match the interior PDE population across methods from
-initialization, evaluate solution errors on a uniform grid with spatially
-interpolated generated references, and report
-final-model errors rather than history-selected errors. See the
+Final-checkpoint evaluation uses a uniform grid with spatially interpolated
+generated references and an independent residual grid. Errors are not selected
+from training-history minima. These are controlled-study choices, not a claim
+of published-result reproduction. See the
 [accepted study controls](../docs/research_context.md#accepted-controls-and-evaluation-policy).

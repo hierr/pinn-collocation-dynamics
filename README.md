@@ -6,20 +6,18 @@ configurations, artifacts, and decisions. Dataset validation lives on
 evaluations live on `main`. Transfer selected changes and conclusions between
 branches, citing the source commit, rather than merging entire workstreams.
 
-## Retained development campaign
+## Current development campaign
 
-The [original-reference sigma sweep](output/burgers_sigma_tuning_01_baseline/README.md)
-retains all 15 runs, archived settings, and the shared comparison design.
-[Results](docs/results.md) summarize the historical selection of `1e-4` on the
-original PACMANN reference. This is development evidence, not a completed
-frozen-setting evaluation or a selection for future generated datasets.
+The [N1024 sigma sweep](output/burgers_sigma_tuning_n1024_baseline/README.md)
+is prepared for execution on the remote GPU machine. It compares PACMANN and
+PACMANN with diffusion on the validated generated Burgers reference at
+`nu = 0.01/pi`, using matched training controls and three paired development
+seeds per setting. No results or sigma selection are recorded yet.
 
-The next study will tune separately at each Burgers viscosity using validated
-generated references under matched training controls. Select sigma by mean final
-solution relative L2, then evaluate that same frozen setting for both solution
-error and independent PDE-residual error on ten new seeds. The
+Tune separately at each Burgers viscosity, then evaluate the frozen settings
+for solution and independent PDE-residual error on ten new seeds. The
 [study decisions](docs/research_context.md#accepted-controls-and-evaluation-policy)
-record the accepted controls and remaining campaign choices.
+record the accepted controls; [results](docs/results.md) will consolidate outcomes.
 
 ## Setup and execution
 
@@ -33,17 +31,19 @@ uv venv --python 3.12 venv
 VIRTUAL_ENV="$PWD/venv" uv sync --active --locked
 ```
 
-Select `ACTION = "summarize"` in
-`scripts/run_experiments/run_burgers_sigma_tuning.py` to read the retained sweep:
+After pulling `hyperparameter-tuning` on the remote machine and checking GPU
+readiness, use the existing environment and run the prepared sweep:
+`ACTION = "run"` is selected in `scripts/run_experiments/run_burgers_sigma_tuning.py`.
 
 ```bash
 venv/bin/python -m scripts.run_experiments.run_burgers_sigma_tuning
 ```
 
-Select the YAMLs through `CONFIG_PATHS` in that script. `ACTION = "run"` trains
-and analyzes configured runs; all selected destinations are checked before
-training and existing runs cannot be overwritten. Obtain approval and commit
-the scientific protocol before starting a new campaign. Campaign READMEs are
+Select `ACTION = "summarize"` in the same script to print the comparison without
+training. `CONFIG_PATHS` lists the full YAMLs; all selected destinations are
+checked before training and existing runs cannot be overwritten. Run this
+scientific sweep on the remote machine only. Obtain approval and commit the
+scientific protocol before starting a new campaign. Campaign READMEs are
 maintained manually alongside the outputs.
 
 The reusable runner is `scripts/run_experiments/run_burgers_campaign.py`; select
@@ -71,9 +71,8 @@ venv/bin/python -m scripts.post_processing.analyze_burgers --run-dir 'output/<ca
 ```
 
 `status.json` reports training completion; metrics and diagnostics must also be
-present for comparison. Old artifacts remain readable. Historical YAMLs
-retain their original protocol; new training configurations must provide the
-template's `reference_path` and `evaluation` settings.
+present for comparison. Training configurations must provide the template's
+`reference_path` and `evaluation` settings.
 
 ```bash
 venv/bin/python -m pytest --cov=src --cov=scripts.run_experiments.run_burgers_campaign --cov=scripts.run_experiments.run_burgers_sigma_tuning --cov=scripts.post_processing.analyze_burgers --cov-report=term-missing

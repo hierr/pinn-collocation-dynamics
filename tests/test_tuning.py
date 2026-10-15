@@ -66,20 +66,16 @@ def save_completed(configs, root, errors=None):
     return paths
 
 
-def test_prepared_grid_matches_upstream_template(sweep):
+def test_prepared_grid_matches_controlled_template(sweep):
     """Keep all full-budget controls and three tuning seeds consistent."""
     tuning.check_tuning_configs(sweep)
     template = yaml.safe_load(
         (tuning.CONFIG_PATHS[0].parent / "burgers_template.yaml").read_text()
     )
-    assert sweep[0]["seeds"] == [2000, 2001, 2002]
+    assert sweep[0]["seeds"] == [3000, 3001, 3002]
     for config in sweep:
-        for field in ("problem", "network", "training"):
-            assert config[field] == {
-                key: value
-                for key, value in template[field].items()
-                if key != "reference_path"
-            }
+        for field in ("problem", "network", "training", "evaluation"):
+            assert config[field] == template[field]
     assert [
         config["methods"]["pacmann_diffusion"]["sigma"] for config in sweep[1:]
     ] == [1e-5, 1e-4, 1e-3, 1e-2]
@@ -89,7 +85,7 @@ def test_preflight_entire_sweep_before_execution(sweep, tmp_path, monkeypatch):
     """Find a final-configuration conflict before launching any training."""
     last = sweep[-1]
     existing = (
-        tmp_path / "output" / last["campaign"] / "burgers/pacmann_diffusion/seed_2002"
+        tmp_path / "output" / last["campaign"] / "burgers/pacmann_diffusion/seed_3002"
     )
     existing.mkdir(parents=True)
     calls = []
@@ -167,7 +163,7 @@ def test_unmatched_controls_rejected(sweep, monkeypatch, change):
     elif change == "empty":
         sweep.clear()
     else:
-        sweep[0]["seeds"] = [2000, 2000]
+        sweep[0]["seeds"] = [3000, 3000]
     calls = []
     monkeypatch.setattr(campaign, "run_campaign", lambda config: calls.append(config))
     with pytest.raises(ValueError):
@@ -181,7 +177,7 @@ def test_summary_known_statistics_pairing_and_tie(sweep, tmp_path):
     result = tuning.summarize_tuning(sweep)
     assert "Selected sigma by mean final relative L2: 0.0001." in result
     assert (
-        "| 0.0001 | 3 | 3 | 0 | 0 | 2000: 5; 2001: 15; 2002: 25 | 15 | 10 | -5 | 3/3 | 30.0 |"
+        "| 0.0001 | 3 | 3 | 0 | 0 | 3000: 5; 3001: 15; 3002: 25 | 15 | 10 | -5 | 3/3 | 30.0 |"
         in result
     )
     assert "search boundary" not in result
@@ -214,7 +210,7 @@ def test_incomplete_sweep_never_selects_sigma(sweep, tmp_path, state):
     assert "Selected sigma by" not in result
     count = "1 | 0" if state == "failed" else "0 | 1"
     assert f"| 0.01 | 3 | 2 | {count} |" in result
-    assert "2002: unavailable | — | — | — |" in result
+    assert "3002: unavailable | — | — | — |" in result
 
 
 @pytest.mark.parametrize("field", ["config", "metadata", "metric"])

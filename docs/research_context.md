@@ -50,13 +50,12 @@ lives on `dataset-validation`; `main` retains accepted code, frozen evaluation
 settings, and full evaluation results. Transfer selected code and conclusions
 with their source commit; do not merge entire workstreams and their artifacts.
 
-The historical original-reference Burgers sweep selected `1e-4` on three tuning
-seeds under its predeclared minimum-mean rule; see the
-[campaign design](../output/burgers_sigma_tuning_01_baseline/README.md) and
-[results](results.md). This is development evidence for that reference, not a
-frozen choice for future generated references or proof of diffusion benefit.
+The current [sigma-tuning campaign](../output/burgers_sigma_tuning_n1024_baseline/README.md)
+uses the validated generated N1024 reference at `nu = 0.01/pi`, matched PDE
+populations, and three paired development seeds per setting. It is prepared for
+remote GPU execution; no sigma has been selected under these controls.
 
-The next phase uses generated Burgers references over a viscosity range spanning
+The broader study will use generated Burgers references over a viscosity range spanning
 smooth, intermediate, and sharp regimes. The N1024 reference at `0.01/pi` was
 accepted after validation on `dataset-validation`; new viscosities require their
 own numerical-accuracy checks.
@@ -66,11 +65,6 @@ freeze settings before ten-seed comparisons of fixed Hammersley, upstream random
 resampling, RAD, PACMANN, and PACMANN with diffusion. Per-viscosity tuning measures
 performance after local adjustment; it does not establish transfer of one fixed
 sigma across regimes. Additional PDE families may follow later.
-
-The historical sweep informs the next search range; a separate re-scoring
-campaign is unnecessary. It does not replace tuning under revised training
-controls: changing PDE point populations requires new training, whereas changing
-only reference values allows existing predictions to be re-scored.
 
 The controlled Burgers implementation loads generated references, matches PDE
 populations, and evaluates final solution, residual, and constraint errors.
@@ -121,8 +115,6 @@ Additional samplers and sharpness/feature-region evaluation remain future work.
   positive result for the other.
 - Treat tuning as scientific development and the frozen ten-seed comparisons as
   the main evaluation evidence. Engineering readiness checks are separate.
-- Keep historical reproduction and tuning artifacts under their original
-  protocols; apply the controls above to new campaigns.
 - At `nu = 0.01/pi`, a six-model evaluation check supported uniform-grid scoring:
   moving from 1,024 to 2,048 spatial points changed relative L2 by less than
   0.003% relative, and ordinary uniform-grid scores differed from native-grid

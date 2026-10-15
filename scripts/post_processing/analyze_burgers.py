@@ -108,11 +108,6 @@ def load_artifacts(run: Path):
             raise ValueError(f"History {name} must have one row per recorded step")
     if steps.ndim != 1:
         raise ValueError("History steps must be one-dimensional")
-    if "metrics_test" in history and (
-        history["metrics_test"].ndim != 2
-        or history["metrics_test"].shape != (len(steps), 2)
-    ):
-        raise ValueError("Historical metrics must contain MSE/relative-L2 columns")
     if points.ndim != 2 or points.shape[1] != 2:
         raise ValueError("Interior points must contain [x, t] coordinate pairs")
     return predictions, history, points
@@ -157,18 +152,13 @@ def calculate_diagnostics(x, times, reference, predicted):
 def plot_diagnostics(path, x, times, reference, predicted, history, points, config):
     """Save convergence, final errors, interior points, and solution slices."""
     fig, axes = plt.subplots(2, 2, figsize=(12, 8), constrained_layout=True)
-    # Show optimizer loss curves; old runs can also contain reference-error history.
+    # Show the recorded optimizer training and test losses.
     axes[0, 0].semilogy(
         history["steps"], np.sum(history["loss_train"], axis=1), label="Training loss"
     )
-    if "metrics_test" in history:
-        axes[0, 0].semilogy(
-            history["steps"], history["metrics_test"][:, 1], label="Relative L2"
-        )
-    else:
-        axes[0, 0].semilogy(
-            history["steps"], np.sum(history["loss_test"], axis=1), label="Test loss"
-        )
+    axes[0, 0].semilogy(
+        history["steps"], np.sum(history["loss_test"], axis=1), label="Test loss"
+    )
     axes[0, 0].set(xlabel="Global optimizer step", title="Recorded convergence")
     axes[0, 0].legend()
 
@@ -206,9 +196,7 @@ def analyze_run(run: Path):
     metrics_path = run / "metrics.json"
 
     # Evaluate controlled runs from saved weights; retain completed evaluation artifacts.
-    if "evaluation" in config and (
-        not predictions_path.exists() or not metrics_path.exists()
-    ):
+    if not predictions_path.exists() or not metrics_path.exists():
         settings = config["evaluation"]
         coordinates, reference, fingerprint = load_reference(
             ROOT, config["problem"], settings["solution_nx"]

@@ -1,8 +1,6 @@
 """Check grid reconstruction and numerical diagnostics independently of training."""
 
 import json
-import shutil
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -44,22 +42,6 @@ def test_ordinary_time_slice_errors():
         np.array([[1.0, 2.0, 1.0]]),
     )
     np.testing.assert_allclose(result["per_time_relative_l2"], [1 / np.sqrt(3)])
-
-
-def test_historical_run_remains_readable(tmp_path):
-    """Regenerate old diagnostics in temporary storage without altering the archive."""
-    source = Path(__file__).resolve().parents[1] / (
-        "output/burgers_sigma_tuning_01_baseline/burgers/pacmann_adam/seed_2000"
-    )
-    (tmp_path / "points").mkdir()
-    for name in ("predictions.npz", "history.npz", "points/final.npz", "config.yaml"):
-        shutil.copy2(source / name, tmp_path / name)
-    actual = analyze_run(tmp_path)
-    expected = json.loads((source / "diagnostics.json").read_text())
-    np.testing.assert_allclose(
-        actual["per_time_relative_l2"], expected["per_time_relative_l2"], rtol=1e-12
-    )
-    assert (tmp_path / "diagnostics.png").is_file()
 
 
 @pytest.mark.parametrize("indices", [[1, 0, 2, 3], [0, 1, 2]])
