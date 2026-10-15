@@ -10,10 +10,11 @@ study decisions belong in [research context](research_context.md).
 ## Current evidence
 
 The [original-benchmark sigma comparison](#original-benchmark-burgers-sigma-tuning)
-is complete and selects `1e-4` for later evaluation on this benchmark. The final
-ten-seed reproduction and diffusion comparison has not been completed.
-Parameterized sharpness comparisons require new reference data; see the
-[study plan](research_context.md).
+selected `1e-4` under its original training and evaluation protocol. This is
+historical development evidence, not a frozen setting for the new controlled
+study. No full ten-seed controlled evaluation has been completed. Parameterized
+sharpness comparisons require validated references and the
+[accepted controls and evaluation policy](research_context.md#accepted-controls-and-evaluation-policy).
 
 <a id="original-benchmark-burgers-sigma-tuning"></a>
 

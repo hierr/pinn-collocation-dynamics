@@ -2,6 +2,9 @@
 
 import ast
 import copy
+import hashlib
+import json
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
@@ -17,22 +20,39 @@ from src.sampling import FixedHammersley, PacmannAdam
 from src.train import ROOT
 
 
-def test_reference_ordering_and_checksum(tmp_path):
-    """Check flattening against the original grid and reject altered data."""
-    x, y, fingerprint = load_reference(ROOT)
-    with np.load(ROOT / "data/burgers/Burgers.npz") as original:
-        np.testing.assert_array_equal(x[:256, 0], original["x"].ravel())
-        np.testing.assert_array_equal(y[:256, 0], original["usol"][:, 0])
-        np.testing.assert_array_equal(x[:256, 1], np.zeros(256))
-    assert len(fingerprint) == 64
-    (tmp_path / "references/pacmann/burgers").mkdir(parents=True)
-    (tmp_path / "data/burgers").mkdir(parents=True)
-    (tmp_path / "references/pacmann/burgers/manifest.json").write_bytes(
-        (ROOT / "references/pacmann/burgers/manifest.json").read_bytes()
+def test_reference_ordering_and_checksum(config):
+    """Check uniform ordering, interpolated initial values, and the data fingerprint."""
+    coordinates, values, fingerprint = load_reference(
+        ROOT, config["problem"], config["evaluation"]["solution_nx"]
     )
-    (tmp_path / "data/burgers/Burgers.npz").write_bytes(b"changed")
-    with pytest.raises(ValueError, match="checksum"):
-        load_reference(tmp_path)
+    np.testing.assert_array_equal(coordinates[:17, 0], np.linspace(-1, 1, 17))
+    np.testing.assert_allclose(
+        values[:17, 0], -np.sin(np.pi * coordinates[:17, 0]), atol=1e-10
+    )
+    np.testing.assert_array_equal(coordinates[:17, 1], np.zeros(17))
+    assert coordinates.shape == (51, 2)
+    assert (
+        fingerprint
+        == hashlib.sha256(
+            Path(config["problem"]["reference_path"]).read_bytes()
+        ).hexdigest()
+    )
+
+
+def test_original_reference_retains_upstream_checksum():
+    """Verify the retained canonical PACMANN dataset against its immutable manifest."""
+    manifest = json.loads(
+        (ROOT / "references/pacmann/burgers/manifest.json").read_text()
+    )
+    item = next(
+        item for item in manifest["files"] if item["local_path"].endswith(".npz")
+    )
+    assert (
+        hashlib.sha256(
+            (ROOT / "data/burgers_dataset/PACMANN_Burgers.npz").read_bytes()
+        ).hexdigest()
+        == item["sha256"]
+    )
 
 
 def test_residual_derivatives():
@@ -48,13 +68,14 @@ def test_residual_derivatives():
 @pytest.mark.parametrize("step_size", [1e-5, 2.0])
 def test_sampler_matches_imported_callback(config, step_size):
     """Compare our callback directly with upstream over two events and L-BFGS."""
-    x, y, _ = load_reference(ROOT)
     dde_config.set_random_seed(1000)
     dde_config.set_default_float("float64")
-    model, residual_gradient = build_model(config["problem"], config["network"], x, y)
+    model, residual_gradient = build_model(config["problem"], config["network"])
     constraints = model.data.train_x_bc.copy()
-    assert len(model.data.train_x_all) == 256
+    assert len(model.data.train_x_all) == 16
     original_data = copy.deepcopy(model.data)
+    # Recreate the released callback's 480-row prefix only in this parity fixture.
+    original_data.train_x = np.vstack((constraints, original_data.train_x))
     settings = config["methods"]["pacmann_adam"]
     # Compile only the nested upstream class, without executing its training function.
     tree = ast.parse(
@@ -114,17 +135,22 @@ def test_sampler_matches_imported_callback(config, step_size):
 
 def test_fixed_hammersley_preserves_seeded_points(config):
     """Verify seeded construction and the fixed callback preserve point populations."""
-    x, y, _ = load_reference(ROOT)
     dde_config.set_random_seed(1000)
     dde_config.set_default_float("float64")
-    first, _ = build_model(config["problem"], config["network"], x, y)
+    first, _ = build_model(config["problem"], config["network"])
     dde_config.set_random_seed(1000)
-    second, _ = build_model(config["problem"], config["network"], x, y)
+    second, _ = build_model(config["problem"], config["network"])
     sampler = FixedHammersley()
     sampler.set_model(first)
     sampler.on_epoch_end()
     np.testing.assert_array_equal(first.data.train_x_all, second.data.train_x_all)
     np.testing.assert_array_equal(first.data.train_x_bc, second.data.train_x_bc)
+    assert len(first.data.train_x_all) == config["problem"]["interior_points"]
+    constraints = first.data.train_x_bc
+    np.testing.assert_array_equal(first.data.train_x[: len(constraints)], constraints)
+    np.testing.assert_array_equal(first.data.test_x[: len(constraints)], constraints)
+    for name, value in first.net.state_dict().items():
+        torch.testing.assert_close(value, second.net.state_dict()[name], rtol=0, atol=0)
     assert sampler.events == 0
 
 

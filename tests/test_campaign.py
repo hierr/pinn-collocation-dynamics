@@ -142,10 +142,14 @@ def test_small_campaign_generates_training_and_diagnostics(
     config, tmp_path, monkeypatch
 ):
     """Exercise both real methods and their analysis in disposable output."""
-    reference = load_reference(train.ROOT)
+    reference = load_reference(
+        train.ROOT, config["problem"], config["evaluation"]["solution_nx"]
+    )
     monkeypatch.setattr(train, "ROOT", tmp_path)
     monkeypatch.setattr(runner, "ROOT", tmp_path)
-    monkeypatch.setattr(train, "load_reference", lambda root: reference)
+    monkeypatch.setattr(
+        train, "load_reference", lambda root, problem, solution_nx: reference
+    )
     monkeypatch.setattr(
         "src.artifacts.subprocess.check_output",
         lambda *args, **kwargs: "test-revision\n",

@@ -12,11 +12,15 @@ from src.burgers import load_reference
 
 
 @pytest.fixture
-def run_root(tmp_path, monkeypatch):
-    """Use temporary output while retaining the original reference dataset."""
-    reference = load_reference(train.ROOT)
+def run_root(config, tmp_path, monkeypatch):
+    """Use temporary output and the small independent test reference."""
+    reference = load_reference(
+        train.ROOT, config["problem"], config["evaluation"]["solution_nx"]
+    )
     monkeypatch.setattr(train, "ROOT", tmp_path)
-    monkeypatch.setattr(train, "load_reference", lambda root: reference)
+    monkeypatch.setattr(
+        train, "load_reference", lambda root, problem, solution_nx: reference
+    )
     monkeypatch.setattr(
         "src.artifacts.subprocess.check_output",
         lambda *args, **kwargs: "test-revision\n",
@@ -40,26 +44,13 @@ def test_training_preserves_artifacts_and_stage_behavior(config, run_root, metho
     metadata = json.loads((run_dir / "metadata.json").read_text())
     assert set(metadata) == {"revision", "versions", "dataset_sha256", "device"}
     assert "Training model" in (run_dir / "run.log").read_text()
-    summary = json.loads((run_dir / "metrics.json").read_text())
-    assert set(summary) == {
-        "final_mse",
-        "final_relative_l2",
-        "upstream_min_loss_step",
-        "upstream_mse_at_min_loss",
-        "upstream_l2_at_min_loss",
-        "upstream_min_observed_mse",
-        "upstream_min_observed_l2",
-        "movement_events",
-        "training_seconds",
-    }
-    with np.load(run_dir / "predictions.npz") as predictions:
-        assert set(predictions.files) == {"coordinates", "reference", "prediction"}
+    assert not (run_dir / "metrics.json").exists()
+    assert not (run_dir / "predictions.npz").exists()
     with np.load(run_dir / "history.npz") as history:
         assert set(history.files) == {
             "steps",
             "loss_train",
             "loss_test",
-            "metrics_test",
         }
 
     stages = json.loads((run_dir / "training.json").read_text())["stages"]
@@ -71,7 +62,6 @@ def test_training_preserves_artifacts_and_stage_behavior(config, run_root, metho
     ]
     expected_events = [1, 0, 2, 0] if method == "pacmann_adam" else [0, 0, 0, 0]
     assert [stage["movement_events"] for stage in stages] == expected_events
-    assert summary["movement_events"] == sum(expected_events)
     for stage in stages:
         expected_keys = {
             "phase",
@@ -157,3 +147,23 @@ def test_invalid_selectors_create_no_output(config, tmp_path, selector):
     with pytest.raises(ValueError):
         prepare_run(config, method, seed, "unused", tmp_path)
     assert not (tmp_path / "output").exists()
+
+
+@pytest.mark.parametrize(
+    "field, value",
+    [("residual_nx", 0), ("residual_nt", -1), ("batch_size", 0), ("batch_size", 1.5)],
+)
+def test_invalid_evaluation_sizes_rejected_before_run(
+    config, monkeypatch, field, value
+):
+    """Reject invalid evaluation sizes before creating artifacts or training."""
+    config["evaluation"][field] = value
+    monkeypatch.setattr(
+        train,
+        "prepare_run",
+        lambda *args: pytest.fail(
+            "Invalid evaluation settings reached run preparation"
+        ),
+    )
+    with pytest.raises(ValueError, match=field):
+        train.run_training(config, "fixed_hammersley", 1000)

@@ -1,4 +1,4 @@
-"""Provide the maintained Burgers reproduction modules."""
+"""Provide the controlled Burgers study modules."""
 
 import os
 

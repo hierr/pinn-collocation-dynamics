@@ -35,17 +35,20 @@ README and link from related output directories; do not repeat settings or
 create per-seed narratives. Maintain these READMEs as documentation; execution
 scripts write the numerical run artifacts.
 
-The trainer writes each seed directory; the analysis script adds the derived
-diagnostics. A failed or interrupted run can have only a subset of these files.
+The trainer writes configuration, provenance, status, logs, optimizer records,
+histories, model checkpoints, and training points. Post-processing loads the
+final checkpoint and archived settings to write `predictions.npz`, `metrics.json`,
+and diagnostics. The campaign runner performs both steps automatically. A failed
+or interrupted run can have only a subset of these files.
 
 ## Configuration, provenance, and status
 
 | File | Contents and purpose |
 | --- | --- |
-| `config.yaml` | Configuration copied at run start, including campaign, planned seeds, problem parameters and point budgets, network layers, optimizer settings, and sampling settings. `selected_method` and `selected_seed` identify this particular run; `seeds` remains the campaign's configured list. |
+| `config.yaml` | Configuration copied at run start, including campaign, planned seeds, problem parameters, reference path, point budgets, network layers, optimizer, sampling, and evaluation settings. `selected_method` and `selected_seed` identify this particular run; `seeds` remains the campaign's configured list. |
 | `metadata.json` | Code revision, dependency versions, reference dataset identity, and device used by the runner. |
 | `status.json` | Execution state. |
-| `run.log` | Standard output and errors captured during training/evaluation, including DeepXDE progress messages and failure tracebacks. |
+| `run.log` | Standard output and errors captured during training, including DeepXDE progress messages and training failure tracebacks. |
 
 `metadata.json` fields:
 
@@ -53,12 +56,16 @@ diagnostics. A failed or interrupted run can have only a subset of these files.
 | --- | --- |
 | `revision` | Git HEAD commit at run start. This identifies the checkout revision; it does not capture uncommitted changes. |
 | `versions` | Installed version strings for DeepXDE, PyTorch, NumPy, SciPy, Matplotlib, and PyYAML. |
-| `dataset_sha256` | SHA-256 fingerprint of the input reference dataset, verified against the imported manifest. It identifies the evaluation data. |
+| `dataset_sha256` | SHA-256 fingerprint of the input reference dataset. Generated data are checked against the configured viscosity, domain, initial condition, and native grid; historical original-reference runs verified the fingerprint against the imported manifest. |
 | `device` | PyTorch default device recorded by the runner, for example `cuda:0` or `cpu`. Final hardware choices belong in the repository README; disclose deviations affecting interpretation in the campaign README or results. |
 
 `status.json` contains `status`: `running`, `complete`, or `failed`. A caught
-failure also records `error`, the exception message. `complete` means the runner
-finished its checks and output writes; it does not establish a scientific claim.
+failure also records `error`, the exception message. For new runs, `complete`
+means training and its artifact writes finished; final evaluation and diagnostics
+must also exist before a run is ready for comparison. An evaluation failure stops
+the campaign without changing the training status or requiring retraining.
+Historical runs included final evaluation in this status. Completion does not
+establish a scientific claim.
 An abrupt interruption can leave `running` behind. Upstream attribution and the
 pinned source commit are in [source provenance](../references/upstream.md).
 
@@ -85,6 +92,16 @@ replacement still uses upstream sampling and can consume different draws when
 positive sigma changes which points escape. Initial points and weights remain
 paired across configurations.
 
+For controlled runs, `problem.reference_path` selects a generated NPZ with `x`,
+`t`, `U` (time by space), and `nu`. `evaluation.solution_nx` sets the number of
+uniform spatial evaluation points, including the boundaries. The reference is
+interpolated in space using Chebyshev barycentric interpolation, retaining the
+native uniformly spaced times within the exact configured interval.
+`evaluation.residual_nx` and `residual_nt` specify the independent uniform interior
+midpoint grid; `batch_size` limits prediction and autograd batches. The template
+uses 1024 solution points, 1024 by 200 residual points, and batches of 4096.
+These settings are archived with every new run.
+
 ## Optimizer-stage records: `training.json`
 
 The top-level `stages` list records completed optimizer stages in execution
@@ -95,12 +112,12 @@ is reset when each stage is compiled.
 | --- | --- | --- |
 | `phase` | Integer, starting at 1 | Phase number. |
 | `optimizer` | String | `adam` or `L-BFGS`. This is the network optimizer, separate from coordinate Adam used by PACMANN. |
-| `seconds` | Seconds | Elapsed stage compilation and training time, with CUDA synchronization. Excludes subsequent snapshot writes, final evaluation/reload, and post-processing. |
+| `seconds` | Seconds | Elapsed stage compilation and training time, with CUDA synchronization. Excludes subsequent snapshot writes and post-processing, including checkpoint loading and final evaluation. |
 | `global_step` | Integer | Cumulative DeepXDE network optimizer step at the stage endpoint. Includes previous stages; excludes coordinate movement steps and L-BFGS function evaluations. |
 | `optimizer_iterations` | Integer | Stage's network iterations: the configured completed Adam steps or the L-BFGS optimizer's actual `n_iter` counter. |
 | `function_evaluations` | Integer; L-BFGS only | Actual L-BFGS `func_evals` counter, including repeated closure evaluations during optimization. Omitted for Adam. |
 | `movement_events` | Integer | PACMANN movement events during this stage. One event contains the configured number of coordinate updates; it is not one event per point or per coordinate step. Zero for fixed sampling and L-BFGS. |
-| `pde_points` | Integer | Number of PDE-residual coordinates at the endpoint, corresponding to the saved `pde` array. Constraints can overlap this population. |
+| `pde_points` | Integer | Number of PDE-residual coordinates at the endpoint, corresponding to the saved `pde` array. Controlled runs use the configured interior count throughout. |
 
 Actual L-BFGS iterations can exceed the configured limit because DeepXDE makes
 optimizer calls in batches. Use the recorded counts when comparing executed
@@ -110,9 +127,10 @@ contain a partial stage list.
 ## Error and timing summary: `metrics.json`
 
 Let `prediction` be the network solution and `reference` the reference solution
-at all saved evaluation coordinates. MSE is the mean squared difference;
-relative L2 is `norm(prediction - reference) / norm(reference)`. Relative errors
-are stored as fractions: multiply by 100 for percentages. MSE has squared
+at all saved evaluation coordinates, with `error = prediction - reference`.
+MSE is `mean(error**2)`;
+relative L2 is `sqrt(sum(error**2) / sum(reference**2))`, counting each grid point
+equally. Relative errors are stored as fractions: multiply by 100 for percentages. MSE has squared
 solution units; relative L2 is dimensionless. The current Burgers benchmark uses
 nondimensional coordinates and solution values.
 
@@ -120,23 +138,29 @@ nondimensional coordinates and solution values.
 | --- | --- |
 | `final_mse` | MSE of the final saved model over the complete evaluation grid. |
 | `final_relative_l2` | Relative L2 of that final model over the same grid. |
+| `final_residual_rms` | RMS of `u_t + u*u_x - viscosity*u_xx`, using PINN autograd derivatives on the independent interior midpoint grid. No reference solution or zero-residual normalization is used. |
+| `boundary_rmse` | RMSE against zero at both spatial boundaries, averaged equally over both boundaries and all retained times. |
+| `initial_rmse` | RMSE against `-sin(pi*x)` at the configured initial time, averaged equally over the uniform spatial evaluation points. |
 | `upstream_min_loss_step` | Recorded global step with the smallest sum of training-loss components. The first occurrence is used if sums tie. |
 | `upstream_mse_at_min_loss` | Reference-grid MSE at that recorded step. |
 | `upstream_l2_at_min_loss` | Reference-grid relative L2 at that recorded step; used for upstream-style reproduction reporting. |
 | `upstream_min_observed_mse` | Smallest MSE in the recorded history. |
 | `upstream_min_observed_l2` | Smallest relative L2 in the recorded history. Its step may differ from the minimum-MSE or minimum-training-loss step. |
 | `movement_events` | Total PACMANN events across training; sum of the stage event counts. |
-| `training_seconds` | Sum of stage `seconds`, including compilation and training with movement callbacks, excluding evaluation reload and post-processing. |
+| `training_seconds` | Sum of stage `seconds`, including compilation and training with movement callbacks. Excludes checkpoint loading, final evaluation, and plotting. |
 
-The `upstream_` prefix identifies reporting conventions retained from the
-released reproduction. Minima refer to recorded observations, not every network
-iteration. Minimum observed test errors are descriptive; they do not select
-the primary result. The final weights are reloaded into a fresh model and checked
-against final predictions during execution; no separate reload metric is stored.
+The `upstream_` fields occur only in historical runs; new controlled runs do not
+write them. They describe recorded-history selection under the released setup,
+not the final-model selection policy. Historical runs also used ordinary MSE
+and relative L2, on their original evaluation grids. New scores are computed
+by loading the final checkpoint into a fresh model during post-processing.
+Checkpoint/in-memory evaluation agreement is covered by tests. Training time and
+movement totals are derived from the saved optimizer-stage records.
 
-The campaign protocol determines which metric is primary. The current sigma
-search selects using `final_relative_l2`, while upstream-style reporting retains
-the training-loss-selected errors; these answer different comparisons.
+Sigma selection uses mean `final_relative_l2` over development seeds. The same
+selected setting is evaluated for residual error, without a separate residual
+selection. Pointwise residual arrays are not saved: the archived model and
+evaluation settings allow the residual score to be recomputed.
 
 ## Recorded convergence: `history.npz`
 
@@ -147,9 +171,14 @@ arrays use float64.
 | Array | Shape/type | Meaning |
 | --- | --- | --- |
 | `steps` | `(H,)`, integers | Cumulative network optimizer step for each observation. Stage transitions can record the same step more than once. |
-| `loss_train` | `(H, 3)` | Training-loss components in order: PDE residual, zero boundary condition, initial condition. Their sum is used for minimum-training-loss selection. |
-| `loss_test` | `(H, 3)` | DeepXDE's recorded test-loss components in the same order. These are loss diagnostics, distinct from reference-solution prediction errors in `metrics_test`. |
-| `metrics_test` | `(H, 2)` | Column 0: reference-grid MSE. Column 1: reference-grid relative L2, as a fraction. |
+| `loss_train` | `(H, 3)` | Training-loss components in order: PDE residual, zero boundary condition, initial condition. |
+| `loss_test` | `(H, 3)` | DeepXDE's recorded test-loss components in the same order. Controlled runs retain DeepXDE's test construction with its constraint prefix and approximately 10,000 PDE test points. These are monitoring diagnostics, distinct from the final independent residual metric. |
+| `metrics_test` | `(H, 2)`, historical only | Column 0: reference-grid MSE. Column 1: reference-grid relative L2, as a fraction. New runs record no solution-error history. |
+
+Historical runs overrode DeepXDE's test coordinates with the reference grid.
+Their `loss_test` is not the independent residual/constraint evaluation defined
+for controlled runs; the historical plots retain training-loss and reference-error
+curves. The saved solution predictions and their errors remain readable.
 
 Recording follows DeepXDE's display cadence and stage endpoints; L-BFGS history
 is recorded at optimizer-call boundaries rather than every internal iteration.
@@ -165,15 +194,21 @@ corresponding saved model.
 | `reference` | `(N, 1)` | Reference solution `u` at each coordinate. |
 | `prediction` | `(N, 1)` | Final model's predicted `u` at each coordinate. |
 
-All three arrays use float64. The current reference grid has 256 spatial points
-and 100 times, giving 25,600 rows. Ordering is time-major: all spatial coordinates
+All arrays use float64. With the generated N1024 reference and template settings,
+the evaluation grid has 1,024 uniform spatial points and 199 times through
+`0.99`, giving 203,776 rows. The source reference has 1,025 Chebyshev nodes;
+these are interpolated onto the evaluation grid. Historical original-reference
+runs have 256 spatial points and 100 times.
+Ordering is time-major: all ascending spatial coordinates
 at the first time, then all spatial coordinates at the next time, and so on.
 Solution arrays can therefore be reshaped to `(number_of_times, number_of_x)`.
 
-These are evaluation data. Reference solution values are not supervised training
-labels in the current reproduction; training uses the PDE and analytic boundary
-and initial conditions. Predictions describe the final model, not necessarily
-the step selected by minimum training loss.
+These are evaluation data, generated by post-processing from the final saved
+model. Reference solution values are not supervised training labels; training
+uses the PDE and analytic boundary and initial conditions. The reference
+fingerprint must match training metadata before new evaluation artifacts are
+written. Existing predictions and metrics are retained when regenerating plots;
+missing evaluation files can be generated from the checkpoint.
 
 ## Training coordinates: `points/*.npz`
 
@@ -186,18 +221,15 @@ not observations of the reference solution.
 | `pde` | `(P, 2)` | Complete `train_x_all` population on which DeepXDE applies the PDE-residual loss. |
 | `constraints` | `(C, 2)` | `train_x_bc` coordinates for soft boundary and initial-condition losses, in boundary-then-initial order. Their target values come from the analytic conditions in the problem definition. |
 
-The arrays are not three disjoint point sets. The initial PDE population includes
-the interior points and the boundary/initial coordinates. The released PACMANN
-callback replaces that PDE population with the moved interior population, while
-retaining the separately evaluated constraints. Fixed Hammersley retains the
-original PDE population. Constraints remain fixed for both methods.
+In controlled runs, `interior` and `pde` contain the same population from
+initialization: `I = P = 2500` for the template. `C = 240` comprises 80 boundary
+and 160 initial constraints, evaluated separately and kept fixed for every
+method. Do not add `interior` and `pde` lengths to calculate the point budget.
 
-For the original benchmark settings, `I = 2500` and `C = 240`
-(80 boundary and 160 initial).
-Initially `P = 2740`; it stays 2740 for Hammersley and becomes 2500 after
-PACMANN's first event. After replacement, PACMANN's `interior` and `pde` arrays
-are equal. Saved arrays record the populations actually used; do not add their
-lengths to calculate a distinct-point budget.
+Historical runs retain the released setup: initially `P = 2740`, staying 2740
+for fixed Hammersley and dropping to 2500 after PACMANN's first event. Their
+constraint coordinates also appear in the initial PDE population. Saved arrays
+record the populations actually used; these artifacts are not rewritten.
 
 `initial.npz` is saved before network training. `phase_<NN>_adam.npz` and
 `phase_<NN>_l-bfgs.npz` are saved at each optimizer endpoint. `final.npz` provides
@@ -219,16 +251,19 @@ initial weight snapshot or separate model for every recorded history minimum.
 
 [`scripts/post_processing/analyze_burgers.py`](../scripts/post_processing/analyze_burgers.py) regenerates these
 two files from saved predictions, history, final interior points, and config.
-It does not rerun training or require the original dataset file.
+Regenerating diagnostics from completed evaluation artifacts does not require
+the reference dataset or model. Generating missing predictions or metrics also
+requires the final checkpoint and matching reference dataset; it does not train.
 
 | JSON field | Meaning |
 | --- | --- |
 | `maximum_absolute_error` | Largest absolute final prediction error over the saved evaluation grid, in solution units. |
 | `maximum_error_coordinate` | `[x, t]` where that maximum occurs; the first in saved grid order if tied. |
 | `times` | Evaluation times in ascending order. |
-| `per_time_relative_l2` | One relative-L2 fraction per entry in `times`, normalized by the reference solution norm at that time. Undefined for a zero reference norm; the analysis rejects that case. |
+| `per_time_relative_l2` | One relative-L2 fraction per entry in `times`, using ordinary spatial norms of the error and reference at that time. Undefined for a zero reference norm. |
 
-The PNG shows recorded training loss/reference relative L2, final absolute error
+The PNG shows recorded training/test losses, final absolute error
 over space and time, final interior collocation points, and reference/prediction
 slices at the saved times nearest 0.25, 0.50, 0.75, and 0.99. These are derived
-diagnostics; the trainer's summary remains in `metrics.json`.
+diagnostics. Final scores and training-cost totals are in `metrics.json`.
+Historical runs show reference-error curves in place of the new test-loss curve.

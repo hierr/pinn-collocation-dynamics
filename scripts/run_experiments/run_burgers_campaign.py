@@ -1,4 +1,4 @@
-"""Train and analyze each Burgers seed and method in the selected YAML."""
+"""Train, evaluate, and plot each Burgers seed and method in the selected YAML."""
 
 import yaml
 
@@ -45,7 +45,7 @@ def run_campaign(config: dict):
     """Run configured pairs sequentially, stopping on failure without overwriting."""
     check_campaign(config)
 
-    # Train each pair in YAML order and generate its diagnostics immediately.
+    # Train each pair in YAML order, then evaluate its checkpoint and plot diagnostics.
     for seed in config["seeds"]:
         for method in config["methods"]:
             print(f"Training {config['campaign']}: {method}, seed {seed}", flush=True)

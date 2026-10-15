@@ -2,6 +2,7 @@
 campaign: burgers_template
 seeds: []
 problem:
+  reference_path: data/burgers_dataset/burgers_nu_0p0031830989_N1024.npz
   x_bounds: [-1.0, 1.0]
   t_bounds: [0.0, 0.99]
   viscosity: 0.003183098861837907
@@ -10,6 +11,11 @@ problem:
   initial_points: 160
 network:
   layers: [2, 64, 64, 64, 64, 1]
+evaluation:
+  solution_nx: 1024
+  residual_nx: 1024
+  residual_nt: 200
+  batch_size: 4096
 training:
   phases: 5
   adam_steps: 7000

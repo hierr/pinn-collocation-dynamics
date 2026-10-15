@@ -1,4 +1,4 @@
-"""Run one configured Burgers method and seed in a fresh artifact directory."""
+"""Train one configured Burgers method and seed in a fresh artifact directory."""
 
 import time
 from pathlib import Path
@@ -22,16 +22,21 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def run_training(config: dict, method: str, seed: int):
-    """Train and evaluate one configured seed, retaining artifacts on failure."""
-    # Verify reference data and archive the selected scientific configuration.
-    reference_coordinates, reference_values, dataset_sha256 = load_reference(ROOT)
-    run_dir = prepare_run(config, method, seed, dataset_sha256, ROOT)
+    """Train one configured seed, retaining checkpoints and artifacts on failure."""
     problem_settings = config["problem"]
     network_settings = config["network"]
     training_settings = config["training"]
+    evaluation_settings = config["evaluation"]
+    # Verify reference data and evaluation sizes before reserving the run directory.
+    for key in ("residual_nx", "residual_nt", "batch_size"):
+        if type(evaluation_settings[key]) is not int or evaluation_settings[key] <= 0:
+            raise ValueError(f"Evaluation {key} must be a positive integer")
+    _, _, dataset_sha256 = load_reference(
+        ROOT, problem_settings, evaluation_settings["solution_nx"]
+    )
+    run_dir = prepare_run(config, method, seed, dataset_sha256, ROOT)
     sampling_settings = config["methods"][method]
     interior_count = problem_settings["interior_points"]
-    metrics = ["mean squared error", "l2 relative error"]
 
     with capture_run_log(run_dir):
         # Initialize reproducibility before constructing points and network weights.
@@ -40,8 +45,6 @@ def run_training(config: dict, method: str, seed: int):
         model, residual_gradient = build_model(
             problem_settings=problem_settings,
             network_settings=network_settings,
-            reference_coordinates=reference_coordinates,
-            reference_values=reference_values,
         )
 
         # Select the collocation method independently of the network optimizer.
@@ -86,16 +89,13 @@ def run_training(config: dict, method: str, seed: int):
             options["maxfun"] * options["iter_per_step"] // options["maxiter"]
         )
         stages = []
-        total_seconds = 0.0
 
         for phase in range(1, training_settings["phases"] + 1):
             # Optimize network weights with Adam and the sampling callback.
             events_before = sampler.events
             synchronize()
             start = time.perf_counter()
-            model.compile(
-                "adam", lr=training_settings["learning_rate"], metrics=metrics
-            )
+            model.compile("adam", lr=training_settings["learning_rate"])
             model.train(
                 iterations=training_settings["adam_steps"],
                 callbacks=[sampler],
@@ -103,7 +103,6 @@ def run_training(config: dict, method: str, seed: int):
             )
             synchronize()
             adam_seconds = time.perf_counter() - start
-            total_seconds += adam_seconds
 
             # Verify constraints and fixed sampling at the Adam endpoint.
             if not np.array_equal(model.data.train_x_bc, constraints):
@@ -133,21 +132,16 @@ def run_training(config: dict, method: str, seed: int):
             events_before = sampler.events
             synchronize()
             start = time.perf_counter()
-            model.compile("L-BFGS", metrics=metrics)
+            model.compile("L-BFGS")
             model.train(display_every=training_settings["display_every"])
             synchronize()
             lbfgs_seconds = time.perf_counter() - start
-            total_seconds += lbfgs_seconds
 
             # Verify fixed populations at the L-BFGS endpoint.
             if not np.array_equal(model.data.train_x_bc, constraints):
                 raise RuntimeError("Initial/boundary constraint coordinates changed")
             if not np.array_equal(pde_before_lbfgs, model.data.train_x_all):
                 raise RuntimeError("Physics points moved during L-BFGS")
-            if method == "fixed_hammersley" and not np.array_equal(
-                initial_pde_points, model.data.train_x_all
-            ):
-                raise RuntimeError("Fixed Hammersley points moved")
             if not np.isfinite(model.train_state.loss_train).all():
                 raise FloatingPointError("Non-finite training loss")
             save_snapshot(model, run_dir, f"phase_{phase:02d}_l-bfgs", interior_count)
@@ -166,47 +160,18 @@ def run_training(config: dict, method: str, seed: int):
             )
             write_json(run_dir / "training.json", {"stages": stages})
 
-        # Evaluate final weights on the independent reference grid.
+        # Save the final model and points for independent post-processing.
         save_snapshot(model, run_dir, "final", interior_count)
-        predictions = model.predict(reference_coordinates)
-        if not np.isfinite(predictions).all():
-            raise FloatingPointError("Non-finite final predictions")
-        np.savez_compressed(
-            run_dir / "predictions.npz",
-            coordinates=reference_coordinates,
-            reference=reference_values,
-            prediction=predictions,
-        )
 
-        # Preserve upstream reporting at the recorded minimum training loss.
+        # Retain optimizer loss curves for post-processing.
         history = model.losshistory
-        training_loss = np.sum(np.array(history.loss_train), axis=1)
-        test_metrics = np.array(history.metrics_test)
-        minimum_loss_index = int(np.argmin(training_loss))
         np.savez_compressed(
             run_dir / "history.npz",
             steps=np.array(history.steps),
             loss_train=np.array(history.loss_train),
             loss_test=np.array(history.loss_test),
-            metrics_test=test_metrics,
         )
 
-        # Verify saved final weights independently; snapshots support evaluation only.
-        dde_config.set_random_seed(seed)
-        dde_config.set_default_float("float64")
-        restored_model, _ = build_model(
-            problem_settings=problem_settings,
-            network_settings=network_settings,
-            reference_coordinates=reference_coordinates,
-            reference_values=reference_values,
-        )
-        restored_model.compile("adam", lr=training_settings["learning_rate"])
-        restored_model.net.load_state_dict(
-            torch.load(run_dir / "models/final.pt", weights_only=True)
-        )
-        reloaded_predictions = restored_model.predict(reference_coordinates)
-        if not np.allclose(predictions, reloaded_predictions, rtol=1e-10, atol=1e-12):
-            raise RuntimeError("Reloaded predictions differ from final predictions")
         if method in ("pacmann_adam", "pacmann_diffusion"):
             expected_events = (
                 training_settings["phases"]
@@ -216,24 +181,6 @@ def run_training(config: dict, method: str, seed: int):
             if sampler.events != expected_events:
                 raise RuntimeError("Unexpected PACMANN update count")
 
-        # Report final errors separately from upstream history-selected errors.
-        write_json(
-            run_dir / "metrics.json",
-            {
-                "final_mse": float(np.mean((predictions - reference_values) ** 2)),
-                "final_relative_l2": float(
-                    np.linalg.norm(predictions - reference_values)
-                    / np.linalg.norm(reference_values)
-                ),
-                "upstream_min_loss_step": int(history.steps[minimum_loss_index]),
-                "upstream_mse_at_min_loss": float(test_metrics[minimum_loss_index, 0]),
-                "upstream_l2_at_min_loss": float(test_metrics[minimum_loss_index, 1]),
-                "upstream_min_observed_mse": float(test_metrics[:, 0].min()),
-                "upstream_min_observed_l2": float(test_metrics[:, 1].min()),
-                "movement_events": sampler.events,
-                "training_seconds": total_seconds,
-            },
-        )
     return run_dir
 
 

@@ -75,7 +75,11 @@ def test_prepared_grid_matches_upstream_template(sweep):
     assert sweep[0]["seeds"] == [2000, 2001, 2002]
     for config in sweep:
         for field in ("problem", "network", "training"):
-            assert config[field] == template[field]
+            assert config[field] == {
+                key: value
+                for key, value in template[field].items()
+                if key != "reference_path"
+            }
     assert [
         config["methods"]["pacmann_diffusion"]["sigma"] for config in sweep[1:]
     ] == [1e-5, 1e-4, 1e-3, 1e-2]
@@ -129,6 +133,7 @@ def test_sweep_stops_on_failure(sweep, tmp_path, monkeypatch):
         "seed",
         "problem",
         "budget",
+        "evaluation",
         "sampling",
         "method",
         "campaign",
@@ -145,6 +150,12 @@ def test_unmatched_controls_rejected(sweep, monkeypatch, change):
         sweep[1]["problem"]["viscosity"] *= 2
     elif change == "budget":
         sweep[1]["training"]["adam_steps"] = 1
+    elif change == "evaluation":
+        sweep[1]["evaluation"] = {
+            "residual_nx": 32,
+            "residual_nt": 16,
+            "batch_size": 32,
+        }
     elif change == "sampling":
         sweep[1]["methods"]["pacmann_diffusion"]["period"] = 1
     elif change == "method":
@@ -257,30 +268,40 @@ def test_run_action_and_invalid_action(sweep, monkeypatch, capsys):
         tuning.main()
 
 
-def test_tiny_sweep_trains_analyzes_and_summarizes(sweep, tmp_path, monkeypatch):
+def test_tiny_sweep_trains_analyzes_and_summarizes(
+    sweep, config, tmp_path, monkeypatch
+):
     """Exercise all five settings and three seeds with a disposable tiny budget."""
-    reference = load_reference(train.ROOT)
+    reference = load_reference(
+        train.ROOT, config["problem"], config["evaluation"]["solution_nx"]
+    )
     monkeypatch.setattr(train, "ROOT", tmp_path)
-    monkeypatch.setattr(train, "load_reference", lambda root: reference)
+    monkeypatch.setattr(
+        train, "load_reference", lambda root, problem, solution_nx: reference
+    )
     monkeypatch.setattr(
         "src.artifacts.subprocess.check_output",
         lambda *args, **kwargs: "test-revision\n",
     )
-    for config in sweep:
-        config["problem"]["interior_points"] = 16
-        config["network"]["layers"] = [2, 8, 1]
-        config["training"].update(phases=1, adam_steps=2, display_every=1)
-        config["training"]["lbfgs"].update(maxiter=2, maxfun=3)
-        method = next(iter(config["methods"]))
-        config["methods"][method].update(period=2, steps=1)
+    evaluation = config["evaluation"]
+    reference_path = config["problem"]["reference_path"]
+    for candidate in sweep:
+        candidate["evaluation"] = evaluation
+        candidate["problem"]["reference_path"] = reference_path
+        candidate["problem"]["interior_points"] = 16
+        candidate["network"]["layers"] = [2, 8, 1]
+        candidate["training"].update(phases=1, adam_steps=2, display_every=1)
+        candidate["training"]["lbfgs"].update(maxiter=2, maxfun=3)
+        method = next(iter(candidate["methods"]))
+        candidate["methods"][method].update(period=2, steps=1)
     tuning.run_tuning(sweep)
     result = tuning.summarize_tuning(sweep)
     assert "Selected sigma by mean final relative L2:" in result
     assert "No sigma selected" not in result
-    for config in sweep:
-        directory = tmp_path / "output" / config["campaign"]
-        method = next(iter(config["methods"]))
-        for seed in config["seeds"]:
+    for candidate in sweep:
+        directory = tmp_path / "output" / candidate["campaign"]
+        method = next(iter(candidate["methods"]))
+        for seed in candidate["seeds"]:
             run = directory / "burgers" / method / f"seed_{seed}"
             metrics = json.loads((run / "metrics.json").read_text())
             assert metrics["movement_events"] == 1

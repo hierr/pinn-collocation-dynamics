@@ -42,8 +42,8 @@ def check_tuning_configs(configs):
         if config["campaign"] in campaigns:
             raise ValueError("Tuning configurations must have distinct campaign names")
         campaigns.add(config["campaign"])
-        for field in ("seeds", "problem", "network", "training"):
-            if config[field] != baseline[field]:
+        for field in ("seeds", "problem", "network", "training", "evaluation"):
+            if config.get(field) != baseline.get(field):
                 raise ValueError(f"Unmatched tuning control: {field}")
         method = "pacmann_adam" if index == 0 else "pacmann_diffusion"
         if list(config["methods"]) != [method]:

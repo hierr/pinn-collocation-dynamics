@@ -13,7 +13,7 @@ Read ignored `AGENTS.local.md`, if present, at session start.
 - This is an independent research repository, separate from coursework repositories.
   Start small, use targeted diffs, and generalize only when another experiment
   requires it.
-- Use DeepXDE with a PyTorch backend for the initial upstream reproduction.
+- Use DeepXDE with a PyTorch backend for the controlled Burgers study.
   Keep problem definitions and sampling callbacks separate as needed; avoid
   introducing a general framework before experiments require it.
 - Keep the experiment readable from top to bottom, with explicit optimizer stages
@@ -21,8 +21,9 @@ Read ignored `AGENTS.local.md`, if present, at session start.
   updates; keep logging and serialization outside the scientific flow.
 - Preserve upstream attribution, licenses, pinned commits, and recorded
   deviations. Distinguish code reproduction from a modified benchmark study.
-- Treat `references/pacmann/burgers/` as immutable upstream material. Restore
-  `data/burgers/Burgers.npz` using `references/upstream.md`.
+- Treat `references/pacmann/burgers/` as immutable upstream material. The retained
+  original reference is `data/burgers_dataset/PACMANN_Burgers.npz`; generated
+  training-evaluation references are selected by `problem.reference_path`.
 
 ## Environment and execution
 

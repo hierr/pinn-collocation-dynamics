@@ -24,9 +24,10 @@ No project-wide license is assigned by importing the upstream license.
 and local paths, byte counts, Git blob SHA-1, and SHA-256 for all five files.
 The import was verified against upstream Git blob IDs before installation.
 
-The reference dataset is locally available at `data/burgers/Burgers.npz` and is
-tracked in Git. The identical dataset used in validation is
-`data/burgers_dataset/PACMANN_Burgers.npz`. Its arrays are float64: `x` has shape (256, 1), `t` (100, 1),
+The reference dataset is tracked at `data/burgers_dataset/PACMANN_Burgers.npz`.
+The immutable import manifest records its historical local path,
+`data/burgers/Burgers.npz`; restoration below uses the retained canonical path.
+Its arrays are float64: `x` has shape (256, 1), `t` (100, 1),
 and `usol` (256, 100). These header/archive checks do not validate numerical
 accuracy. The upstream README attributes the Burgers scripts/data to DeepXDE
 examples; the paper attributes the spectral reference solution to Raissi et al.
@@ -51,7 +52,7 @@ with urllib.request.urlopen(item['url'], timeout=60) as response:
     content = response.read()
 assert len(content) == item['bytes'], 'Unexpected download size'
 assert hashlib.sha256(content).hexdigest() == item['sha256'], 'Checksum mismatch'
-target = Path(item['local_path'])
+target = Path('data/burgers_dataset/PACMANN_Burgers.npz')
 if target.exists():
     assert target.read_bytes() == content, 'Conflicting local dataset'
 else:
@@ -83,9 +84,9 @@ The paper is DOI 10.1016/j.cma.2025.118723, Sections 2 and 3.1, Tables 1-3.
 
 No published result has been reproduced.
 
-## Implemented reproduction choices
+## Historical reproduction choices
 
-The maintained code uses [0, 0.99], float64, explicit Hammersley sampling,
+The retained original-reference runs use [0, 0.99], float64, explicit Hammersley sampling,
 coordinate-Adam epsilon 1e-7 outside the square root, and fresh coordinate moments
 at each event. Escaped points are replaced only after all 15 movement steps.
 Network optimizer state resets at each alternating stage. Planned seeds are
@@ -106,3 +107,9 @@ This matters for short validation limits; the full 3,000-iteration configuration
 retains 1,000 iterations per call. Actual optimizer iterations are archived.
 Final-weight errors and upstream history-selected errors are saved separately.
 Engineering checks do not establish agreement with published numerical results.
+
+New controlled runs match the interior PDE population across methods from
+initialization, evaluate solution errors on a uniform grid with spatially
+interpolated generated references, and report
+final-model errors rather than history-selected errors. See the
+[accepted study controls](../docs/research_context.md#accepted-controls-and-evaluation-policy).
