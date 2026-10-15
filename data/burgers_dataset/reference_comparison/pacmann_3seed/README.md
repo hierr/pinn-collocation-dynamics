@@ -1,6 +1,6 @@
 # PACMANN errors against alternative Burgers references
 
-Reload the final weights of [three existing PACMANN models](../../../../output/burgers_sigma_tuning_01_baseline/burgers/pacmann_adam/)
+Reload the final weights of [three existing PACMANN models](source_models/)
 and evaluate them at PACMANN's original 256 spatial points and 100 times through
 `0.99`. Compare those same predictions with the original, N512, and N1024
 reference values on that grid. Generated solutions use Chebyshev barycentric
@@ -18,19 +18,22 @@ increases them by approximately 22–80%. This supports N1024 for viscosity
 `0.01/pi` over `[-1, 1] × [0, 0.99]`. Other viscosities need their own checks.
 
 Reference-to-reference disagreements are calculated separately by
-[burguers_compare_solvers.py](../../../../scripts/dataset_generation/validation/burguers_compare_solvers.py):
+[burguers_compare_solvers.py](../../../../dataset_validation/burguers_compare_solvers.py):
 see [N512](../n512_reference_grid/README.md) and
 [N1024](../n1024_reference_grid/README.md).
 
 ## Execution
 
-[burguers_compare_pinn_solutions.py](../../../../scripts/dataset_generation/validation/burguers_compare_pinn_solutions.py)
+[burguers_compare_pinn_solutions.py](../../../../dataset_validation/burguers_compare_pinn_solutions.py)
 contains the input paths and seeds. From the repository root:
 
 ```bash
-MPLBACKEND=Agg venv/bin/python -m scripts.dataset_generation.validation.burguers_compare_pinn_solutions
+MPLBACKEND=Agg venv/bin/python -m dataset_validation.burguers_compare_pinn_solutions
 ```
 
 The script regenerates the derived table and figure. Original datasets, weights,
-and training artifacts remain unchanged. Source-run metadata records the
-training revision and stack; this evaluation branch starts from `0c766bc`.
+and retained source artifacts remain unchanged. Each `source_models/seed_<seed>/` retains the original `config.yaml`,
+`metadata.json`, `predictions.npz`, and `models/final.pt`. These are evaluation
+inputs from the original-benchmark sigma baseline; complete training runs remain
+in Git history and on `hyperparameter-tuning`. Metadata records their training
+revision and stack.

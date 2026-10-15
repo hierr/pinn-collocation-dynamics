@@ -1,10 +1,10 @@
 # N512 comparison on the original reference grid
 
 Generated with `RESOLUTION = 512` in the
-[Burgers comparison script](../../../../scripts/dataset_generation/validation/burguers_compare_solvers.py):
+[Burgers comparison script](../../../../dataset_validation/burguers_compare_solvers.py):
 
 ```bash
-MPLBACKEND=Agg venv/bin/python -m scripts.dataset_generation.validation.burguers_compare_solvers
+MPLBACKEND=Agg venv/bin/python -m dataset_validation.burguers_compare_solvers
 ```
 
 The generated solution is interpolated onto PACMANN's unchanged 256 spatial

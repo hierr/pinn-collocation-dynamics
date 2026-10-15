@@ -6,11 +6,10 @@ import numpy as np
 import torch
 import yaml
 
-from scripts.dataset_generation.validation import (
+from dataset_validation import (
     burguers_compare_pinn_solutions as validation,
 )
-from scripts.dataset_generation.validation import burguers_compare_solvers
-from src.burgers import FNN
+from dataset_validation import burguers_compare_solvers
 
 
 def test_reference_check_on_polynomial_solutions(tmp_path, monkeypatch):
@@ -53,7 +52,7 @@ def test_reference_check_on_polynomial_solutions(tmp_path, monkeypatch):
         }
         (run / "config.yaml").write_text(yaml.safe_dump(config))
         torch.manual_seed(seed)
-        network = FNN([2, 4, 1], "tanh", "Glorot normal").double()
+        network = validation.FNN([2, 4, 1], "tanh", "Glorot normal").double()
         torch.save(network.state_dict(), run / "models/final.pt")
         with torch.no_grad():
             prediction = network(torch.from_numpy(coordinates)).numpy()
