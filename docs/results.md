@@ -8,10 +8,10 @@ barycentric interpolation in space and exact shared snapshot times.
 
 | Generated reference | Relative L2 disagreement (%) | Change in fixed-model error scores |
 | --- | ---: | --- |
-| [N512](../data/burgers_dataset/reference_comparison/n512_reference_grid/README.md) | 0.0664354 | Approximately 22–80% higher |
-| [N1024](../data/burgers_dataset/reference_comparison/n1024_reference_grid/README.md) | 0.000318875 | Less than 0.006% relative change |
+| [N512](../output/burgers_reference_validation/n512_reference_grid/README.md) | 0.0664354 | Approximately 22–80% higher |
+| [N1024](../output/burgers_reference_validation/n1024_reference_grid/README.md) | 0.000318875 | Less than 0.006% relative change |
 
-The [model comparison](../data/burgers_dataset/reference_comparison/pacmann_3seed/README.md)
+The [model comparison](../output/burgers_reference_validation/pacmann_3seed/README.md)
 uses three existing final PACMANN models, seeds 2000–2002. Each model's predictions
 are identical across reference choices. Error-score changes are relative to its
 original error score; they are neither reference-solution differences nor

@@ -6,7 +6,7 @@ Read ignored `AGENTS.local.md`, if present, at session start.
 
 - Write code and documentation in English; keep scientific code minimal and readable.
 - This persistent `dataset-validation` branch contains dataset generation and
-  validation only. Use root `dataset_generation/` and `dataset_validation/`.
+  validation only. Use `scripts/dataset_generation/` and `scripts/dataset_validation/`.
   Training and tuning workflows live on their respective branches; see README.
 - Keep the collaborator's solver unchanged except for authorized path changes.
   Treat `references/pacmann/burgers/` as immutable upstream material and preserve
@@ -20,8 +20,9 @@ Read ignored `AGENTS.local.md`, if present, at session start.
   before new artifact-writing execution. Continue within approved scope.
 - Preserve original datasets and model inputs. Regenerate only derived comparisons.
   The retained source models support evaluation, not exact training resume.
-- Put comparison artifacts in `data/burgers_dataset/reference_comparison/` with
-  concise READMEs alongside the artifacts. Keep numerical records there, broader
+- Keep reference datasets in `data/burgers_dataset/`. Put comparison artifacts
+  and retained source models in `output/burgers_reference_validation/`, with a
+  concise campaign README at its root. Keep numerical records there, broader
   decisions in `docs/research_context.md`, accepted comparisons in
   `docs/results.md`, and artifact meanings in `docs/output_format.md`.
 - The current check compares references at the original spatial coordinates and

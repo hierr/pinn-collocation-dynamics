@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 import matplotlib.pyplot as plt
 
-DATA_DIR = Path(__file__).resolve().parents[1] / "data/burgers_dataset"
+DATA_DIR = Path(__file__).resolve().parents[2] / "data/burgers_dataset"
 
 
 ########################################################################

@@ -24,9 +24,10 @@ No project-wide license is assigned by importing the upstream license.
 and local paths, byte counts, Git blob SHA-1, and SHA-256 for all five files.
 The import was verified against upstream Git blob IDs before installation.
 
-The reference dataset is locally available at `data/burgers/Burgers.npz` and is
-tracked in Git. The identical validation input is
-`data/burgers_dataset/PACMANN_Burgers.npz`. Its arrays are float64: `x` has shape (256, 1), `t` (100, 1),
+The reference dataset is tracked at `data/burgers_dataset/PACMANN_Burgers.npz`.
+The immutable import manifest records its historical local path,
+`data/burgers/Burgers.npz`; restoration below uses the current path.
+Its arrays are float64: `x` has shape (256, 1), `t` (100, 1),
 and `usol` (256, 100). These header/archive checks do not validate numerical
 accuracy. The upstream README attributes the Burgers scripts/data to DeepXDE
 examples; the paper attributes the spectral reference solution to Raissi et al.
@@ -51,7 +52,7 @@ with urllib.request.urlopen(item['url'], timeout=60) as response:
     content = response.read()
 assert len(content) == item['bytes'], 'Unexpected download size'
 assert hashlib.sha256(content).hexdigest() == item['sha256'], 'Checksum mismatch'
-target = Path(item['local_path'])
+target = Path('data/burgers_dataset/PACMANN_Burgers.npz')
 if target.exists():
     assert target.read_bytes() == content, 'Conflicting local dataset'
 else:

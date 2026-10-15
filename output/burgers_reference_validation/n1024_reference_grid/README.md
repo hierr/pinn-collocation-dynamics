@@ -1,11 +1,11 @@
 # N1024 comparison on the original reference grid
 
-The [corrected comparison script](../../../../dataset_validation/burguers_compare_solvers.py)
+The [corrected comparison script](../../../scripts/dataset_validation/burguers_compare_solvers.py)
 evaluates the N1024 Chebyshev solution on PACMANN's original 256 spatial points
 and 100 exact snapshot times through `0.99`, leaving PACMANN values unchanged.
 
 ```bash
-MPLBACKEND=Agg venv/bin/python -m dataset_validation.burguers_compare_solvers
+MPLBACKEND=Agg venv/bin/python -m scripts.dataset_validation.burguers_compare_solvers
 ```
 
 [Overall relative L2](overall_error_metrics.txt) is `3.18875102e-6`, or

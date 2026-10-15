@@ -14,10 +14,10 @@ from scipy.interpolate import BarycentricInterpolator
 os.environ["DDE_BACKEND"] = "pytorch"
 from deepxde.nn.pytorch import FNN
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 DATA = ROOT / "data/burgers_dataset"
-OUTPUT = DATA / "reference_comparison/pacmann_3seed"
-RUNS = OUTPUT / "source_models"
+OUTPUT = ROOT / "output/burgers_reference_validation/pacmann_3seed"
+RUNS = OUTPUT.parent / "source_models"
 SEEDS = [2000, 2001, 2002]
 
 

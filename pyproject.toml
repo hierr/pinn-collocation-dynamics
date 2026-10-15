@@ -26,7 +26,7 @@ exclude = ["references", "venv"]
 python = "./venv"
 
 [tool.ty.src]
-include = ["dataset_generation", "dataset_validation", "tests"]
+include = ["scripts/dataset_generation", "scripts/dataset_validation", "tests"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

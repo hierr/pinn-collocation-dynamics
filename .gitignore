@@ -6,6 +6,7 @@ __pycache__/
 
 # Reference datasets and disposable setup runs
 /output/*validation*/
+!/output/burgers_reference_validation/
 /output/*compatibility*/
 /output/archives/
 /references/*.pdf

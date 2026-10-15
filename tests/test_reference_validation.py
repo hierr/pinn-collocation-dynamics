@@ -6,10 +6,10 @@ import numpy as np
 import torch
 import yaml
 
-from dataset_validation import (
+from scripts.dataset_validation import (
     burguers_compare_pinn_solutions as validation,
 )
-from dataset_validation import burguers_compare_solvers
+from scripts.dataset_validation import burguers_compare_solvers
 
 
 def test_reference_check_on_polynomial_solutions(tmp_path, monkeypatch):

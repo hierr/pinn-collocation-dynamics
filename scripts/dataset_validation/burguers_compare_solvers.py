@@ -11,14 +11,14 @@ from scipy.interpolate import BarycentricInterpolator
 # ============================================================
 
 RESOLUTION = 1024
-MY_DATASET = Path(__file__).resolve().parents[1] / f"data/burgers_dataset/burgers_nu_0p0031830989_N{RESOLUTION}.npz"
-PAPER_DATASET = Path(__file__).resolve().parents[1] / "data/burgers_dataset/PACMANN_Burgers.npz"
+MY_DATASET = Path(__file__).resolve().parents[2] / f"data/burgers_dataset/burgers_nu_0p0031830989_N{RESOLUTION}.npz"
+PAPER_DATASET = Path(__file__).resolve().parents[2] / "data/burgers_dataset/PACMANN_Burgers.npz"
 
 # Shared snapshot times for the comparison plots.
 TARGET_TIMES = [0.0, 0.25, 0.50, 0.75, 0.99]
 
 # Output directory for plots
-OUTPUT_DIR = Path(__file__).resolve().parents[1] / f"data/burgers_dataset/reference_comparison/n{RESOLUTION}_reference_grid"
+OUTPUT_DIR = Path(__file__).resolve().parents[2] / f"output/burgers_reference_validation/n{RESOLUTION}_reference_grid"
 
 
 # ============================================================
