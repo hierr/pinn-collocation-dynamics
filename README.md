@@ -28,6 +28,10 @@ frozen settings, before extending to a validated viscosity range and tuning
 separately in each regime. No full ten-seed evaluation has been completed.
 Development campaigns remain on `hyperparameter-tuning`.
 
+The [first ten-seed protocol](output/burgers_nu_0p0031830989_10seed/README.md)
+uses one method at a time with all ten seeds running concurrently. Its settings
+are frozen; no evaluation runs have started.
+
 ## Structure
 
 ```text
@@ -62,20 +66,32 @@ uv venv --python 3.12 venv
 VIRTUAL_ENV="$PWD/venv" uv sync --active --locked
 ```
 
-Select a YAML through `CONFIG_PATH` in
+Select the YAML through `CONFIG_PATH` and one method through `METHOD` in
 `scripts/run_experiments/run_burgers_campaign.py`, then run from the repository root:
 
 ```bash
 venv/bin/python -m scripts.run_experiments.run_burgers_campaign
 ```
 
-The default `config/burgers_template.yaml` demonstrates all five methods with
-matched physics populations and the upstream network/optimizer schedule. It has
-an empty seed list, so execution is rejected before writing artifacts. Specify
-and approve a campaign protocol before selecting seeds and running it. The
-runner trains each seed–method pair in YAML order and generates diagnostics;
-it stops on failure and never overwrites, skips, or resumes an existing run.
+The runner currently selects the ten-seed configuration linked above and
+`METHOD = "pacmann_adam"`. Each invocation starts all configured seeds for that
+method in independent spawned processes, waits for them, and reports failed
+seeds without interrupting other workers. Start another method only after the
+current batch has finished. All five methods remain in the frozen YAML and its
+archived copies; each run records its actual `selected_method` and `selected_seed`.
+For future campaigns,
+`config/burgers_template.yaml` demonstrates all five methods with matched physics
+populations and the upstream network/optimizer schedule. The template has an
+empty seed list and cannot run unchanged. The runner validates all destinations
+for the selected method before starting, and never overwrites, skips, retries,
+or resumes an existing run. Each worker trains and generates its own diagnostics.
 Weights support later evaluation, not exact training resume.
+
+Parallel workers use one CPU thread for PyTorch intra-op/inter-op execution and
+set `OMP_NUM_THREADS`, `MKL_NUM_THREADS`, and `OPENBLAS_NUM_THREADS` to `1` before
+the child imports numerical libraries. This limits CPU oversubscription while
+all seeds share the same GPU. Timing comparisons use this same concurrency policy
+for every method.
 
 Implemented methods are fixed Hammersley, upstream random resampling, RAD,
 PACMANN-Adam, and PACMANN with diffusion. YAML's `problem.reference_path` selects

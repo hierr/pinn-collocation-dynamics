@@ -69,6 +69,15 @@ settings for other viscosities. See the [development result](results.md#n1024-di
 Earlier pilot and tuning artifacts remain in Git history or on
 `hyperparameter-tuning`. No full ten-seed evaluation has been completed.
 
+The [first frozen-setting protocol](../output/burgers_nu_0p0031830989_10seed/README.md)
+uses five methods and ten new paired seeds at this viscosity. It assesses the
+development-selected diffusion candidate independently before expansion across
+viscosity regimes. Settings are frozen in its YAML. Execution proceeds one method
+at a time, with ten independent seed processes sharing the GPU and one CPU thread
+per worker. Compare the mean and sample SD of the ten recorded training times
+under this same execution policy. There is no requirement to launch the next
+method automatically.
+
 ## Parameterized sharpness study
 
 Start with Burgers references over a viscosity range spanning smooth,
