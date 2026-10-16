@@ -1,6 +1,8 @@
 # Burgers: frozen-setting ten-seed comparison
 
-**Frozen protocol; no evaluation runs have started.** The
+**Frozen protocol; the PACMANN ten-seed batch is complete.** The other four
+method batches remain pending. See the
+[consolidated results](../../docs/results.md#frozen-n1024-ten-seed-evaluation). The
 [configuration](../../config/burgers_nu_0p0031830989_10seed.yaml) contains the full
 five-method study. Accepted numerical implementation: `6934073`.
 
@@ -31,7 +33,10 @@ error changes, and counts improved for each declared contrast. Negative paired
 changes mean lower error; exact ties count separately. Express solution L2 as
 percent and its paired changes as percentage points; residual changes remain in
 residual units. Do not retune, select history minima, or replace unfavorable
-seeds. Report a worker failure after all started workers finish; retain every
+seeds. Also report the supplementary trimmed means defined in the
+[results](../../docs/results.md#consolidated-evaluation-results), while retaining
+all seeds in the primary summaries and paired comparisons.
+Report a worker failure after all started workers finish; retain every
 run's artifacts and review failures before launching another method. Follow the
 [recovery policy](../../AGENTS.md#execution-recovery). Do not present a complete
 ten-seed mean from a successful subset; report missing/failed outcomes and the
