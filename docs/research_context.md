@@ -69,7 +69,7 @@ viscosities. See the [development result](results.md#n1024-diffusion-development
 Earlier pilot and tuning artifacts remain in Git history or on
 `hyperparameter-tuning`.
 
-The [first frozen-setting evaluation](../output/burgers_nu_0p0031830989_10seed/README.md)
+The [first frozen-setting evaluation](../output/burgers/burgers_nu_0p0031830989_10seed/README.md)
 completed all 50 planned runs across five methods and ten independent paired
 evaluation seeds at this viscosity. The selected diffusion candidate did not
 improve mean solution or residual error over PACMANN; see the

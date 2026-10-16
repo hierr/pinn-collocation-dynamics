@@ -23,7 +23,7 @@ The generated N1024 Burgers reference at viscosity `0.01/pi` has been
 [validated against PACMANN](docs/results.md#generated-burgers-reference-validation).
 The controlled N1024 development sweep selected `sigma=1e-4` at this viscosity;
 see the [development result](docs/results.md#n1024-diffusion-development-selection).
-The [first frozen evaluation](output/burgers_nu_0p0031830989_10seed/README.md)
+The [first frozen evaluation](output/burgers/burgers_nu_0p0031830989_10seed/README.md)
 completed all 50 runs across five methods and ten paired seeds. See the
 [evaluation results](docs/results.md#frozen-n1024-ten-seed-evaluation).
 Extension across a validated viscosity range, with separate tuning in each

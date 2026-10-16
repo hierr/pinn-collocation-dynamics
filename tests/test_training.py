@@ -133,7 +133,7 @@ def test_failed_run_retains_configuration_and_traceback(config, run_root, monkey
     with pytest.raises(RuntimeError, match="model construction failed"):
         train.run_training(config, "pacmann_adam", 1000)
     run_dir = (
-        run_root / "output" / config["campaign"] / "burgers/pacmann_adam/seed_1000"
+        run_root / "output/burgers" / config["campaign"] / "pacmann_adam/seed_1000"
     )
     assert (run_dir / "config.yaml").exists()
     assert json.loads((run_dir / "status.json").read_text()) == {

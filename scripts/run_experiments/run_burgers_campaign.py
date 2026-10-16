@@ -51,7 +51,7 @@ def check_campaign(config: dict, method: str):
 
     # Other methods can already be complete; reject conflicts only for this launch.
     for seed in seeds:
-        run_dir = ROOT / "output" / campaign / "burgers" / method / f"seed_{seed}"
+        run_dir = ROOT / "output" / "burgers" / campaign / method / f"seed_{seed}"
         if run_dir.exists():
             raise FileExistsError(f"Run already exists: {run_dir}")
 

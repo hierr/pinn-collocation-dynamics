@@ -48,9 +48,9 @@ All five methods completed the frozen evaluation on paired seeds 4000–4009 at
 revision `9c3f022`; the other four methods used `e02098d`, as recorded in each
 run's metadata. All 50 runs completed training and post-processing with finite
 predictions. See the
-[campaign protocol](../output/burgers_nu_0p0031830989_10seed/README.md),
+[campaign protocol](../output/burgers/burgers_nu_0p0031830989_10seed/README.md),
 [frozen configuration](../config/burgers_nu_0p0031830989_10seed.yaml), and
-[per-method artifacts](../output/burgers_nu_0p0031830989_10seed/burgers/).
+[per-method artifacts](../output/burgers/burgers_nu_0p0031830989_10seed/).
 
 ### Consolidated evaluation results
 

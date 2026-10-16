@@ -47,7 +47,7 @@ Read ignored `AGENTS.local.md`, if present, at session start.
   settings; evaluation tests research questions with frozen settings. Run duration
   and seed count alone do not determine scientific value.
 - Keep scientific settings in YAML. Archive the resolved configuration in
-  `output/<campaign>/<problem>/<method>/<seed>/config.yaml` at run start.
+  `output/<problem>/<campaign>/<method>/<seed>/config.yaml` at run start.
 - Never overwrite a prior run or alter original reference datasets.
 - Use archived configurations and fixed evaluation seeds for post-processing.
 - Model snapshots support evaluation, not exact training resume.
@@ -67,9 +67,11 @@ Read ignored `AGENTS.local.md`, if present, at session start.
 - Obtain approval for the scientific objective, comparisons, evaluation, and
   decision rules before execution. Keep campaign-specific reasoning not captured
   by configurations or artifacts in a concise, objective
-  `output/<campaign>/README.md`, alongside its run directories.
+  `output/<problem>/<campaign>/README.md`, alongside its run directories.
   Include execution instructions and links to settings, the study phase, results,
-  and `docs/output_format.md`. When several output directories share one design,
+  and `docs/output_format.md`. Summarize per-seed final outcomes and method
+  aggregates there; keep study-level comparisons in `docs/results.md`.
+  When several output directories share one design,
   document it once and link from the others.
 - Do not duplicate run settings or maintain campaign diaries. Update research
   context for consequential study decisions; keep engineering validation history
