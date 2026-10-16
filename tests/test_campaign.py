@@ -1,4 +1,4 @@
-"""Check one-method process launches, failures, and saved-run evaluation."""
+"""Check sequential method batches, concurrent seeds, and saved-run evaluation."""
 
 import json
 import os
@@ -63,26 +63,72 @@ def calls(tmp_path, monkeypatch):
     return recorded
 
 
+@pytest.mark.parametrize(
+    "methods", [["pacmann_adam"], ["pacmann_adam", "fixed_hammersley"]]
+)
 def test_configuration_loading_and_execution_order(
-    config, tmp_path, monkeypatch, calls
+    config, tmp_path, monkeypatch, calls, methods
 ):
-    """Launch all seeds for the script's selected method before joining any worker."""
+    """Finish each selected method's concurrent seed batch before starting the next."""
     config["seeds"] = [2001, 1000]
     config_path = tmp_path / "campaign.yaml"
     config_path.write_text(yaml.safe_dump(config, sort_keys=False))
     monkeypatch.setattr(runner, "CONFIG_PATH", config_path)
-    monkeypatch.setattr(runner, "METHOD", "pacmann_adam")
+    monkeypatch.setattr(runner, "METHODS", methods)
     runner.main()
-    assert calls == [
-        ("start", "pacmann_adam", 2001),
-        ("start", "pacmann_adam", 1000),
-        ("join", "pacmann_adam", 2001),
-        ("train", "pacmann_adam", 2001),
-        ("analyze", tmp_path / "pacmann_adam/seed_2001"),
-        ("join", "pacmann_adam", 1000),
-        ("train", "pacmann_adam", 1000),
-        ("analyze", tmp_path / "pacmann_adam/seed_1000"),
-    ]
+    expected = []
+    for method in methods:
+        expected.extend(
+            [
+                ("start", method, 2001),
+                ("start", method, 1000),
+                ("join", method, 2001),
+                ("train", method, 2001),
+                ("analyze", tmp_path / method / "seed_2001"),
+                ("join", method, 1000),
+                ("train", method, 1000),
+                ("analyze", tmp_path / method / "seed_1000"),
+            ]
+        )
+    assert calls == expected
+
+
+def test_later_method_conflict_prevents_entire_sequence(
+    config, tmp_path, monkeypatch, calls
+):
+    """Reject an occupied later batch before starting the first method."""
+    config_path = tmp_path / "campaign.yaml"
+    config_path.write_text(yaml.safe_dump(config, sort_keys=False))
+    monkeypatch.setattr(runner, "CONFIG_PATH", config_path)
+    monkeypatch.setattr(runner, "METHODS", ["pacmann_adam", "fixed_hammersley"])
+    existing = (
+        tmp_path / "output" / config["campaign"] / "burgers/fixed_hammersley/seed_1000"
+    )
+    existing.mkdir(parents=True)
+    with pytest.raises(FileExistsError, match="Run already exists"):
+        runner.main()
+    assert calls == []
+
+
+def test_failed_method_prevents_next_batch(config, tmp_path, monkeypatch, calls):
+    """Finish healthy workers in a failed batch without launching another method."""
+    config["seeds"] = [1000, 1001]
+    config_path = tmp_path / "campaign.yaml"
+    config_path.write_text(yaml.safe_dump(config, sort_keys=False))
+    monkeypatch.setattr(runner, "CONFIG_PATH", config_path)
+    monkeypatch.setattr(runner, "METHODS", ["pacmann_adam", "fixed_hammersley"])
+
+    def fail_first_seed(config, method, seed):
+        """Simulate one failed seed while allowing its batch peer to finish."""
+        if seed == 1000:
+            raise RuntimeError("training failed")
+        return tmp_path / method / f"seed_{seed}"
+
+    monkeypatch.setattr(runner, "run_training", fail_first_seed)
+    with pytest.raises(RuntimeError, match=r"failed for seeds \[1000\]"):
+        runner.main()
+    assert ("analyze", tmp_path / "pacmann_adam/seed_1001") in calls
+    assert not any(event[:2] == ("start", "fixed_hammersley") for event in calls)
 
 
 def test_other_methods_and_unused_destinations_are_allowed(config, tmp_path, calls):

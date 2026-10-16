@@ -46,15 +46,20 @@ available paired count explicitly.
 
 Pull the committed `main` on `hier-wsl`, use its existing `.venv`, and verify CUDA
 execution and GPU availability. In `scripts/run_experiments/run_burgers_campaign.py`,
-`CONFIG_PATH` selects the configuration above and `METHOD` selects one method.
-Start with `pacmann_adam`, then `pacmann_diffusion`; the remaining methods are
-`fixed_hammersley`, `random_resampling`, and `rad`. Change only the method
-selector between launches; keep the numerical YAML fixed.
+`CONFIG_PATH` selects the configuration above and `METHODS` selects the batch
+order. The remaining sequence is `pacmann_diffusion`, `fixed_hammersley`,
+`random_resampling`, and `rad`; the completed `pacmann_adam` batch is excluded.
+Keep the numerical YAML fixed. Use a single-entry `METHODS` list when stopping
+for review after a particular method is desired.
 
-Each invocation launches all ten seeds concurrently in independent processes,
-then exits when all workers finish. Only one method batch uses the GPU at a time.
-The launcher checks the selected method's destinations before starting; completed
-other methods do not block a later launch. It does not skip or retry runs.
+Each batch launches all ten seeds concurrently in independent processes. The next
+method starts only after every worker in the current batch finishes training and
+evaluation. Only one method batch uses the GPU at a time. A worker failure stops
+the sequence after the other workers in that batch finish.
+The launcher checks all selected methods' destinations before starting; completed
+methods outside the selection do not block the sequence. It does not skip or
+retry runs. After an interruption, select only the unstarted methods; resolve
+incomplete batches under the recovery policy before including them again.
 Workers use one CPU thread and set OMP/MKL/OpenBLAS thread limits to one, as
 described in the [environment instructions](../../README.md#setup-and-execution).
 
@@ -67,12 +72,12 @@ From the remote checkout, launch detached so SSH disconnection does not stop it:
 
 ```bash
 cd /home/hiero/pinn-collocation-dynamics
-tmux new-session -d -s burgers_pacmann_adam \
-  '.venv/bin/python -u -m scripts.run_experiments.run_burgers_campaign > /tmp/burgers_pacmann_adam.log 2>&1'
+tmux new-session -d -s burgers_remaining_methods \
+  '.venv/bin/python -u -m scripts.run_experiments.run_burgers_campaign > /tmp/burgers_remaining_methods.log 2>&1'
 ```
 
-Use a method-specific session/log name for later launches.
-Per-run artifacts are retained here; the driver log in `/tmp` is disposable.
+Use a distinct session/log name for any later invocation.
+Per-run artifacts are retained here; the sequence's driver log in `/tmp` is disposable.
 Completed training still needs predictions, metrics, and diagnostics before
 comparison. No training resume or automatic retry is implied.
 

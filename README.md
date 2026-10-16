@@ -66,24 +66,27 @@ uv venv --python 3.12 venv
 VIRTUAL_ENV="$PWD/venv" uv sync --active --locked
 ```
 
-Select the YAML through `CONFIG_PATH` and one method through `METHOD` in
+Select the YAML through `CONFIG_PATH` and an ordered list through `METHODS` in
 `scripts/run_experiments/run_burgers_campaign.py`, then run from the repository root:
 
 ```bash
 venv/bin/python -m scripts.run_experiments.run_burgers_campaign
 ```
 
-The runner currently selects the ten-seed configuration linked above and
-`METHOD = "pacmann_adam"`. Each invocation starts all configured seeds for that
-method in independent spawned processes, waits for them, and reports failed
-seeds without interrupting other workers. Start another method only after the
-current batch has finished. All five methods remain in the frozen YAML and its
+The runner currently selects the ten-seed configuration linked above and the
+four remaining batches: `pacmann_diffusion`, `fixed_hammersley`,
+`random_resampling`, and `rad`, in that order. For each method, it starts all
+configured seeds in independent spawned processes and waits for their training
+and evaluation to finish before starting the next method. A failed batch stops
+the sequence after its other workers finish. Set `METHODS` to a single-entry
+list when a pause for review is needed after that method.
+All five methods remain in the frozen YAML and its
 archived copies; each run records its actual `selected_method` and `selected_seed`.
 For future campaigns,
 `config/burgers_template.yaml` demonstrates all five methods with matched physics
 populations and the upstream network/optimizer schedule. The template has an
 empty seed list and cannot run unchanged. The runner validates all destinations
-for the selected method before starting, and never overwrites, skips, retries,
+for the selected methods before starting, and never overwrites, skips, retries,
 or resumes an existing run. Each worker trains and generates its own diagnostics.
 Weights support later evaluation, not exact training resume.
 

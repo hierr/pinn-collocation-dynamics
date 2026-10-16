@@ -1,4 +1,4 @@
-# Frozen evaluation protocol; the runner selects one method per invocation.
+# Frozen evaluation protocol; the runner selects one method per batch.
 campaign: burgers_nu_0p0031830989_10seed
 seeds: [4000, 4001, 4002, 4003, 4004, 4005, 4006, 4007, 4008, 4009]
 problem:

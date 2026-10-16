@@ -1,4 +1,4 @@
-"""Run all configured seeds concurrently for one selected Burgers method."""
+"""Run Burgers method batches sequentially, with concurrent seeds in each batch."""
 
 import multiprocessing
 import os
@@ -9,9 +9,9 @@ import yaml
 from scripts.post_processing.analyze_burgers import analyze_run
 from src.train import ROOT, run_training
 
-# Select one method here; the full scientific protocol remains in YAML.
+# Select the batch order here; the full scientific protocol remains in YAML.
 CONFIG_PATH = ROOT / "config/burgers_nu_0p0031830989_10seed.yaml"
-METHOD = "pacmann_adam"
+METHODS = ["pacmann_diffusion", "fixed_hammersley", "random_resampling", "rad"]
 
 
 def check_campaign(config: dict, method: str):
@@ -94,10 +94,17 @@ def run_campaign(config: dict, method: str):
 
 
 def main():
-    """Load the full protocol and launch only the method selected above."""
+    """Check all selected destinations, then run method batches in order."""
     with CONFIG_PATH.open() as stream:
         config = yaml.safe_load(stream)
-    run_campaign(config, METHOD)
+
+    # Reject conflicts in later batches before starting the first one.
+    for method in METHODS:
+        check_campaign(config, method)
+
+    # Each batch finishes training and evaluation before the next one starts.
+    for method in METHODS:
+        run_campaign(config, method)
 
 
 if __name__ == "__main__":
