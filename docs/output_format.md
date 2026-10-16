@@ -33,7 +33,10 @@ settings, the relevant [study phase](research_context.md), the comparison in
 [`results.md`](results.md), and this dictionary. Keep a shared design in one
 README and link from related output directories; do not repeat settings or
 create per-seed narratives. Maintain these READMEs as documentation; execution
-scripts write the numerical run artifacts.
+scripts write the numerical run artifacts. Execution examples use paths relative
+to the repository root and the documented software environment. Describe hardware
+and concurrency when scientifically relevant, without personal machine names
+or access instructions.
 
 The trainer writes configuration, provenance, status, logs, optimizer records,
 histories, model checkpoints, and training points. Post-processing loads the

@@ -1,18 +1,19 @@
 # Burgers: frozen-setting ten-seed comparison
 
-**Frozen protocol; the PACMANN ten-seed batch is complete.** The other four
-method batches remain pending. See the
-[consolidated results](../../docs/results.md#frozen-n1024-ten-seed-evaluation). The
-[configuration](../../config/burgers_nu_0p0031830989_10seed.yaml) contains the full
-five-method study. Accepted numerical implementation: `6934073`.
+**Frozen protocol; all five method batches are complete (50/50 runs).** See the
+[consolidated results](../../docs/results.md#frozen-n1024-ten-seed-evaluation).
+The [configuration](../../config/burgers_nu_0p0031830989_10seed.yaml) contains
+the full five-method study. Run metadata records source revision `9c3f022` for
+PACMANN and `e02098d` for the other four methods. Numerical training and
+evaluation code is unchanged between these revisions.
 
 ## Design and comparisons
 
-Evaluate fixed Hammersley, upstream random resampling, RAD, PACMANN, and PACMANN
-with diffusion on ten new paired seeds: fifty planned runs at `nu = 0.01/pi`
-using the validated generated N1024 reference. This evaluates methods at one
-viscosity; it does not test a sharpness effect or reproduce the original paper's
-unequal-population setup.
+The completed comparison evaluated fixed Hammersley, upstream random resampling,
+RAD, PACMANN, and PACMANN with diffusion on ten paired seeds (50 runs) at
+`nu = 0.01/pi`, using the validated generated N1024 reference. This evaluates
+methods at one viscosity; it does not test a sharpness effect or reproduce the
+original paper's unequal-population setup.
 
 The primary contrast is diffusion versus PACMANN for final solution relative L2,
 using `sigma=1e-4` selected on separate development seeds. Additional contrasts
@@ -44,22 +45,22 @@ available paired count explicitly.
 
 ## Execution
 
-Pull the committed `main` on `hier-wsl`, use its existing `.venv`, and verify CUDA
-execution and GPU availability. In `scripts/run_experiments/run_burgers_campaign.py`,
-`CONFIG_PATH` selects the configuration above and `METHODS` selects the batch
-order. The remaining sequence is `pacmann_diffusion`, `fixed_hammersley`,
-`random_resampling`, and `rad`; the completed `pacmann_adam` batch is excluded.
-Keep the numerical YAML fixed. Use a single-entry `METHODS` list when stopping
-for review after a particular method is desired.
+Follow the repository's [setup instructions](../../README.md#setup-and-execution).
+In `scripts/run_experiments/run_burgers_campaign.py`, set `CONFIG_PATH` to the
+campaign YAML and `METHODS` to the required methods in execution order. A full
+repetition includes `pacmann_adam`, `pacmann_diffusion`, `fixed_hammersley`,
+`random_resampling`, and `rad`. Use a copy of the YAML with a new `campaign`
+identifier to preserve the retained runs, keeping the scientific settings fixed.
+Execute from the repository root:
+
+```bash
+venv/bin/python -m scripts.run_experiments.run_burgers_campaign
+```
 
 Each batch launches all ten seeds concurrently in independent processes. The next
 method starts only after every worker in the current batch finishes training and
-evaluation. Only one method batch uses the GPU at a time. A worker failure stops
-the sequence after the other workers in that batch finish.
-The launcher checks all selected methods' destinations before starting; completed
-methods outside the selection do not block the sequence. It does not skip or
-retry runs. After an interruption, select only the unstarted methods; resolve
-incomplete batches under the recovery policy before including them again.
+evaluation. Only one method batch uses the GPU at a time. The reported evaluation
+used an NVIDIA GeForce RTX 5070.
 Workers use one CPU thread and set OMP/MKL/OpenBLAS thread limits to one, as
 described in the [environment instructions](../../README.md#setup-and-execution).
 
@@ -68,18 +69,10 @@ describing the timing condition as up to ten concurrent seeds on one GPU. These
 recorded times include competition with other workers, including workers doing
 final evaluation. Do not combine them with timings from serial tuning runs.
 
-From the remote checkout, launch detached so SSH disconnection does not stop it:
-
-```bash
-cd /home/hiero/pinn-collocation-dynamics
-tmux new-session -d -s burgers_remaining_methods \
-  '.venv/bin/python -u -m scripts.run_experiments.run_burgers_campaign > /tmp/burgers_remaining_methods.log 2>&1'
-```
-
-Use a distinct session/log name for any later invocation.
-Per-run artifacts are retained here; the sequence's driver log in `/tmp` is disposable.
-Completed training still needs predictions, metrics, and diagnostics before
-comparison. No training resume or automatic retry is implied.
+The launcher rejects occupied destinations and stops after a failed batch's
+workers finish. It does not skip, retry, or resume runs. Per-run artifacts are
+retained here; completed training requires predictions, metrics, and diagnostics
+before comparison. Saved weights support evaluation, not exact training resume.
 
 [Study controls](../../docs/research_context.md#accepted-controls-and-evaluation-policy)
 · [Development selection](../../docs/results.md#n1024-diffusion-development-selection)

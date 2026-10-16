@@ -63,20 +63,20 @@ Other viscosities require their own numerical-accuracy checks.
 
 The controlled N1024 sigma sweep completed fifteen runs over three paired
 development seeds at `nu = 0.01/pi`. It selected `sigma = 1e-4` by mean final
-solution relative L2, then assessed residual error at that same setting. Carry
-this candidate to evaluation on new seeds at this viscosity; it does not select
-settings for other viscosities. See the [development result](results.md#n1024-diffusion-development-selection).
+solution relative L2, then assessed residual error at that same setting. This
+candidate applies only at this viscosity; it does not select settings for other
+viscosities. See the [development result](results.md#n1024-diffusion-development-selection).
 Earlier pilot and tuning artifacts remain in Git history or on
-`hyperparameter-tuning`. No full ten-seed evaluation has been completed.
+`hyperparameter-tuning`.
 
-The [first frozen-setting protocol](../output/burgers_nu_0p0031830989_10seed/README.md)
-uses five methods and ten new paired seeds at this viscosity. It assesses the
-development-selected diffusion candidate independently before expansion across
-viscosity regimes. Settings are frozen in its YAML. Execution proceeds one method
-at a time, with ten independent seed processes sharing the GPU and one CPU thread
-per worker. Compare the mean and sample SD of the ten recorded training times
-under this same execution policy. There is no requirement to launch the next
-method automatically.
+The [first frozen-setting evaluation](../output/burgers_nu_0p0031830989_10seed/README.md)
+completed all 50 planned runs across five methods and ten independent paired
+evaluation seeds at this viscosity. The selected diffusion candidate did not
+improve mean solution or residual error over PACMANN; see the
+[evaluation results](results.md#frozen-n1024-ten-seed-evaluation). This evaluates
+the development selection on new seeds before expansion across viscosity regimes.
+It does not establish how method benefits change with sharpness. The campaign
+README records the execution and timing conditions.
 
 ## Parameterized sharpness study
 

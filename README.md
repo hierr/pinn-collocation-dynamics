@@ -23,14 +23,11 @@ The generated N1024 Burgers reference at viscosity `0.01/pi` has been
 [validated against PACMANN](docs/results.md#generated-burgers-reference-validation).
 The controlled N1024 development sweep selected `sigma=1e-4` at this viscosity;
 see the [development result](docs/results.md#n1024-diffusion-development-selection).
-The next evaluation will compare five methods on ten new paired seeds with
-frozen settings, before extending to a validated viscosity range and tuning
-separately in each regime. No full ten-seed evaluation has been completed.
-Development campaigns remain on `hyperparameter-tuning`.
-
-The [first ten-seed protocol](output/burgers_nu_0p0031830989_10seed/README.md)
-uses one method at a time with all ten seeds running concurrently. Its settings
-are frozen; no evaluation runs have started.
+The [first frozen evaluation](output/burgers_nu_0p0031830989_10seed/README.md)
+completed all 50 runs across five methods and ten paired seeds. See the
+[evaluation results](docs/results.md#frozen-n1024-ten-seed-evaluation).
+Extension across a validated viscosity range, with separate tuning in each
+regime, remains planned. Development campaigns remain on `hyperparameter-tuning`.
 
 ## Structure
 
@@ -43,7 +40,7 @@ config/                 Scientific YAML settings
 docs/                   Research context, results, and artifact dictionary
 references/             Immutable PACMANN source snapshot and provenance
 data/                   Original and generated reference datasets
-output/                 Full evaluation campaigns, added when executed
+output/                 Retained full evaluation campaigns
 ```
 
 Scientific run directories are retained directly in Git. Each archives its
@@ -55,11 +52,12 @@ READMEs belong alongside retained runs; see the [artifact dictionary](docs/outpu
 
 Use Python 3.12 and uv with the local `venv`; conda is unnecessary for this
 wheel-based stack. `pyproject.toml` and `uv.lock` pin DeepXDE 1.14.0 and PyTorch
-2.7.1 with CUDA 12.8 wheels. The backend is PyTorch with float64. The N1024
-development sweep used `hier-wsl`, its existing `.venv`, Python 3.12.12, and an
-NVIDIA GeForce RTX 5070 (driver 617.42, device `cuda:0`). Each run records its
-device and dependency versions. Use the existing remote environment for scientific
-campaigns and verify CUDA before execution; local tests use the existing `venv`.
+2.7.1 with CUDA 12.8 wheels. The backend is PyTorch with float64. Reported N1024
+development and evaluation campaigns used an NVIDIA GeForce RTX 5070; the
+development environment used Python 3.12.12 and driver 617.42. Each run records
+its device and dependency versions. The lockfile specifies the software stack;
+campaign READMEs specify concurrency and timing conditions. Commands below assume
+the repository root and use the project environment `venv`.
 
 ```bash
 uv venv --python 3.12 venv
@@ -73,15 +71,16 @@ Select the YAML through `CONFIG_PATH` and an ordered list through `METHODS` in
 venv/bin/python -m scripts.run_experiments.run_burgers_campaign
 ```
 
-The runner currently selects the ten-seed configuration linked above and the
-four remaining batches: `pacmann_diffusion`, `fixed_hammersley`,
-`random_resampling`, and `rad`, in that order. For each method, it starts all
-configured seeds in independent spawned processes and waits for their training
-and evaluation to finish before starting the next method. A failed batch stops
+For each selected method, the runner starts all configured seeds in independent
+spawned processes and waits for their training and evaluation to finish before
+starting the next method. A failed batch stops
 the sequence after its other workers finish. Set `METHODS` to a single-entry
 list when a pause for review is needed after that method.
 All five methods remain in the frozen YAML and its
 archived copies; each run records its actual `selected_method` and `selected_seed`.
+Existing evaluation destinations are occupied. For a new repetition, copy the
+campaign YAML with a new `campaign` identifier, keep its scientific settings,
+and select that copy and the desired methods in the runner.
 For future campaigns,
 `config/burgers_template.yaml` demonstrates all five methods with matched physics
 populations and the upstream network/optimizer schedule. The template has an

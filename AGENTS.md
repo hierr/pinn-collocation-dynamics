@@ -57,6 +57,13 @@ Read ignored `AGENTS.local.md`, if present, at session start.
   Put comparisons and brief interpretation in
   [results](docs/results.md), and artifact meanings in
   [output format](docs/output_format.md). Keep detailed numerical records in outputs.
+- Write authored documentation for external researchers and eventual paper
+  preparation. Use commands from the repository root and repository-relative
+  paths; omit personal hostnames, usernames, absolute checkout paths, and remote
+  access or session-management instructions. Retain hardware, software,
+  concurrency, provenance, and deviations that affect reproducibility or
+  interpretation. Keep observations distinct from hypotheses and disclose
+  analyses chosen after inspecting results.
 - Obtain approval for the scientific objective, comparisons, evaluation, and
   decision rules before execution. Keep campaign-specific reasoning not captured
   by configurations or artifacts in a concise, objective
