@@ -32,7 +32,14 @@ def prepare_run(config: dict, method: str, seed: int, dataset_sha256: str, root:
     ):
         raise ValueError("Campaign must be one ordinary path component")
     if (
-        method not in ("fixed_hammersley", "pacmann_adam", "pacmann_diffusion")
+        method
+        not in (
+            "fixed_hammersley",
+            "random_resampling",
+            "rad",
+            "pacmann_adam",
+            "pacmann_diffusion",
+        )
         or method not in config["methods"]
     ):
         raise ValueError("Unknown sampling method")
@@ -40,7 +47,7 @@ def prepare_run(config: dict, method: str, seed: int, dataset_sha256: str, root:
         raise ValueError("Seed must be a configured nonnegative integer")
 
     # Never reuse a previous run, including an incomplete or failed run.
-    run_dir = root / "output" / campaign / "burgers" / method / f"seed_{seed}"
+    run_dir = root / "output" / "burgers" / campaign / method / f"seed_{seed}"
     run_dir.mkdir(parents=True, exist_ok=False)
     for folder in ("models", "points"):
         (run_dir / folder).mkdir()

@@ -232,6 +232,31 @@ def analyze_run(run: Path):
         stages = json.loads((run / "training.json").read_text())["stages"]
         metrics["training_seconds"] = sum(stage["seconds"] for stage in stages)
         metrics["movement_events"] = sum(stage["movement_events"] for stage in stages)
+
+        # Recover only when the retained counterpart agrees with checkpoint evaluation.
+        if predictions_path.exists():
+            saved = load_arrays(predictions_path)
+            for name, values in (
+                ("coordinates", coordinates),
+                ("reference", reference),
+                ("prediction", prediction),
+            ):
+                if saved[name].shape != values.shape or not np.allclose(
+                    saved[name], values, rtol=1e-10, atol=1e-12
+                ):
+                    raise ValueError(
+                        f"Existing predictions.npz {name} differs from checkpoint evaluation"
+                    )
+        elif metrics_path.exists():
+            saved_metrics = json.loads(metrics_path.read_text())
+            for name, value in metrics.items():
+                if name not in saved_metrics or not np.isclose(
+                    saved_metrics[name], value, rtol=1e-10, atol=1e-12
+                ):
+                    raise ValueError(
+                        f"Existing metrics.json {name} differs from checkpoint evaluation"
+                    )
+
         if not predictions_path.exists():
             np.savez_compressed(
                 predictions_path,

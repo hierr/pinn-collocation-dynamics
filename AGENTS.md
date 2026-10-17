@@ -4,10 +4,11 @@ Read ignored `AGENTS.local.md`, if present, at session start.
 
 ## Scope
 
-- This persistent `hyperparameter-tuning` branch retains development campaigns.
-  Dataset validation lives on `dataset-validation`; accepted implementations and
-  full frozen-setting evaluations live on `main`. Transfer selected commits,
-  configurations, or conclusions without merging entire workstreams.
+- Keep `main` focused on accepted implementations, frozen evaluation settings,
+  full evaluation campaigns, and concise accepted conclusions. Dataset checks
+  live on persistent `dataset-validation`; development runs and tuning settings
+  live on persistent `hyperparameter-tuning`. Transfer selected code or decisions
+  with their source commit; do not merge entire workstreams and their artifacts.
 
 - Communicate and write code and documentation in English.
 - This is an independent research repository, separate from coursework repositories.
@@ -23,7 +24,7 @@ Read ignored `AGENTS.local.md`, if present, at session start.
   deviations. Distinguish code reproduction from a modified benchmark study.
 - Treat `references/pacmann/burgers/` as immutable upstream material. The retained
   original reference is `data/burgers_dataset/PACMANN_Burgers.npz`; generated
-  training-evaluation references are selected by `problem.reference_path`.
+  references are selected by `problem.reference_path`.
 
 ## Environment and execution
 
@@ -46,7 +47,7 @@ Read ignored `AGENTS.local.md`, if present, at session start.
   settings; evaluation tests research questions with frozen settings. Run duration
   and seed count alone do not determine scientific value.
 - Keep scientific settings in YAML. Archive the resolved configuration in
-  `output/<campaign>/<problem>/<method>/<seed>/config.yaml` at run start.
+  `output/<problem>/<campaign>/<method>/<seed>/config.yaml` at run start.
 - Never overwrite a prior run or alter original reference datasets.
 - Use archived configurations and fixed evaluation seeds for post-processing.
 - Model snapshots support evaluation, not exact training resume.
@@ -56,12 +57,21 @@ Read ignored `AGENTS.local.md`, if present, at session start.
   Put comparisons and brief interpretation in
   [results](docs/results.md), and artifact meanings in
   [output format](docs/output_format.md). Keep detailed numerical records in outputs.
+- Write authored documentation for external researchers and eventual paper
+  preparation. Use commands from the repository root and repository-relative
+  paths; omit personal hostnames, usernames, absolute checkout paths, and remote
+  access or session-management instructions. Retain hardware, software,
+  concurrency, provenance, and deviations that affect reproducibility or
+  interpretation. Keep observations distinct from hypotheses and disclose
+  analyses chosen after inspecting results.
 - Obtain approval for the scientific objective, comparisons, evaluation, and
   decision rules before execution. Keep campaign-specific reasoning not captured
   by configurations or artifacts in a concise, objective
-  `output/<campaign>/README.md`, alongside its run directories.
+  `output/<problem>/<campaign>/README.md`, alongside its run directories.
   Include execution instructions and links to settings, the study phase, results,
-  and `docs/output_format.md`. When several output directories share one design,
+  and `docs/output_format.md`. Summarize per-seed final outcomes and method
+  aggregates there; keep study-level comparisons in `docs/results.md`.
+  When several output directories share one design,
   document it once and link from the others.
 - Do not duplicate run settings or maintain campaign diaries. Update research
   context for consequential study decisions; keep engineering validation history
@@ -78,7 +88,8 @@ Read ignored `AGENTS.local.md`, if present, at session start.
 - Track scientific run directories directly in Git, including configs, models,
   points, logs, predictions, and diagnostics. Reference datasets are tracked;
   preserve their provenance and restoration instructions.
-  Setup-validation/compatibility runs are disposable and ignored; do not create compressed run archives by default.
+  Setup-validation/compatibility runs are
+  disposable and ignored; do not create compressed run archives by default.
 
 ## Execution recovery
 

@@ -7,9 +7,9 @@ artifacts and [results](results.md); this dictionary explains how to read the fi
 ## Directory layout and experiment links
 
 ```text
-output/<campaign>/
+output/<problem>/<campaign>/
   README.md
-  <problem>/<method>/seed_<seed>/
+  <method>/seed_<seed>/
     config.yaml
     metadata.json
     status.json
@@ -32,8 +32,14 @@ instructions and reasoning not captured by configurations or artifacts. Link to
 settings, the relevant [study phase](research_context.md), the comparison in
 [`results.md`](results.md), and this dictionary. Keep a shared design in one
 README and link from related output directories; do not repeat settings or
-create per-seed narratives. Maintain these READMEs as documentation; execution
-scripts write the numerical run artifacts.
+create per-seed narratives. Campaign result tables summarize each seed's final
+metrics and method aggregates; run artifacts remain the authoritative numerical
+records, and `results.md` retains study-level comparisons.
+Maintain these READMEs as documentation; execution
+scripts write the numerical run artifacts. Execution examples use paths relative
+to the repository root and the documented software environment. Describe hardware
+and concurrency when scientifically relevant, without personal machine names
+or access instructions.
 
 The trainer writes configuration, provenance, status, logs, optimizer records,
 histories, model checkpoints, and training points. Post-processing loads the
@@ -101,6 +107,16 @@ midpoint grid; `batch_size` limits prediction and autograd batches. The template
 uses 1024 solution points, 1024 by 200 residual points, and batches of 4096.
 These settings are archived with every new run.
 
+`random_resampling.period` sets the Adam-step interval between fresh uniform
+populations. RAD archives `period`, `candidate_points`, `k`, `c`, and `batch_size`:
+it scores fresh uniform candidates in batches, then selects the fixed interior
+budget without replacement using weights `abs(residual)**k / mean(abs(residual)**k) + c`.
+The template uses 100,000 candidates, `k=1`, `c=1`, period 50, and batches of
+4,096. Batches limit memory; normalization uses the entire candidate population.
+An all-zero residual field uses uniform probabilities. Both resampling methods
+use the seeded global NumPy stream, start from Hammersley points, and preserve
+constraints. They have no coordinate-movement steps or diffusion coefficient.
+
 ## Optimizer-stage records: `training.json`
 
 The top-level `stages` list records completed optimizer stages in execution
@@ -115,12 +131,14 @@ is reset when each stage is compiled.
 | `global_step` | Integer | Cumulative DeepXDE network optimizer step at the stage endpoint. Includes previous stages; excludes coordinate movement steps and L-BFGS function evaluations. |
 | `optimizer_iterations` | Integer | Stage's network iterations: the configured completed Adam steps or the L-BFGS optimizer's actual `n_iter` counter. |
 | `function_evaluations` | Integer; L-BFGS only | Actual L-BFGS `func_evals` counter, including repeated closure evaluations during optimization. Omitted for Adam. |
-| `movement_events` | Integer | PACMANN movement events during this stage. One event contains the configured number of coordinate updates; it is not one event per point or per coordinate step. Zero for fixed sampling and L-BFGS. |
+| `movement_events` | Integer | Sampling updates during this stage: one complete population replacement for random resampling/RAD, or one event containing the configured coordinate steps for PACMANN. Zero for fixed sampling and L-BFGS. |
 | `pde_points` | Integer | Number of PDE-residual coordinates at the endpoint, corresponding to the saved `pde` array. Controlled runs use the configured interior count throughout. |
 
-Actual L-BFGS iterations can exceed the configured limit because DeepXDE makes
-optimizer calls in batches. Use the recorded counts when comparing executed
-budgets. The file is rewritten after each completed stage, so a failed run may
+Actual L-BFGS iterations and function evaluations can exceed their configured
+stage limits because DeepXDE makes optimizer calls in batches. Use the recorded
+counts when comparing executed budgets; the backend's `maxfun` and `maxls`
+semantics are described in [source provenance](../references/upstream.md#controlled-study-choices).
+The file is rewritten after each completed stage, so a failed run may
 contain a partial stage list.
 
 ## Error and timing summary: `metrics.json`
@@ -140,7 +158,7 @@ nondimensional coordinates and solution values.
 | `final_residual_rms` | RMS of `u_t + u*u_x - viscosity*u_xx`, using PINN autograd derivatives on the independent interior midpoint grid. No reference solution or zero-residual normalization is used. |
 | `boundary_rmse` | RMSE against zero at both spatial boundaries, averaged equally over both boundaries and all retained times. |
 | `initial_rmse` | RMSE against `-sin(pi*x)` at the configured initial time, averaged equally over the uniform spatial evaluation points. |
-| `movement_events` | Total PACMANN events across training; sum of the stage event counts. |
+| `movement_events` | Total sampling updates across training; sum of the stage event counts. |
 | `training_seconds` | Sum of stage `seconds`, including compilation and training with movement callbacks. Excludes checkpoint loading, final evaluation, and plotting. |
 
 Scores are computed by loading the final checkpoint into a fresh model during
@@ -191,7 +209,11 @@ model. Reference solution values are not supervised training labels; training
 uses the PDE and analytic boundary and initial conditions. The reference
 fingerprint must match training metadata before new evaluation artifacts are
 written. Existing predictions and metrics are retained when regenerating plots;
-missing evaluation files can be generated from the checkpoint.
+missing evaluation files can be generated from the checkpoint. Before recovering
+one missing file, post-processing checks the retained counterpart against the
+recomputed evaluation (relative tolerance `1e-10`, absolute tolerance `1e-12`).
+A mismatch raises an error without writing the missing file or replacing the
+existing artifacts. Completed pairs are reused for plotting without re-evaluation.
 
 ## Training coordinates: `points/*.npz`
 
@@ -200,7 +222,7 @@ not observations of the reference solution.
 
 | Array | Shape | Meaning |
 | --- | --- | --- |
-| `interior` | `(I, 2)` | Interior physics population extracted by the sampler; PDE collocation coordinates that PACMANN can move. |
+| `interior` | `(I, 2)` | Interior physics population, kept fixed, resampled, or moved by the selected method. |
 | `pde` | `(P, 2)` | Complete `train_x_all` population on which DeepXDE applies the PDE-residual loss. |
 | `constraints` | `(C, 2)` | `train_x_bc` coordinates for soft boundary and initial-condition losses, in boundary-then-initial order. Their target values come from the analytic conditions in the problem definition. |
 
@@ -246,6 +268,7 @@ requires the final checkpoint and matching reference dataset; it does not train.
 | `per_time_relative_l2` | One relative-L2 fraction per entry in `times`, using ordinary spatial norms of the error and reference at that time. Undefined for a zero reference norm. |
 
 The PNG shows recorded training/test losses, final absolute error
-over space and time, final interior collocation points, and reference/prediction
+over space and time, black final interior points over the reference solution,
+and reference/prediction
 slices at the saved times nearest 0.25, 0.50, 0.75, and 0.99. These are derived
 diagnostics. Final scores and training-cost totals are in `metrics.json`.

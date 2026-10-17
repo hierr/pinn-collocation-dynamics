@@ -4,7 +4,9 @@ import json
 
 import numpy as np
 import pytest
+import torch
 import yaml
+from deepxde import config as dde_config
 
 from scripts.post_processing import analyze_burgers as analysis
 from scripts.post_processing.analyze_burgers import (
@@ -14,7 +16,7 @@ from scripts.post_processing.analyze_burgers import (
     reconstruct_grid,
 )
 from src import train
-from src.burgers import load_reference
+from src.burgers import build_model, load_reference
 
 
 def test_grid_and_known_errors():
@@ -129,6 +131,16 @@ def test_postprocessing_matches_training_model_and_preserves_artifacts(
     assert json.loads((run / "metrics.json").read_text()) == actual
     saved_metric_bytes = (run / "metrics.json").read_bytes()
 
+    # Recover missing predictions without replacing the consistent metric summary.
+    (run / "predictions.npz").unlink()
+    analyze_run(run)
+    assert (run / "metrics.json").read_bytes() == saved_metric_bytes
+    with np.load(run / "predictions.npz") as saved:
+        np.testing.assert_allclose(
+            saved["prediction"], expected_prediction, rtol=1e-10, atol=1e-12
+        )
+    saved_prediction_bytes = (run / "predictions.npz").read_bytes()
+
     # A completed evaluation only needs its saved arrays to regenerate plots.
     monkeypatch.setattr(
         analysis, "build_model", lambda *args: pytest.fail("Unexpected model reload")
@@ -136,6 +148,62 @@ def test_postprocessing_matches_training_model_and_preserves_artifacts(
     analyze_run(run)
     assert (run / "predictions.npz").read_bytes() == saved_prediction_bytes
     assert (run / "metrics.json").read_bytes() == saved_metric_bytes
+
+
+@pytest.mark.parametrize(
+    "changed_field",
+    ["coordinates", "reference", "prediction", "final_relative_l2", "missing_metric"],
+)
+def test_recovery_rejects_inconsistent_existing_evaluation(
+    config, tmp_path, changed_field
+):
+    """Reject mismatched evaluation files before writing any recovery artifacts."""
+    config["network"]["layers"] = [2, 8, 1]
+    dde_config.set_default_float("float64")
+    coordinates, reference, fingerprint = load_reference(
+        tmp_path, config["problem"], config["evaluation"]["solution_nx"]
+    )
+    model, _ = build_model(config["problem"], config["network"])
+    model.compile("adam", lr=config["training"]["learning_rate"])
+    prediction, metrics = analysis.evaluate_final(
+        model, coordinates, reference, config["problem"], config["evaluation"]
+    )
+    run = tmp_path / "partial_evaluation"
+    (run / "models").mkdir(parents=True)
+    torch.save(model.net.state_dict(), run / "models/final.pt")
+    (run / "config.yaml").write_text(yaml.safe_dump(config))
+    (run / "metadata.json").write_text(json.dumps({"dataset_sha256": fingerprint}))
+    (run / "training.json").write_text(
+        json.dumps({"stages": [{"seconds": 1.0, "movement_events": 0}]})
+    )
+
+    # Leave one counterpart inconsistent with the archived model and settings.
+    if changed_field in ("coordinates", "reference", "prediction"):
+        arrays = {
+            "coordinates": coordinates,
+            "reference": reference,
+            "prediction": prediction,
+        }
+        arrays[changed_field] = arrays[changed_field] + 1
+        np.savez(run / "predictions.npz", **arrays)
+    else:
+        metrics.update(training_seconds=1.0, movement_events=0)
+        if changed_field == "missing_metric":
+            del metrics["final_relative_l2"]
+        else:
+            metrics[changed_field] += 1
+        (run / "metrics.json").write_text(json.dumps(metrics))
+    original_files = {
+        path: path.read_bytes() for path in run.rglob("*") if path.is_file()
+    }
+
+    with pytest.raises(
+        ValueError, match="Existing .* differs from checkpoint evaluation"
+    ):
+        analyze_run(run)
+    assert {
+        path: path.read_bytes() for path in run.rglob("*") if path.is_file()
+    } == original_files
 
 
 def test_postprocessing_rejects_changed_reference(config, tmp_path):

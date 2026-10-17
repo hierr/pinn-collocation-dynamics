@@ -28,9 +28,21 @@ def run_root(config, tmp_path, monkeypatch):
     return tmp_path
 
 
-@pytest.mark.parametrize("method", ["fixed_hammersley", "pacmann_adam"])
-def test_training_preserves_artifacts_and_stage_behavior(config, run_root, method):
+@pytest.mark.parametrize(
+    "method",
+    [
+        "fixed_hammersley",
+        "random_resampling",
+        "rad",
+        "pacmann_adam",
+        "pacmann_diffusion",
+    ],
+)
+def test_training_preserves_artifacts_and_stage_behavior(
+    all_methods_config, run_root, method
+):
     """Exercise both stages, cross-phase sampling cadence, and evaluation snapshots."""
+    config = all_methods_config
     config["network"]["layers"] = [2, 8, 1]
     config["training"].update(phases=2, adam_steps=3, display_every=1)
     config["training"]["lbfgs"].update(maxiter=2, maxfun=3)
@@ -60,7 +72,7 @@ def test_training_preserves_artifacts_and_stage_behavior(config, run_root, metho
         "adam",
         "L-BFGS",
     ]
-    expected_events = [1, 0, 2, 0] if method == "pacmann_adam" else [0, 0, 0, 0]
+    expected_events = [0, 0, 0, 0] if method == "fixed_hammersley" else [1, 0, 2, 0]
     assert [stage["movement_events"] for stage in stages] == expected_events
     for stage in stages:
         expected_keys = {
@@ -121,7 +133,7 @@ def test_failed_run_retains_configuration_and_traceback(config, run_root, monkey
     with pytest.raises(RuntimeError, match="model construction failed"):
         train.run_training(config, "pacmann_adam", 1000)
     run_dir = (
-        run_root / "output" / config["campaign"] / "burgers/pacmann_adam/seed_1000"
+        run_root / "output/burgers" / config["campaign"] / "pacmann_adam/seed_1000"
     )
     assert (run_dir / "config.yaml").exists()
     assert json.loads((run_dir / "status.json").read_text()) == {

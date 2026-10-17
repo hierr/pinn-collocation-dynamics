@@ -16,7 +16,13 @@ from src.artifacts import (
     write_json,
 )
 from src.burgers import build_model, load_reference
-from src.sampling import FixedHammersley, PacmannAdam, PacmannDiffusion
+from src.sampling import (
+    RAD,
+    FixedHammersley,
+    PacmannAdam,
+    PacmannDiffusion,
+    RandomResampling,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -50,6 +56,20 @@ def run_training(config: dict, method: str, seed: int):
         # Select the collocation method independently of the network optimizer.
         if method == "fixed_hammersley":
             sampler = FixedHammersley()
+        elif method == "random_resampling":
+            sampler = RandomResampling(
+                interior_points=interior_count,
+                period=sampling_settings["period"],
+            )
+        elif method == "rad":
+            sampler = RAD(
+                interior_points=interior_count,
+                period=sampling_settings["period"],
+                candidate_points=sampling_settings["candidate_points"],
+                k=sampling_settings["k"],
+                c=sampling_settings["c"],
+                batch_size=sampling_settings["batch_size"],
+            )
         elif method == "pacmann_adam":
             sampler = PacmannAdam(
                 interior_points=interior_count,
@@ -60,7 +80,7 @@ def run_training(config: dict, method: str, seed: int):
                 betas=sampling_settings["betas"],
                 epsilon=sampling_settings["epsilon"],
             )
-        else:
+        elif method == "pacmann_diffusion":
             sampler = PacmannDiffusion(
                 interior_points=interior_count,
                 residual_gradient=residual_gradient,
@@ -172,14 +192,14 @@ def run_training(config: dict, method: str, seed: int):
             loss_test=np.array(history.loss_test),
         )
 
-        if method in ("pacmann_adam", "pacmann_diffusion"):
+        if method != "fixed_hammersley":
             expected_events = (
                 training_settings["phases"]
                 * training_settings["adam_steps"]
                 // sampling_settings["period"]
             )
             if sampler.events != expected_events:
-                raise RuntimeError("Unexpected PACMANN update count")
+                raise RuntimeError("Unexpected sampling update count")
 
     return run_dir
 
