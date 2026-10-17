@@ -7,7 +7,7 @@ whether a comparison concerns tuning or frozen-setting evaluation. Include brief
 interpretation and limitations needed to understand each comparison; broader
 study decisions belong in [research context](research_context.md).
 
-## Current evidence
+## Earlier development at ν = 0.01/π
 
 The [controlled N1024 Burgers sigma sweep](../output/burgers_sigma_tuning_n1024_baseline/README.md)
 completed all 15 planned runs with no failures. It used three paired development
@@ -49,3 +49,36 @@ limit in some stages, so these runs share optimizer settings but have different
 realized work; see the [campaign limitation](../output/burgers_sigma_tuning_n1024_baseline/README.md#optimizer-work).
 Per-seed values and full run records are in the campaign artifacts.
 See the [study design and next phase](research_context.md#current-development-and-evaluation-plan).
+
+## Diffusion tuning at ν = 0.01
+
+The [ν = 0.01 sweep](../output/burgers/burgers_nu_0p01_sigma_0/README.md)
+completed all 15 planned runs with no numerical failures: ordinary PACMANN and
+four positive diffusion coefficients, each on development seeds 3000–3002.
+It uses the generated N1024 reference at **0.01**, not `0.01/pi`.
+The evaluation grids match the earlier sweep. Sigma zero is a comparison
+baseline only; select among positive candidates by mean final solution relative L2.
+
+| Sigma | Final solution relative L2, mean ± sample SD (%) | Mean paired change vs. sigma 0 (percentage points) | Seeds improved |
+| ---: | ---: | ---: | ---: |
+| 0 | 0.0289837 ± 0.0112685 | — | — |
+| 1e-5 | 0.0309733 ± 0.00809073 | +0.00198960 | 1/3 |
+| 1e-4 | 0.0343620 ± 0.0142494 | +0.00537824 | 1/3 |
+| **1e-3** | **0.0262913 ± 0.00596281** | **-0.00269247** | 2/3 |
+| 1e-2 | 0.0424632 ± 0.00330482 | +0.0134794 | 1/3 |
+
+Select **sigma = 1e-3**; its interior position requires no search expansion.
+Residual error is evaluated at this solution-selected setting.
+
+| Sigma | Final PDE-residual RMS, mean ± sample SD | Mean paired change vs. sigma 0 | Seeds improved |
+| ---: | ---: | ---: | ---: |
+| 0 | 0.00187201 ± 0.0000839024 | — | — |
+| 1e-3 | 0.00173037 ± 0.000505739 | -0.000141638 | 2/3 |
+
+Mean solution error is 9.29% lower and mean residual RMS is 7.57% lower than
+ordinary PACMANN on these development seeds. The small selection sample does
+not establish a held-out diffusion benefit or a sharpness effect. The reference
+passed structural checks, without independent accuracy certification at this
+viscosity. Per-seed outcomes, execution conditions, and optimizer-work limitations
+are in the campaign README and artifacts. No ten-seed evaluation at this
+viscosity has started.

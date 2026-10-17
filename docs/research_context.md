@@ -62,7 +62,11 @@ comparisons.
 
 The new `nu = 0.01` development phase is a separate viscosity and uses seeds
 3000–3002 to compare ordinary PACMANN with positive diffusion settings. Its
-positive-only selection rule and boundary expansion limits are recorded under
+[15-run sweep](../output/burgers/burgers_nu_0p01_sigma_0/README.md) completed
+without numerical failures and selected **sigma = 1e-3** by mean final solution
+relative L2. The winner is interior, so no boundary expansion is needed. Freeze
+this value for the separate ten-seed comparison; that evaluation has not started.
+Its positive-only selection rule and boundary expansion limits are recorded under
 [accepted controls](#accepted-controls-and-evaluation-policy). This phase does
 not revise the earlier `nu = 0.01/pi` comparison or its selected setting.
 
