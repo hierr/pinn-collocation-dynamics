@@ -1,4 +1,4 @@
-"""Run the paired sigma sweep or summarize its saved artifacts without training."""
+"""Run the Burgers diffusion tuning sweep or summarize its saved artifacts."""
 
 import json
 import math
@@ -12,11 +12,11 @@ from src.train import ROOT
 # Select execution here. Summarization never launches training or writes artifacts.
 ACTION = "run"
 CONFIG_PATHS = [
-    ROOT / "config/burgers_sigma_baseline.yaml",
-    ROOT / "config/burgers_sigma_1e-5.yaml",
-    ROOT / "config/burgers_sigma_1e-4.yaml",
-    ROOT / "config/burgers_sigma_1e-3.yaml",
-    ROOT / "config/burgers_sigma_1e-2.yaml",
+    ROOT / "config/burgers_nu_0p01_sigma_0.yaml",
+    ROOT / "config/burgers_nu_0p01_sigma_1e-5.yaml",
+    ROOT / "config/burgers_nu_0p01_sigma_1e-4.yaml",
+    ROOT / "config/burgers_nu_0p01_sigma_1e-3.yaml",
+    ROOT / "config/burgers_nu_0p01_sigma_1e-2.yaml",
 ]
 
 
@@ -64,11 +64,13 @@ def run_tuning(configs):
     """Check the entire sweep, then train and analyze configurations sequentially."""
     check_tuning_configs(configs)
     for config in configs:
-        campaign.check_campaign(config)
+        method = next(iter(config["methods"]))
+        campaign.check_campaign(config, method)
 
-    # Execute the matched settings in their configured order.
+    # Execute each matched method batch in its configured order.
     for config in configs:
-        campaign.run_campaign(config)
+        method = next(iter(config["methods"]))
+        campaign.run_campaign(config, method)
 
 
 def summarize_tuning(configs):
@@ -79,15 +81,15 @@ def summarize_tuning(configs):
     for index, config in enumerate(configs):
         method = next(iter(config["methods"]))
         sigma = 0.0 if index == 0 else config["methods"][method]["sigma"]
-        errors, seconds, failed, pending = {}, [], 0, 0
+        errors, residuals, seconds, failed, pending = {}, {}, [], 0, 0
 
         # Classify every planned seed, retaining failures and unfinished analysis.
         for seed in config["seeds"]:
             run = (
                 ROOT
                 / "output"
-                / config["campaign"]
                 / "burgers"
+                / config["campaign"]
                 / method
                 / f"seed_{seed}"
             )
@@ -132,18 +134,23 @@ def summarize_tuning(configs):
                     f"Tuning runs have different source, environment, data or device: {run}"
                 )
             metrics = json.loads((run / "metrics.json").read_text())
-            error, duration = metrics["final_relative_l2"], metrics["training_seconds"]
+            error = metrics["final_relative_l2"]
+            residual = metrics["final_residual_rms"]
+            duration = metrics["training_seconds"]
             if not all(
-                math.isfinite(value) and value >= 0 for value in (error, duration)
+                math.isfinite(value) and value >= 0
+                for value in (error, residual, duration)
             ):
-                raise ValueError(f"Invalid final error or training time: {run}")
+                raise ValueError(f"Invalid final metric or training time: {run}")
             errors[seed] = error
+            residuals[seed] = residual
             seconds.append(duration)
 
         rows.append(
             {
                 "sigma": sigma,
                 "errors": errors,
+                "residuals": residuals,
                 "seconds": seconds,
                 "failed": failed,
                 "pending": pending,
@@ -189,18 +196,57 @@ def summarize_tuning(configs):
             f"| {row['sigma']:g} | {planned} | {len(values)} | {row['failed']} | {row['pending']} | {individual} | {mean} | {sd} | {change} | {improved} | {elapsed} |"
         )
 
-    # Freeze a candidate only after every planned run and its analysis completes.
+    # Report residual outcomes separately; they do not select sigma.
+    lines.extend(
+        [
+            "",
+            "Final PDE residual RMS (reported at the solution-error-selected setting):",
+            "",
+            "| Sigma | Planned | Completed | Failed | Pending | Seed: residual RMS | Mean RMS | Sample SD |",
+            "| ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: |",
+        ]
+    )
+    for row in rows:
+        values = list(row["residuals"].values())
+        complete = len(values) == planned
+        mean = f"{statistics.mean(values):.6g}" if complete else "—"
+        sd = (
+            f"{statistics.stdev(values):.6g}"
+            if complete and len(values) > 1
+            else "—"
+        )
+        individual = "; ".join(
+            f"{seed}: {row['residuals'][seed]:.6g}"
+            if seed in row["residuals"]
+            else f"{seed}: unavailable"
+            for seed in configs[0]["seeds"]
+        )
+        lines.append(
+            f"| {row['sigma']:g} | {planned} | {len(values)} | {row['failed']} | {row['pending']} | {individual} | {mean} | {sd} |"
+        )
+
+    # Compare positive diffusion settings separately from ordinary PACMANN.
     if all(len(row["errors"]) == planned for row in rows):
+        positive_rows = rows[1:]
         winner = min(
-            rows,
+            positive_rows,
             key=lambda row: (statistics.mean(row["errors"].values()), row["sigma"]),
         )
         lines.append(
-            f"\nSelected sigma by mean final relative L2: {winner['sigma']:g}."
+            "\nOrdinary PACMANN (sigma=0) is the comparison baseline."
         )
-        if winner["sigma"] > 0 and winner in (rows[1], rows[-1]):
+        lines.append(
+            f"Selected positive sigma by mean final relative L2: {winner['sigma']:g}."
+        )
+        if winner is positive_rows[0]:
+            lower = (winner["sigma"] / 100, winner["sigma"] / 10)
             lines.append(
-                "The selected positive sigma is at a search boundary; review before freezing it. No automatic grid expansion."
+                f"The winner is the lower tested boundary. The next approved lower expansion is {lower[0]:g}, {lower[1]:g}; after two expansion rounds, freeze the best tested positive sigma and report the boundary limitation."
+            )
+        elif winner is positive_rows[-1]:
+            upper = (winner["sigma"] * 10, winner["sigma"] * 100)
+            lines.append(
+                f"The winner is the upper tested boundary. The next approved upper expansion is {upper[0]:g}, {upper[1]:g}; after two expansion rounds, freeze the best tested positive sigma and report the boundary limitation."
             )
     else:
         lines.append(

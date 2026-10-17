@@ -5,6 +5,7 @@ import json
 import pytest
 import yaml
 
+from scripts.post_processing import analyze_burgers
 from scripts.run_experiments import run_burgers_campaign as campaign
 from scripts.run_experiments import run_burgers_sigma_tuning as tuning
 from src import train
@@ -37,8 +38,8 @@ def save_completed(configs, root, errors=None):
             run = (
                 root
                 / "output"
-                / config["campaign"]
                 / "burgers"
+                / config["campaign"]
                 / method
                 / f"seed_{seed}"
             )
@@ -48,7 +49,13 @@ def save_completed(configs, root, errors=None):
             )
             (run / "status.json").write_text(json.dumps({"status": "complete"}))
             (run / "metrics.json").write_text(
-                json.dumps({"final_relative_l2": error, "training_seconds": 10.0})
+                json.dumps(
+                    {
+                        "final_relative_l2": error,
+                        "final_residual_rms": error / 10,
+                        "training_seconds": 10.0,
+                    }
+                )
             )
             (run / "metadata.json").write_text(
                 json.dumps(
@@ -70,12 +77,23 @@ def test_prepared_grid_matches_controlled_template(sweep):
     """Keep all full-budget controls and three tuning seeds consistent."""
     tuning.check_tuning_configs(sweep)
     template = yaml.safe_load(
-        (tuning.CONFIG_PATHS[0].parent / "burgers_template.yaml").read_text()
+        (tuning.CONFIG_PATHS[0].parent / "burgers_sigma_baseline.yaml").read_text()
     )
     assert sweep[0]["seeds"] == [3000, 3001, 3002]
     for config in sweep:
-        for field in ("problem", "network", "training", "evaluation"):
+        for field in ("network", "training", "evaluation"):
             assert config[field] == template[field]
+        for field in ("interior_points", "boundary_points", "initial_points"):
+            assert config["problem"][field] == template["problem"][field]
+        assert config["problem"]["viscosity"] == 0.01
+        assert config["problem"]["reference_path"] == (
+            "data/burgers_dataset/burgers_nu_0p01_N1024.npz"
+        )
+        method = next(iter(config["methods"]))
+        method_settings = dict(config["methods"][method])
+        method_settings.pop("sigma", None)
+        assert method_settings == template["methods"]["pacmann_adam"]
+    assert list(sweep[0]["methods"]) == ["pacmann_adam"]
     assert [
         config["methods"]["pacmann_diffusion"]["sigma"] for config in sweep[1:]
     ] == [1e-5, 1e-4, 1e-3, 1e-2]
@@ -85,22 +103,31 @@ def test_preflight_entire_sweep_before_execution(sweep, tmp_path, monkeypatch):
     """Find a final-configuration conflict before launching any training."""
     last = sweep[-1]
     existing = (
-        tmp_path / "output" / last["campaign"] / "burgers/pacmann_diffusion/seed_3002"
+        tmp_path
+        / "output/burgers"
+        / last["campaign"]
+        / "pacmann_diffusion/seed_3002"
     )
     existing.mkdir(parents=True)
     calls = []
-    monkeypatch.setattr(campaign, "run_campaign", lambda config: calls.append(config))
+    monkeypatch.setattr(
+        campaign,
+        "run_campaign",
+        lambda config, method: calls.append((config, method)),
+    )
     with pytest.raises(FileExistsError):
         tuning.run_tuning(sweep)
     assert calls == []
-    assert not (tmp_path / "output" / sweep[0]["campaign"]).exists()
+    assert not (tmp_path / "output/burgers" / sweep[0]["campaign"]).exists()
 
 
 def test_sweep_order(sweep, monkeypatch):
     """Execute baseline then increasing sigma in configured order."""
     calls = []
     monkeypatch.setattr(
-        campaign, "run_campaign", lambda config: calls.append(config["campaign"])
+        campaign,
+        "run_campaign",
+        lambda config, method: calls.append(config["campaign"]),
     )
     tuning.run_tuning(sweep)
     assert calls == [config["campaign"] for config in sweep]
@@ -110,7 +137,7 @@ def test_sweep_stops_on_failure(sweep, tmp_path, monkeypatch):
     """Retain launched campaign directories and never start later configurations."""
     calls = []
 
-    def execute(config):
+    def execute(config, method):
         """Fail on the second campaign after recording the execution order."""
         calls.append(config["campaign"])
         if len(calls) == 2:
@@ -120,7 +147,7 @@ def test_sweep_stops_on_failure(sweep, tmp_path, monkeypatch):
     with pytest.raises(RuntimeError, match="analysis failed"):
         tuning.run_tuning(sweep)
     assert calls == [config["campaign"] for config in sweep[:2]]
-    assert not (tmp_path / "output" / sweep[2]["campaign"]).exists()
+    assert not (tmp_path / "output/burgers" / sweep[2]["campaign"]).exists()
 
 
 @pytest.mark.parametrize(
@@ -165,17 +192,21 @@ def test_unmatched_controls_rejected(sweep, monkeypatch, change):
     else:
         sweep[0]["seeds"] = [3000, 3000]
     calls = []
-    monkeypatch.setattr(campaign, "run_campaign", lambda config: calls.append(config))
+    monkeypatch.setattr(
+        campaign,
+        "run_campaign",
+        lambda config, method: calls.append((config, method)),
+    )
     with pytest.raises(ValueError):
         tuning.run_tuning(sweep)
     assert calls == []
 
 
 def test_summary_known_statistics_pairing_and_tie(sweep, tmp_path):
-    """Compute sample SD, paired differences, timing, and smaller-sigma tie break."""
+    """Compute paired statistics and break positive-sigma ties toward smaller sigma."""
     save_completed(sweep, tmp_path)
     result = tuning.summarize_tuning(sweep)
-    assert "Selected sigma by mean final relative L2: 0.0001." in result
+    assert "Selected positive sigma by mean final relative L2: 0.0001." in result
     assert (
         "| 0.0001 | 3 | 3 | 0 | 0 | 3000: 5; 3001: 15; 3002: 25 | 15 | 10 | -5 | 3/3 | 30.0 |"
         in result
@@ -183,16 +214,31 @@ def test_summary_known_statistics_pairing_and_tie(sweep, tmp_path):
     assert "search boundary" not in result
 
 
-@pytest.mark.parametrize("best", [0, 1, 4])
-def test_zero_and_search_boundary_winners(sweep, tmp_path, best):
-    """Allow zero to win and flag either positive boundary for review."""
+def test_zero_baseline_is_never_selected_over_positive_sigma(sweep, tmp_path):
+    """Use ordinary PACMANN as a comparison even when its error is lower."""
+    errors = [[0.001, 0.002, 0.003]] + [[0.2, 0.3, 0.4] for _ in sweep[1:]]
+    save_completed(sweep, tmp_path, errors)
+    result = tuning.summarize_tuning(sweep)
+    assert "Ordinary PACMANN (sigma=0) is the comparison baseline." in result
+    assert "Selected positive sigma by mean final relative L2: 1e-05." in result
+    assert "selected sigma: 0" not in result.lower()
+    assert "lower tested boundary" in result
+
+
+@pytest.mark.parametrize("best", [1, 4])
+def test_positive_search_boundary_reports_next_expansion(sweep, tmp_path, best):
+    """Report the approved two-value extension when a positive endpoint wins."""
     errors = [[0.2, 0.3, 0.4] for _ in sweep]
     errors[best] = [0.01, 0.02, 0.03]
     save_completed(sweep, tmp_path, errors)
     result = tuning.summarize_tuning(sweep)
-    sigma = 0 if best == 0 else sweep[best]["methods"]["pacmann_diffusion"]["sigma"]
-    assert f"Selected sigma by mean final relative L2: {sigma:g}." in result
-    assert ("search boundary" in result) == (best != 0)
+    sigma = sweep[best]["methods"]["pacmann_diffusion"]["sigma"]
+    assert f"Selected positive sigma by mean final relative L2: {sigma:g}." in result
+    assert "tested boundary" in result
+    if best == 1:
+        assert "next approved lower expansion is 1e-07, 1e-06" in result
+    else:
+        assert "next approved upper expansion is 0.1, 1" in result
 
 
 @pytest.mark.parametrize("state", ["missing", "failed", "running", "analysis_missing"])
@@ -269,18 +315,23 @@ def test_tiny_sweep_trains_analyzes_and_summarizes(
 ):
     """Exercise all five settings and three seeds with a disposable tiny budget."""
     reference = load_reference(
-        train.ROOT, config["problem"], config["evaluation"]["solution_nx"]
+        train.ROOT, sweep[0]["problem"], config["evaluation"]["solution_nx"]
     )
     monkeypatch.setattr(train, "ROOT", tmp_path)
     monkeypatch.setattr(
         train, "load_reference", lambda root, problem, solution_nx: reference
     )
     monkeypatch.setattr(
+        analyze_burgers,
+        "load_reference",
+        lambda root, problem, solution_nx: reference,
+    )
+    monkeypatch.setattr(
         "src.artifacts.subprocess.check_output",
         lambda *args, **kwargs: "test-revision\n",
     )
     evaluation = config["evaluation"]
-    reference_path = config["problem"]["reference_path"]
+    reference_path = sweep[0]["problem"]["reference_path"]
     for candidate in sweep:
         candidate["evaluation"] = evaluation
         candidate["problem"]["reference_path"] = reference_path
@@ -290,15 +341,24 @@ def test_tiny_sweep_trains_analyzes_and_summarizes(
         candidate["training"]["lbfgs"].update(maxiter=2, maxfun=3)
         method = next(iter(candidate["methods"]))
         candidate["methods"][method].update(period=2, steps=1)
+
+    # Keep the tiny integration check sequential and inside its monkeypatched root.
+    def run_batch(candidate, method):
+        """Train and analyze each seed without spawning worker processes."""
+        for seed in candidate["seeds"]:
+            run = train.run_training(candidate, method, seed)
+            campaign.analyze_run(run)
+
+    monkeypatch.setattr(campaign, "run_campaign", run_batch)
     tuning.run_tuning(sweep)
     result = tuning.summarize_tuning(sweep)
-    assert "Selected sigma by mean final relative L2:" in result
+    assert "Selected positive sigma by mean final relative L2:" in result
     assert "No sigma selected" not in result
     for candidate in sweep:
-        directory = tmp_path / "output" / candidate["campaign"]
+        directory = tmp_path / "output" / "burgers" / candidate["campaign"]
         method = next(iter(candidate["methods"]))
         for seed in candidate["seeds"]:
-            run = directory / "burgers" / method / f"seed_{seed}"
+            run = directory / method / f"seed_{seed}"
             metrics = json.loads((run / "metrics.json").read_text())
             assert metrics["movement_events"] == 1
             assert (run / "diagnostics.png").stat().st_size > 0
