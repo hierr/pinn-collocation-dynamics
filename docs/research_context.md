@@ -84,7 +84,9 @@ so no search expansion is needed. The accepted conclusion comes from
 `hyperparameter-tuning` commit `2baa9dd`; its artifacts remain on that branch at
 `output/burgers/burgers_nu_0p01_sigma_*/`. See the
 [selection result](results.md#diffusion-development-selection-at-nu-001).
-The separate ten-seed evaluation at this viscosity has not started.
+The separate [ten-seed evaluation](../output/burgers/burgers_nu_0p01_10seed/README.md)
+is prepared but has not started: all five methods use seeds 4000–4009, with the
+earlier campaign's training and evaluation controls and the newly selected sigma.
 
 Generated N1024 references at `nu = 0.01`, `0.05`, and `0.1` passed structural
 and loader checks. These checks do not independently certify numerical accuracy
