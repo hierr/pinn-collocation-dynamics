@@ -78,6 +78,19 @@ the development selection on new seeds before expansion across viscosity regimes
 It does not establish how method benefits change with sharpness. The campaign
 README records the execution and timing conditions.
 
+At `nu = 0.01`, a separate three-seed development sweep completed all 15 planned
+runs and selected **sigma = 1e-3**. The winner is inside the tested positive range,
+so no search expansion is needed. The accepted conclusion comes from
+`hyperparameter-tuning` commit `2baa9dd`; its artifacts remain on that branch at
+`output/burgers/burgers_nu_0p01_sigma_*/`. See the
+[selection result](results.md#diffusion-development-selection-at-nu-001).
+The separate ten-seed evaluation at this viscosity has not started.
+
+Generated N1024 references at `nu = 0.01`, `0.05`, and `0.1` passed structural
+and loader checks. These checks do not independently certify numerical accuracy
+at those viscosities. The approved `nu = 0.01` study proceeds with that
+limitation; PINN campaigns at `0.05` and `0.1` are outside its current scope.
+
 ## Parameterized sharpness study
 
 Start with Burgers references over a viscosity range spanning smooth,
@@ -119,11 +132,17 @@ branch; these transfers do not import its campaigns.
   across methods. Start with shared settings across viscosities; any change
   needs a stated experimental rationale. Record actual optimizer work and
   runtime, since equal training schedules do not imply equal computation.
-- Select sigma by the lowest mean final-model solution relative L2 over
-  development seeds at each viscosity, including zero as a valid candidate.
-  Evaluate the same frozen setting for PDE-residual error. Do not choose a
-  second sigma for residual error or combine the outcomes into an undeclared
-  selection score. Report improvements and tradeoffs separately.
+- The earlier `nu = 0.01/pi` tuning included zero as an eligible candidate.
+  For the new `nu = 0.01` phase, ordinary PACMANN at zero is a comparison baseline
+  only. Select the positive sigma with the lowest arithmetic mean final solution
+  relative L2 over all three development seeds; exact ties favor the smaller
+  positive sigma, even if zero outperforms every positive setting. A positive
+  boundary winner triggers two additional values extending the search two
+  decades on that side, with at most two expansion rounds. Then freeze the best
+  tested positive sigma and disclose any remaining boundary limitation.
+  Evaluate residual error at the same solution-selected sigma; do not select a
+  second value for residual error or combine outcomes into an undeclared score.
+  Report improvements and tradeoffs separately.
 - Evaluate solution error against validated reference values on fixed
   coordinates. Evaluate PDE-residual RMS on a common fixed interior evaluation
   set independent of point adaptation, using derivatives of the trained PINN.

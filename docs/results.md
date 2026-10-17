@@ -159,3 +159,29 @@ they do not establish a sharpness-dependent advantage. The selected diffusion
 setting applies only at `nu = 0.01/pi`; other viscosities require their own
 reference checks and development tuning. See the
 [study plan](research_context.md).
+
+## Diffusion development selection at nu 0.01
+
+The separate sweep at **ν = 0.01** completed all 15 planned runs: ordinary
+PACMANN and positive sigmas `1e-5`, `1e-4`, `1e-3`, and `1e-2`, each on paired
+development seeds 3000–3002. No numerical failures occurred. Select **sigma =
+1e-3** by the lowest mean final solution relative L2 among positive candidates;
+this interior winner requires no search expansion. Ordinary PACMANN is the
+comparison baseline only. Residual error uses that same solution-selected sigma.
+
+| Setting | Solution relative L2, mean ± sample SD (%) | PDE-residual RMS, mean ± sample SD |
+| --- | ---: | ---: |
+| PACMANN | 0.0289837 ± 0.0112685 | 0.00187201 ± 0.0000839024 |
+| PACMANN + diffusion, sigma 1e-3 | 0.0262913 ± 0.00596281 | 0.00173037 ± 0.000505739 |
+
+On these development seeds, mean solution error is 9.29% lower and mean residual
+RMS is 7.57% lower, each improving in two of three paired seeds. These are
+selection-set observations, not evidence of a held-out benefit or a sharpness
+effect. The generated reference passed structural checks without independent
+accuracy certification at this viscosity. The ten-seed evaluation has not started.
+
+Accepted source: `hyperparameter-tuning` commit `2baa9dd`. Full per-seed results,
+the shared protocol, and execution conditions remain in that commit's
+`output/burgers/burgers_nu_0p01_sigma_0/README.md`, with all five candidate
+campaigns retained on the tuning branch. See the
+[study context](research_context.md#reference-validation-and-current-evidence).
