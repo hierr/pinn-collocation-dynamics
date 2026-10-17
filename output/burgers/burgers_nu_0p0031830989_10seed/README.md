@@ -74,6 +74,27 @@ workers finish. It does not skip, retry, or resume runs. Per-run artifacts are
 retained here; completed training requires predictions, metrics, and diagnostics
 before comparison. Saved weights support evaluation, not exact training resume.
 
+## Exploratory checkpoint diagnostics
+
+Post hoc inspection selected seeds 4000, 4002, 4004, and 4006 across all five
+methods, evaluating their ten saved optimizer-stage checkpoints (200 evaluations).
+The [checkpoint metrics](diagnostics/stage_metrics.csv) use the archived solution
+evaluation coordinates and reference, the configured independent residual grid,
+and each checkpoint's saved PDE points. Solution relative L2 is stored as a
+fraction. These selected examples describe failure trajectories; they do not
+establish causes or change the final-checkpoint evaluation policy.
+
+The transition figures for [PACMANN seed 4002](diagnostics/pacmann_adam_4002_transition.png)
+and [diffusion seed 4004](diagnostics/pacmann_diffusion_4004_transition.png) compare
+phase 2 L-BFGS, phase 3 Adam, and phase 3 L-BFGS. The top panels show absolute
+PDE residual with saved PDE points in black; the bottom panels compare reference
+(solid) and predicted (dashed) solutions at `t = 0.5, 0.75, 0.99`. Recreate both
+figures from archived checkpoints without training:
+
+```bash
+venv/bin/python -m scripts.diagnoses.plot_burgers_nu_0p0031830989_displaced_front
+```
+
 ## Per-method results
 
 Final-checkpoint outcomes for every planned seed are shown below. Solution L2 is

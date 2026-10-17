@@ -87,6 +87,21 @@ have **69.78852%, 21.12525%, and 35.79689%**, respectively. RAD's seed 4006
 has **3.53848%**, while its other nine errors are below 0.18%. All these
 outcomes are retained.
 
+Exploratory inspection of saved optimizer-stage checkpoints showed that some
+large-error outcomes followed earlier accurate solutions. PACMANN seed 4002
+deteriorated from 0.209% relative L2 after phase 2 to 55.095% finally; diffusion
+seed 4004 deteriorated from 0.129% to 21.125%. Their predictions developed
+displaced steep fronts, accompanied by large discrepancies between sampled and
+independent PDE residuals. Fixed Hammersley seed 4006 was already inaccurate at
+the first saved stage. These observations identify distinct failure trajectories
+but do not establish their causes.
+
+See the exploratory transition figures for
+[PACMANN seed 4002](../output/burgers/burgers_nu_0p0031830989_10seed/diagnostics/pacmann_adam_4002_transition.png)
+and
+[diffusion seed 4004](../output/burgers/burgers_nu_0p0031830989_10seed/diagnostics/pacmann_diffusion_4004_transition.png),
+with [reproduction instructions](../output/burgers/burgers_nu_0p0031830989_10seed/README.md#exploratory-checkpoint-diagnostics).
+
 ### Paired method contrasts
 
 Each entry is the paired difference `first method − second method`, reported as
