@@ -41,10 +41,12 @@ tested problems, parameters, and evaluation conditions.
 
 ## Research workstreams
 
-Use three persistent branches, retaining each workstream's history:
+Use four persistent branches, retaining each workstream's history:
 
 - `dataset-validation`: reference generation, validation scripts, and evidence.
 - `hyperparameter-tuning`: development campaigns, configurations, and selections.
+- `analysis`: exploratory post-processing and reproducible comparisons awaiting
+  synthesis; transfer accepted evidence to `main` when reporting the study.
 - `main`: accepted implementations and conclusions, frozen evaluation settings,
   and full evaluation results.
 
@@ -85,15 +87,23 @@ so no search expansion is needed. The accepted conclusion comes from
 `output/burgers/burgers_nu_0p01_sigma_*/`. See the
 [selection result](results.md#diffusion-development-selection-at-nu-001).
 The separate [ten-seed evaluation](../output/burgers/burgers_nu_0p01_10seed/README.md)
-has completed fixed Hammersley, random resampling, and RAD (30/50 planned runs).
-The two PACMANN batches remain pending. All five methods use seeds 4000–4009,
-with the earlier campaign's training and evaluation controls and the newly
-selected sigma.
+completed all 50 planned runs across the five methods. All use seeds 4000–4009,
+with the earlier campaign's training and evaluation controls and the separately
+selected sigma. See the [evaluation results](results.md#frozen-evaluation-at-nu-001).
 
 Generated N1024 references at `nu = 0.01`, `0.05`, and `0.1` passed structural
 and loader checks. These checks do not independently certify numerical accuracy
-at those viscosities. The approved `nu = 0.01` study proceeds with that
-limitation; PINN campaigns at `0.05` and `0.1` are outside its current scope.
+at those viscosities. The `nu = 0.01` evaluation proceeded with that limitation.
+The separate `nu = 0.1` development sweep completed 21 runs, including one
+approved lower-boundary expansion, and selected the positive `sigma = 1e-5` by
+mean final solution relative L2. Its accepted results and artifacts are on
+[`hyperparameter-tuning`](https://github.com/hierr/pinn-collocation-dynamics/commit/1968b350a5d44adc9180782406357c2c8763be92),
+using training source commit
+[`0948ad9`](https://github.com/hierr/pinn-collocation-dynamics/commit/0948ad936fb32502c19f0b174572866799ca1285).
+The frozen five-method, ten-seed evaluation now uses this value and the
+separate N1024 reference; see its [protocol](../output/burgers/burgers_nu_0p1_10seed/README.md)
+and the [selection result](results.md#diffusion-development-selection-at-nu-01).
+The `nu = 0.05` reference has no approved PINN campaign.
 
 ## Parameterized sharpness study
 

@@ -7,8 +7,9 @@ Read ignored `AGENTS.local.md`, if present, at session start.
 - Keep `main` focused on accepted implementations, frozen evaluation settings,
   full evaluation campaigns, and concise accepted conclusions. Dataset checks
   live on persistent `dataset-validation`; development runs and tuning settings
-  live on persistent `hyperparameter-tuning`. Transfer selected code or decisions
-  with their source commit; do not merge entire workstreams and their artifacts.
+  live on persistent `hyperparameter-tuning`; exploratory post-processing lives
+  on persistent `analysis`. Transfer selected code or decisions with their source
+  commit; do not merge entire workstreams and their artifacts.
 
 - Communicate and write code and documentation in English.
 - This is an independent research repository, separate from coursework repositories.

@@ -13,6 +13,7 @@ accepted decisions; [results](docs/results.md) consolidate accepted comparisons.
 | --- | --- |
 | `dataset-validation` | Reference generation, validation scripts, and evidence |
 | `hyperparameter-tuning` | Development configurations, tuning campaigns, and selections |
+| `analysis` | Exploratory post-processing and reproducible comparisons awaiting synthesis |
 | `main` | Accepted code and conclusions, frozen evaluation settings, and full evaluations |
 
 Transfer selected changes with the supporting commit rather than merging all

@@ -242,3 +242,26 @@ without independent numerical-accuracy certification at this viscosity. These
 results do not resolve sharpness-dependent effects; the selected sigma is
 specific to this viscosity and protocol. See the
 [study plan](research_context.md).
+
+## Diffusion development selection at nu 0.1
+
+The [nu = 0.1 tuning sweep](https://github.com/hierr/pinn-collocation-dynamics/commit/1968b350a5d44adc9180782406357c2c8763be92)
+completed 21 runs on development seeds 3000–3002, including one approved
+lower-boundary expansion. It selected positive `sigma = 1e-5` by the lowest
+mean final solution relative L2; sigma zero was a comparison baseline only.
+The selected positive value is interior among tested candidates. Mean solution
+relative L2 was 0.00961106 ± 0.00186134%, compared with 0.0177093 ± 0.00715926%
+for ordinary PACMANN. The paired difference was -0.00809823 ± 0.00529978
+percentage points, lower in all three seeds. At the same selected sigma, mean
+residual RMS was 0.000773829 ± 0.000180949, compared with 0.00115176 ±
+0.000400647 for the baseline; the paired difference was -0.000377936 ±
+0.000237073, lower in all three seeds. These three-seed development results do
+not establish held-out performance or a general diffusion benefit.
+
+The archived training used source commit
+[`0948ad9`](https://github.com/hierr/pinn-collocation-dynamics/commit/0948ad936fb32502c19f0b174572866799ca1285).
+The frozen five-method evaluation uses seeds 4000–4009 and the separate N1024
+reference; see its [configuration](../config/burgers_nu_0p1_10seed.yaml) and
+[campaign protocol](../output/burgers/burgers_nu_0p1_10seed/README.md). The
+reference passed structural and loader checks but has no independent numerical-
+accuracy certification at this viscosity.
