@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 ROOT = Path(__file__).resolve().parents[1]
 RUN_DIR = (
-    ROOT / "output/burgers_sigma_tuning_n1024_baseline/burgers/pacmann_adam/seed_3000"
+    ROOT / "output/burgers/nu_0p0031830989/sigma_0/pacmann_adam/seed_3000"
 )
 OUTPUT_PATH = ROOT / "docs/burgers_initial_collocation.png"
 

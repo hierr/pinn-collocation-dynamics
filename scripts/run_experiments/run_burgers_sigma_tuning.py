@@ -12,11 +12,11 @@ from src.train import ROOT
 # Select execution here. Summarization never launches training or writes artifacts.
 ACTION = "run"
 CONFIG_PATHS = [
-    ROOT / "config/burgers_nu_0p1_sigma_0.yaml",
-    ROOT / "config/burgers_nu_0p1_sigma_1e-5.yaml",
-    ROOT / "config/burgers_nu_0p1_sigma_1e-4.yaml",
-    ROOT / "config/burgers_nu_0p1_sigma_1e-3.yaml",
-    ROOT / "config/burgers_nu_0p1_sigma_1e-2.yaml",
+    ROOT / "config/burgers/nu_0p1/burgers_nu_0p1_sigma_0.yaml",
+    ROOT / "config/burgers/nu_0p1/burgers_nu_0p1_sigma_1e-5.yaml",
+    ROOT / "config/burgers/nu_0p1/burgers_nu_0p1_sigma_1e-4.yaml",
+    ROOT / "config/burgers/nu_0p1/burgers_nu_0p1_sigma_1e-3.yaml",
+    ROOT / "config/burgers/nu_0p1/burgers_nu_0p1_sigma_1e-2.yaml",
 ]
 
 
@@ -78,6 +78,7 @@ def summarize_tuning(configs):
     check_tuning_configs(configs)
     rows: list[dict] = []
     provenance = None
+    nu_tag = f"{configs[0]['problem']['viscosity']:.8g}".replace(".", "p")
     for index, config in enumerate(configs):
         method = next(iter(config["methods"]))
         sigma = 0.0 if index == 0 else config["methods"][method]["sigma"]
@@ -89,6 +90,7 @@ def summarize_tuning(configs):
                 ROOT
                 / "output"
                 / "burgers"
+                / f"nu_{nu_tag}"
                 / config["campaign"]
                 / method
                 / f"seed_{seed}"
@@ -117,6 +119,8 @@ def summarize_tuning(configs):
 
             # Read executed settings and reject stale or incomparable summaries.
             saved = yaml.safe_load((run / "config.yaml").read_text())
+            # Archived directory labels remain as recorded before output reorganization.
+            saved["campaign"] = config["campaign"]
             if saved != dict(config, selected_method=method, selected_seed=seed):
                 raise ValueError(f"Archived configuration differs from sweep: {run}")
             sigma = (
@@ -210,11 +214,7 @@ def summarize_tuning(configs):
         values = list(row["residuals"].values())
         complete = len(values) == planned
         mean = f"{statistics.mean(values):.6g}" if complete else "—"
-        sd = (
-            f"{statistics.stdev(values):.6g}"
-            if complete and len(values) > 1
-            else "—"
-        )
+        sd = f"{statistics.stdev(values):.6g}" if complete and len(values) > 1 else "—"
         individual = "; ".join(
             f"{seed}: {row['residuals'][seed]:.6g}"
             if seed in row["residuals"]
@@ -232,9 +232,7 @@ def summarize_tuning(configs):
             positive_rows,
             key=lambda row: (statistics.mean(row["errors"].values()), row["sigma"]),
         )
-        lines.append(
-            "\nOrdinary PACMANN (sigma=0) is the comparison baseline."
-        )
+        lines.append("\nOrdinary PACMANN (sigma=0) is the comparison baseline.")
         lines.append(
             f"Selected positive sigma by mean final relative L2: {winner['sigma']:g}."
         )

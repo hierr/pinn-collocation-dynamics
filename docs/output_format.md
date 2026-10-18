@@ -7,7 +7,7 @@ artifacts and [results](results.md); this dictionary explains how to read the fi
 ## Directory layout and experiment links
 
 ```text
-output/<problem>/<campaign>/
+output/burgers/nu_<viscosity>/<campaign>/
   README.md
   <method>/seed_<seed>/
     config.yaml
@@ -26,6 +26,13 @@ output/<problem>/<campaign>/
     diagnostics.json
     diagnostics.png
 ```
+
+Tuning campaign folders are named `sigma_0`, `sigma_1e-5`, and so on, with zero
+denoting ordinary PACMANN. Viscosity tags use eight significant digits and `p`
+for the decimal point; `nu_0p0031830989` denotes `0.01/pi`. Archived configs and
+logs retain their original campaign labels and paths after directory moves.
+Summary comparisons disregard only the campaign label, preserving checks on all
+scientific settings.
 
 Each scientific campaign has a concise, objective `README.md` with its execution
 instructions and reasoning not captured by configurations or artifacts. Link to

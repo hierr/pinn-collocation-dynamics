@@ -50,7 +50,7 @@ lives on `dataset-validation`; `main` retains accepted code, frozen evaluation
 settings, and full evaluation results. Transfer selected code and conclusions
 with their source commit; do not merge entire workstreams and their artifacts.
 
-The earlier [sigma-tuning campaign](../output/burgers_sigma_tuning_n1024_baseline/README.md)
+The earlier [sigma-tuning campaign](../output/burgers/nu_0p0031830989/sigma_0/README.md)
 uses the generated N1024 reference at `nu = 0.01/pi`, matched PDE
 populations, and three paired development seeds per setting. All 15 planned runs
 completed. The development-selected candidate is `sigma = 1e-4`, based on the
@@ -62,7 +62,7 @@ comparisons.
 
 The new `nu = 0.01` development phase is a separate viscosity and uses seeds
 3000–3002 to compare ordinary PACMANN with positive diffusion settings. Its
-[15-run sweep](../output/burgers/burgers_nu_0p01_sigma_0/README.md) completed
+[15-run sweep](../output/burgers/nu_0p01/sigma_0/README.md) completed
 without numerical failures and selected **sigma = 1e-3** by mean final solution
 relative L2. The winner is interior, so no boundary expansion is needed. This
 value is frozen for the separate ten-seed comparison; evaluation progress is
@@ -77,7 +77,7 @@ accepted after validation on `dataset-validation`. The new N1024 references at
 `nu = 0.01`, `0.05`, and `0.1` passed structural and loader checks; those checks
 do not independently certify numerical accuracy. The approved `nu = 0.01`
 campaign proceeds with that limitation. The next
-[development sweep at `nu = 0.1`](../output/burgers/burgers_nu_0p1_sigma_0/README.md)
+[development sweep at `nu = 0.1`](../output/burgers/nu_0p1/sigma_0/README.md)
 is prepared with the same three-seed controls, positive-sigma selection rule, and
 bounded search policy; it has not started. Its reference was transferred
 unchanged from accepted dataset commit `dbeb289` on `main`. This setup does not

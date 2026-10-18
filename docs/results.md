@@ -9,7 +9,7 @@ study decisions belong in [research context](research_context.md).
 
 ## Earlier development at ν = 0.01/π
 
-The [controlled N1024 Burgers sigma sweep](../output/burgers_sigma_tuning_n1024_baseline/README.md)
+The [controlled N1024 Burgers sigma sweep](../output/burgers/nu_0p0031830989/sigma_0/README.md)
 completed all 15 planned runs with no failures. It used three paired development
 seeds per setting on the generated `N1024` reference at `nu = 0.01/pi`. This is
 hyperparameter tuning, not the frozen-setting evaluation.
@@ -46,13 +46,13 @@ viscosity do not establish a general diffusion benefit or a sharpness effect.
 The candidate remains to be assessed on new seeds in the frozen-setting
 evaluation. DeepXDE's batched L-BFGS stopping exceeded the configured iteration
 limit in some stages, so these runs share optimizer settings but have different
-realized work; see the [campaign limitation](../output/burgers_sigma_tuning_n1024_baseline/README.md#optimizer-work).
+realized work; see the [campaign limitation](../output/burgers/nu_0p0031830989/sigma_0/README.md#optimizer-work).
 Per-seed values and full run records are in the campaign artifacts.
 See the [study design and next phase](research_context.md#current-development-and-evaluation-plan).
 
 ## Diffusion tuning at ν = 0.01
 
-The [ν = 0.01 sweep](../output/burgers/burgers_nu_0p01_sigma_0/README.md)
+The [ν = 0.01 sweep](../output/burgers/nu_0p01/sigma_0/README.md)
 completed all 15 planned runs with no numerical failures: ordinary PACMANN and
 four positive diffusion coefficients, each on development seeds 3000–3002.
 It uses the generated N1024 reference at **0.01**, not `0.01/pi`.

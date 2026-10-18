@@ -8,7 +8,7 @@ branches, citing the source commit, rather than merging entire workstreams.
 
 ## Current development campaign
 
-The [N1024 sigma sweep](output/burgers_sigma_tuning_n1024_baseline/README.md)
+The [N1024 sigma sweep](output/burgers/nu_0p0031830989/sigma_0/README.md)
 completed all 15 planned runs on the validated generated Burgers reference at
 `nu = 0.01/pi`, with matched controls and three paired development seeds per
 setting. The development-selected candidate is `sigma = 1e-4`; it awaits
@@ -48,8 +48,14 @@ scientific sweep on the remote machine only. Obtain approval and commit the
 scientific protocol before starting a new campaign. Campaign READMEs are
 maintained manually alongside the outputs.
 
+Tuning configurations are grouped by viscosity under `config/burgers/nu_*/`.
+Their filenames identify the viscosity and sigma, including `sigma_0` for the
+ordinary PACMANN baseline.
+Outputs follow `output/burgers/nu_*/sigma_*/<method>/seed_<seed>/`; campaign
+READMEs are stored in each `sigma_*` directory.
+
 The reusable runner is `scripts/run_experiments/run_burgers_campaign.py`; select
-its YAML through `CONFIG_PATH`. `config/burgers_template.yaml` selects the
+its YAML through `CONFIG_PATH`. `config/burgers/burgers_template.yaml` selects the
 generated N1024 reference and matched interior populations, retaining the
 upstream network and optimizer schedule. It deliberately has no seeds: it is a
 starting template, not an approved campaign. Sampling classes remain in
@@ -69,7 +75,7 @@ settings and retains existing predictions and metrics; it can also be run later
 without training:
 
 ```bash
-venv/bin/python -m scripts.post_processing.analyze_burgers --run-dir 'output/<campaign>/burgers/<method>/seed_<seed>'
+venv/bin/python -m scripts.post_processing.analyze_burgers --run-dir 'output/burgers/nu_<viscosity>/sigma_<sigma>/<method>/seed_<seed>'
 ```
 
 `status.json` reports training completion; metrics and diagnostics must also be

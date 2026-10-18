@@ -39,6 +39,7 @@ def save_completed(configs, root, errors=None):
                 root
                 / "output"
                 / "burgers"
+                / "nu_0p1"
                 / config["campaign"]
                 / method
                 / f"seed_{seed}"
@@ -77,7 +78,10 @@ def test_prepared_grid_matches_controlled_template(sweep):
     """Keep all full-budget controls and three tuning seeds consistent."""
     tuning.check_tuning_configs(sweep)
     template = yaml.safe_load(
-        (tuning.CONFIG_PATHS[0].parent / "burgers_sigma_baseline.yaml").read_text()
+        (
+            train.ROOT
+            / "config/burgers/nu_0p0031830989/burgers_nu_0p0031830989_sigma_0.yaml"
+        ).read_text()
     )
     assert sweep[0]["seeds"] == [3000, 3001, 3002]
     for config in sweep:
@@ -104,7 +108,7 @@ def test_preflight_entire_sweep_before_execution(sweep, tmp_path, monkeypatch):
     last = sweep[-1]
     existing = (
         tmp_path
-        / "output/burgers"
+        / "output/burgers/nu_0p1"
         / last["campaign"]
         / "pacmann_diffusion/seed_3002"
     )
@@ -118,7 +122,7 @@ def test_preflight_entire_sweep_before_execution(sweep, tmp_path, monkeypatch):
     with pytest.raises(FileExistsError):
         tuning.run_tuning(sweep)
     assert calls == []
-    assert not (tmp_path / "output/burgers" / sweep[0]["campaign"]).exists()
+    assert not (tmp_path / "output/burgers/nu_0p1" / sweep[0]["campaign"]).exists()
 
 
 def test_sweep_order(sweep, monkeypatch):
@@ -147,7 +151,7 @@ def test_sweep_stops_on_failure(sweep, tmp_path, monkeypatch):
     with pytest.raises(RuntimeError, match="analysis failed"):
         tuning.run_tuning(sweep)
     assert calls == [config["campaign"] for config in sweep[:2]]
-    assert not (tmp_path / "output/burgers" / sweep[2]["campaign"]).exists()
+    assert not (tmp_path / "output/burgers/nu_0p1" / sweep[2]["campaign"]).exists()
 
 
 @pytest.mark.parametrize(
@@ -259,6 +263,23 @@ def test_incomplete_sweep_never_selects_sigma(sweep, tmp_path, state):
     assert "3002: unavailable | — | — | — |" in result
 
 
+def test_summary_preserves_archived_campaign_labels(sweep, tmp_path):
+    """Allow directory renames without rewriting the archived execution settings."""
+    paths = save_completed(sweep, tmp_path)
+    config_path = paths[0] / "config.yaml"
+    saved = yaml.safe_load(config_path.read_text())
+    saved["campaign"] = "historical_campaign_name"
+    config_path.write_text(yaml.safe_dump(saved))
+
+    result = tuning.summarize_tuning(sweep)
+
+    assert "Selected positive sigma by mean final relative L2: 0.0001." in result
+    assert (
+        yaml.safe_load(config_path.read_text())["campaign"]
+        == "historical_campaign_name"
+    )
+
+
 @pytest.mark.parametrize("field", ["config", "metadata", "metric"])
 def test_stale_or_invalid_artifacts_rejected(sweep, tmp_path, field):
     """Prevent ranking results from changed settings, provenance, or invalid errors."""
@@ -355,7 +376,7 @@ def test_tiny_sweep_trains_analyzes_and_summarizes(
     assert "Selected positive sigma by mean final relative L2:" in result
     assert "No sigma selected" not in result
     for candidate in sweep:
-        directory = tmp_path / "output" / "burgers" / candidate["campaign"]
+        directory = tmp_path / "output/burgers/nu_0p1" / candidate["campaign"]
         method = next(iter(candidate["methods"]))
         for seed in candidate["seeds"]:
             run = directory / method / f"seed_{seed}"

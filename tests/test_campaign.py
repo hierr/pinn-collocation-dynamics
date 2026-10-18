@@ -102,7 +102,10 @@ def test_later_method_conflict_prevents_entire_sequence(
     monkeypatch.setattr(runner, "CONFIG_PATH", config_path)
     monkeypatch.setattr(runner, "METHODS", ["pacmann_adam", "fixed_hammersley"])
     existing = (
-        tmp_path / "output/burgers" / config["campaign"] / "fixed_hammersley/seed_1000"
+        tmp_path
+        / "output/burgers/nu_0p0031830989"
+        / config["campaign"]
+        / "fixed_hammersley/seed_1000"
     )
     existing.mkdir(parents=True)
     with pytest.raises(FileExistsError, match="Run already exists"):
@@ -134,7 +137,10 @@ def test_failed_method_prevents_next_batch(config, tmp_path, monkeypatch, calls)
 def test_other_methods_and_unused_destinations_are_allowed(config, tmp_path, calls):
     """Keep other methods and earlier seeds untouched when selecting a new batch."""
     previous = (
-        tmp_path / "output/burgers" / config["campaign"] / "pacmann_adam/seed_1000"
+        tmp_path
+        / "output/burgers/nu_0p0031830989"
+        / config["campaign"]
+        / "pacmann_adam/seed_1000"
     )
     previous.mkdir(parents=True)
     marker = previous / "run.log"
@@ -148,7 +154,10 @@ def test_later_destination_conflict_prevents_all_workers(config, tmp_path, calls
     """Reject a conflict at the final selected seed before starting any worker."""
     config["seeds"] = [1000, 1001]
     existing = (
-        tmp_path / "output/burgers" / config["campaign"] / "pacmann_adam/seed_1001"
+        tmp_path
+        / "output/burgers/nu_0p0031830989"
+        / config["campaign"]
+        / "pacmann_adam/seed_1001"
     )
     existing.mkdir(parents=True)
     marker = existing / "run.log"
@@ -209,7 +218,9 @@ def test_start_failure_waits_for_already_started_worker(config, monkeypatch, cal
         return result
 
     monkeypatch.setattr(
-        runner.multiprocessing, "get_context", lambda name: SimpleNamespace(Process=process)
+        runner.multiprocessing,
+        "get_context",
+        lambda name: SimpleNamespace(Process=process),
     )
     with pytest.raises(OSError, match="cannot start process"):
         runner.run_campaign(config, "pacmann_adam")
@@ -332,7 +343,11 @@ def test_workers_generate_training_and_diagnostics(
     for method in config["methods"]:
         runner.run_seed(config, method, 1000)
         run = (
-            tmp_path / "output" / "burgers" / config["campaign"] / method / "seed_1000"
+            tmp_path
+            / "output/burgers/nu_0p0031830989"
+            / config["campaign"]
+            / method
+            / "seed_1000"
         )
         assert json.loads((run / "status.json").read_text()) == {"status": "complete"}
         metrics = json.loads((run / "metrics.json").read_text())

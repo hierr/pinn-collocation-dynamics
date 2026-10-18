@@ -47,7 +47,16 @@ def prepare_run(config: dict, method: str, seed: int, dataset_sha256: str, root:
         raise ValueError("Seed must be a configured nonnegative integer")
 
     # Never reuse a previous run, including an incomplete or failed run.
-    run_dir = root / "output" / "burgers" / campaign / method / f"seed_{seed}"
+    nu_tag = f"{config['problem']['viscosity']:.8g}".replace(".", "p")
+    run_dir = (
+        root
+        / "output"
+        / "burgers"
+        / f"nu_{nu_tag}"
+        / campaign
+        / method
+        / f"seed_{seed}"
+    )
     run_dir.mkdir(parents=True, exist_ok=False)
     for folder in ("models", "points"):
         (run_dir / folder).mkdir()

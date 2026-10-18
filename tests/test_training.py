@@ -48,6 +48,13 @@ def test_training_preserves_artifacts_and_stage_behavior(
     config["training"]["lbfgs"].update(maxiter=2, maxfun=3)
     config["methods"]["pacmann_adam"].update(period=2, steps=1)
     run_dir = train.run_training(config, method, 1000)
+    assert run_dir == (
+        run_root
+        / "output/burgers/nu_0p0031830989"
+        / config["campaign"]
+        / method
+        / "seed_1000"
+    )
 
     # Verify the run's public artifact contract independently of helper layout.
     assert json.loads((run_dir / "status.json").read_text()) == {"status": "complete"}
@@ -133,7 +140,10 @@ def test_failed_run_retains_configuration_and_traceback(config, run_root, monkey
     with pytest.raises(RuntimeError, match="model construction failed"):
         train.run_training(config, "pacmann_adam", 1000)
     run_dir = (
-        run_root / "output/burgers" / config["campaign"] / "pacmann_adam/seed_1000"
+        run_root
+        / "output/burgers/nu_0p0031830989"
+        / config["campaign"]
+        / "pacmann_adam/seed_1000"
     )
     assert (run_dir / "config.yaml").exists()
     assert json.loads((run_dir / "status.json").read_text()) == {
