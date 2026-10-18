@@ -21,7 +21,8 @@ From the repository root, with the [documented environment](../../../README.md#s
 venv/bin/python -m scripts.run_experiments.run_burgers_sigma_tuning
 ```
 
-The runner contains the five configuration paths and `ACTION`. Set
+Set the runner's `CONFIG_PATHS` to the five `burgers_nu_0p01_sigma_*.yaml`
+configurations above; its default selection may point to a later viscosity. Set
 `ACTION = "summarize"` to read retained results without training. For a new
 execution, select copies of these YAML files with unused campaign names; the
 runner rejects occupied destinations. Keep all scientific settings unchanged.

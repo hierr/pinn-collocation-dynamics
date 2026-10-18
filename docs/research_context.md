@@ -64,8 +64,9 @@ The new `nu = 0.01` development phase is a separate viscosity and uses seeds
 3000–3002 to compare ordinary PACMANN with positive diffusion settings. Its
 [15-run sweep](../output/burgers/burgers_nu_0p01_sigma_0/README.md) completed
 without numerical failures and selected **sigma = 1e-3** by mean final solution
-relative L2. The winner is interior, so no boundary expansion is needed. Freeze
-this value for the separate ten-seed comparison; that evaluation has not started.
+relative L2. The winner is interior, so no boundary expansion is needed. This
+value is frozen for the separate ten-seed comparison; evaluation progress is
+recorded on `main`.
 Its positive-only selection rule and boundary expansion limits are recorded under
 [accepted controls](#accepted-controls-and-evaluation-policy). This phase does
 not revise the earlier `nu = 0.01/pi` comparison or its selected setting.
@@ -75,8 +76,12 @@ smooth, intermediate, and sharp regimes. The N1024 reference at `0.01/pi` was
 accepted after validation on `dataset-validation`. The new N1024 references at
 `nu = 0.01`, `0.05`, and `0.1` passed structural and loader checks; those checks
 do not independently certify numerical accuracy. The approved `nu = 0.01`
-campaign proceeds with that limitation, while `nu = 0.05` and `0.1` remain
-outside the PINN campaign scope.
+campaign proceeds with that limitation. The next
+[development sweep at `nu = 0.1`](../output/burgers/burgers_nu_0p1_sigma_0/README.md)
+is prepared with the same three-seed controls, positive-sigma selection rule, and
+bounded search policy; it has not started. Its reference was transferred
+unchanged from accepted dataset commit `dbeb289` on `main`. This setup does not
+start another ten-seed evaluation; `nu = 0.05` remains outside the campaign scope.
 
 Tune diffusion separately at each viscosity using development seeds, then
 freeze settings before ten-seed comparisons of fixed Hammersley, upstream random
@@ -99,10 +104,10 @@ diffusion. Sharpness and feature-region evaluation remain future work.
   needs a stated experimental rationale. Record actual optimizer work and
   runtime, since equal training schedules do not imply equal computation.
 - In the earlier `nu = 0.01/pi` tuning campaign, sigma zero was an eligible
-  candidate and remains the historical comparison rule. For the new `nu = 0.01`
-  phase, ordinary PACMANN at sigma zero is a comparison baseline only. Select the
-  positive sigma with the lowest arithmetic mean final solution relative L2 over
-  all three development seeds; exact ties go to the smaller positive sigma,
+  candidate and remains the historical comparison rule. For the `nu = 0.01`
+  and `nu = 0.1` phases, ordinary PACMANN at sigma zero is a comparison baseline
+  only. Select the positive sigma with the lowest arithmetic mean final solution
+  relative L2 over all three development seeds; exact ties go to the smaller positive sigma,
   regardless of whether sigma zero has lower error. If the winner is at either
   positive search boundary, add the approved pair of values two decades beyond
   that side and reselect over all completed positive candidates. Permit at most

@@ -85,9 +85,9 @@ def test_prepared_grid_matches_controlled_template(sweep):
             assert config[field] == template[field]
         for field in ("interior_points", "boundary_points", "initial_points"):
             assert config["problem"][field] == template["problem"][field]
-        assert config["problem"]["viscosity"] == 0.01
+        assert config["problem"]["viscosity"] == 0.1
         assert config["problem"]["reference_path"] == (
-            "data/burgers_dataset/burgers_nu_0p01_N1024.npz"
+            "data/burgers_dataset/burgers_nu_0p1_N1024.npz"
         )
         method = next(iter(config["methods"]))
         method_settings = dict(config["methods"][method])

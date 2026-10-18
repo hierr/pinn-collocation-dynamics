@@ -1,0 +1,38 @@
+# Development tuning protocol; one candidate method per campaign.
+campaign: burgers_nu_0p1_sigma_1e-2
+seeds: [3000, 3001, 3002]
+problem:
+  reference_path: data/burgers_dataset/burgers_nu_0p1_N1024.npz
+  x_bounds: [-1.0, 1.0]
+  t_bounds: [0.0, 0.99]
+  viscosity: 0.1
+  interior_points: 2500
+  boundary_points: 80
+  initial_points: 160
+network:
+  layers: [2, 64, 64, 64, 64, 1]
+evaluation:
+  solution_nx: 1024
+  residual_nx: 1024
+  residual_nt: 200
+  batch_size: 4096
+training:
+  phases: 5
+  adam_steps: 7000
+  learning_rate: 0.001
+  display_every: 100
+  lbfgs:
+    maxcor: 100
+    ftol: 0.0
+    gtol: 1.0e-8
+    maxiter: 3000
+    maxfun: 3750
+    maxls: 50
+methods:
+  pacmann_diffusion:
+    period: 50
+    steps: 15
+    step_size: 1.0e-5
+    betas: [0.9, 0.999]
+    epsilon: 1.0e-7
+    sigma: 1.0e-2

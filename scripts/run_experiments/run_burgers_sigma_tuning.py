@@ -12,11 +12,11 @@ from src.train import ROOT
 # Select execution here. Summarization never launches training or writes artifacts.
 ACTION = "run"
 CONFIG_PATHS = [
-    ROOT / "config/burgers_nu_0p01_sigma_0.yaml",
-    ROOT / "config/burgers_nu_0p01_sigma_1e-5.yaml",
-    ROOT / "config/burgers_nu_0p01_sigma_1e-4.yaml",
-    ROOT / "config/burgers_nu_0p01_sigma_1e-3.yaml",
-    ROOT / "config/burgers_nu_0p01_sigma_1e-2.yaml",
+    ROOT / "config/burgers_nu_0p1_sigma_0.yaml",
+    ROOT / "config/burgers_nu_0p1_sigma_1e-5.yaml",
+    ROOT / "config/burgers_nu_0p1_sigma_1e-4.yaml",
+    ROOT / "config/burgers_nu_0p1_sigma_1e-3.yaml",
+    ROOT / "config/burgers_nu_0p1_sigma_1e-2.yaml",
 ]
 
 
