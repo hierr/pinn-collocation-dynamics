@@ -178,6 +178,12 @@ branch; these transfers do not import its campaigns.
   positive result for the other.
 - Treat tuning as scientific development and the frozen ten-seed comparisons as
   the main evaluation evidence. Engineering readiness checks are separate.
+- At `nu = 0.01`, the completed ten-seed evaluation observed lower mean
+  solution and residual errors for the selected `sigma = 1e-3` than for
+  PACMANN without diffusion, with improvements in seven and nine paired seeds,
+  respectively. This is setting-specific evidence on a generated reference
+  without independent numerical-accuracy certification; it does not establish
+  a sharpness effect. See the [results](results.md#frozen-evaluation-at-nu-001).
 - Retain DeepXDE 1.14's existing L-BFGS driver for the first frozen comparison,
   matching the procedure used for sigma selection. It may exceed the configured
   stage iteration and function-evaluation limits; report actual iterations,

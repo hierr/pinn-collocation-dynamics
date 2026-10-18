@@ -178,7 +178,7 @@ On these development seeds, mean solution error is 9.29% lower and mean residual
 RMS is 7.57% lower, each improving in two of three paired seeds. These are
 selection-set observations, not evidence of a held-out benefit or a sharpness
 effect. The generated reference passed structural checks without independent
-accuracy certification at this viscosity. The partial ten-seed evaluation is
+accuracy certification at this viscosity. The completed ten-seed evaluation is
 reported below.
 
 Accepted source: `hyperparameter-tuning` commit `2baa9dd`. Full per-seed results,
@@ -187,35 +187,58 @@ the shared protocol, and execution conditions remain in that commit's
 campaigns retained on the tuning branch. See the
 [study context](research_context.md#reference-validation-and-current-evidence).
 
-## Frozen evaluation at nu 0.01 (partial)
+## Frozen evaluation at nu 0.01
 
-Fixed Hammersley, random resampling, and RAD each completed all ten planned seeds
-4000–4009, with complete predictions and diagnostics and no numerical failures.
-Both PACMANN methods remain pending; no diffusion-effect conclusion is available.
-All 30 retained runs use source `c615f04`, the generated N1024 reference at
-**nu = 0.01**, and the frozen settings. Independent CPU evaluation of their final
-weights reproduced all five saved error metrics. See the
+The frozen evaluation completed all five methods on paired seeds 4000–4009,
+using the generated N1024 reference at viscosity `nu = 0.01`. The three
+sampling baselines record source revision `c615f04`; PACMANN-Adam and diffusion
+record `6582fa7`. Training and scoring source and frozen configuration were
+unchanged between those revisions. All 50 runs completed with finite
+predictions and no numerical failures. Independent CPU evaluation reproduced
+the saved error metrics for all runs, including all 20 PACMANN checkpoints
+completed in this phase. See the
 [campaign protocol and per-seed results](../output/burgers/burgers_nu_0p01_10seed/README.md)
 and [configuration](../config/burgers_nu_0p01_10seed.yaml).
 
-Primary summaries include all ten planned seeds for each completed method and
-report mean ± sample SD. Solution relative L2 is percent; residual RMS is
-unnormalized. Supplementary trimmed means follow the same one-minimum,
-one-maximum exclusion rule used in the earlier campaign.
+Primary summaries use all ten seeds and report mean ± sample SD. Solution
+relative L2 is expressed as a percentage; residual RMS is unnormalized.
+Supplementary trimmed means remove one minimum and one maximum separately for
+each metric, averaging the remaining eight values. Paired comparisons retain
+all ten seeds.
 
 | Method | Completed seeds | Solution L2 (%) | Trimmed solution L2 (%) | Residual RMS | Trimmed residual RMS | Training seconds |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Fixed Hammersley | 10/10 | 0.0115567 ± 0.00282369 | 0.0115932 | 0.000916508 ± 0.000128360 | 0.000904519 | 9945.9 ± 127.4 |
 | Random resampling | 10/10 | 0.0194975 ± 0.00456948 | 0.0183627 | 0.00120614 ± 0.000175615 | 0.00121857 | 10006.1 ± 112.7 |
 | RAD | 10/10 | 0.0172366 ± 0.00431413 | 0.0169540 | 0.000890220 ± 0.0000939736 | 0.000876878 | 9355.7 ± 125.7 |
-| PACMANN | 0/10 | Pending | — | Pending | — | — |
-| PACMANN + diffusion | 0/10 | Pending | — | Pending | — | — |
+| PACMANN without diffusion | 10/10 | 0.0324404 ± 0.0130586 | 0.0308782 | 0.00180119 ± 0.000268183 | 0.00175898 | 10170.3 ± 74.3 |
+| PACMANN with diffusion, sigma 1e-3 | 10/10 | 0.0257280 ± 0.00785700 | 0.0254398 | 0.00157095 ± 0.000398408 | 0.00157040 | 10278.8 ± 81.1 |
 
-Among the completed methods, fixed Hammersley has the lowest mean solution
-error, while RAD has the lowest mean residual RMS. These outcomes describe
-different error measures; the complete five-method comparison remains pending.
-Training times reflect ten concurrent seeds sharing one RTX 5070 and include
-compilation and optimizer stages, excluding final evaluation. Actual optimizer
-work varies under the retained L-BFGS driver and is recorded in each run.
-The reference-accuracy and cross-regime limitations in the campaign protocol
-remain applicable.
+For PACMANN with diffusion minus PACMANN without diffusion, the mean paired
+solution L2 difference was **-0.6712 percentage points ± 1.6198**; diffusion
+had lower solution error in seven of ten seeds. The mean paired residual RMS
+difference was **-0.00023024 ± 0.00037751**, lower in nine of ten seeds.
+Negative differences favor diffusion. These are observations for the selected
+setting and one viscosity, not a general or sharpness-dependent benefit.
+
+Every run performed 35,000 Adam iterations. Actual L-BFGS work and function
+evaluations vary under the retained DeepXDE driver, which can exceed configured
+stage limits.
+
+| Method | L-BFGS iterations per seed, mean ± sample SD | L-BFGS function evaluations per seed, mean ± sample SD |
+| --- | ---: | ---: |
+| Fixed Hammersley | 16322.7 ± 348.6 | 25513.6 ± 1698.4 |
+| Random resampling | 16603.6 ± 342.7 | 25799.7 ± 1379.3 |
+| RAD | 15735.5 ± 506.9 | 19807.0 ± 1944.8 |
+| PACMANN without diffusion | 16344.8 ± 276.0 | 24786.2 ± 904.8 |
+| PACMANN with diffusion | 16325.0 ± 476.6 | 25666.4 ± 882.2 |
+
+Training times reflect ten concurrent seeds sharing one RTX 5070; compilation
+is included and final evaluation is excluded. These timings are not comparable
+to the three-way-concurrent development runs. The three baseline samplers retain
+upstream settings while the positive diffusion scale was selected on separate
+development seeds. The generated reference passed structural and loader checks,
+without independent numerical-accuracy certification at this viscosity. These
+results do not resolve sharpness-dependent effects; the selected sigma is
+specific to this viscosity and protocol. See the
+[study plan](research_context.md).

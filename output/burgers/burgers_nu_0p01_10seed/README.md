@@ -1,11 +1,14 @@
 # Burgers ν = 0.01: frozen ten-seed evaluation
 
-**Partial evaluation: three method batches complete (30/50 runs).** Fixed
-Hammersley, random resampling, and RAD each have all ten seeds and complete
-evaluation artifacts. Both PACMANN method batches remain pending. The
-[configuration](../../../config/burgers_nu_0p01_10seed.yaml) freezes five methods
-and ten paired evaluation seeds, for 50 planned runs. Completed runs record source
-revision `c615f0436e00bdb82762f78a20fb49c4d74e7b60`.
+**Completed evaluation: all five methods and all 50 planned runs.** Fixed
+Hammersley, random resampling, RAD, PACMANN-Adam, and PACMANN with diffusion
+each have ten seeds and complete evaluation artifacts. The
+[configuration](../../../config/burgers_nu_0p01_10seed.yaml) freezes the five
+methods and ten paired evaluation seeds. The three baseline methods record
+revision `c615f0436e00bdb82762f78a20fb49c4d74e7b60`; the two PACMANN methods
+record `6582fa759bceff7b84b1b742ade8d7a75d56fd17`. The intervening revision
+changed the runner selection and documentation, while `src/` and `config/`
+remained unchanged.
 
 ## Design
 
@@ -44,10 +47,12 @@ settings while diffusion is locally tuned; disclose that tuning policy.
 ## Reproduction
 
 Use the [documented environment](../../../README.md#setup-and-execution).
-Select `config/burgers_nu_0p01_10seed.yaml` through `CONFIG_PATH` and the required
-method batches through `METHODS` in the runner. The current selection contains
-the two pending PACMANN methods. For a full repetition, select all five methods
-in the order listed above, using a copy of the YAML with a new campaign name.
+Select `config/burgers_nu_0p01_10seed.yaml` through `CONFIG_PATH` and the
+required method batches through `METHODS` in the runner. The committed runner
+selects the two PACMANN methods; the three baseline method directories are
+already retained in this campaign. For a full repetition, select all five
+methods in the order listed above and use a copy of the YAML with a new campaign
+name.
 Execute from the repository root:
 
 ```sh
@@ -69,18 +74,19 @@ copy the YAML with a new campaign name and select that copy in the runner;
 keep scientific settings fixed.
 
 Outputs are under `<method>/seed_<seed>/` alongside this README. Per-seed and
-aggregate results for completed batches follow; consolidated comparisons are in
-[results](../../../docs/results.md#frozen-evaluation-at-nu-001-partial). See
+aggregate results for all five methods follow; consolidated comparisons are in
+[results](../../../docs/results.md#frozen-evaluation-at-nu-001). See
 [study context](../../../docs/research_context.md#reference-validation-and-current-evidence)
 and the [artifact dictionary](../../../docs/output_format.md).
 
 ## Verified outcomes
 
-All 30 retained runs completed without numerical failures. Independent CPU
-evaluation of final weights reproduced the saved solution, residual, boundary,
-and initial-condition errors within floating-point tolerance. Initial point
-designs match across methods within each seed; constraints remain fixed and
-interior points do not change during L-BFGS.
+All 50 retained runs completed without numerical failures. Independent CPU
+evaluation reproduced the five saved error metrics for all runs, including all
+20 PACMANN checkpoints completed in this phase. Initial interior designs and
+constraint coordinates match exactly across methods within each seed.
+Constraints remain fixed, and physics points do not change during any L-BFGS
+stage.
 
 L2 is expressed as a percentage. SD is the sample standard deviation over all
 ten planned seeds. Supplementary trimmed means remove one minimum and one
@@ -144,3 +150,73 @@ Sampling updates: 700 per seed.
 | Trimmed mean | — | 0.0169540 | 0.000876878 | — | — | — |
 
 Sampling updates: 700 per seed.
+
+### [PACMANN without diffusion](pacmann_adam/)
+
+| Seed | Solution MSE | Solution L2 (%) | Residual RMS | Boundary RMSE | Initial RMSE | Training seconds |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4000 | 1.099598e-08 | 0.0174495 | 0.001523533 | 0.0001802144 | 0.0001964841 | 10167.5 |
+| 4001 | 1.297004e-07 | 0.05992893 | 0.001853498 | 0.0001262160 | 0.0002289090 | 10228.7 |
+| 4002 | 6.196273e-08 | 0.04142201 | 0.002416573 | 0.0001263319 | 0.0002090710 | 10136.6 |
+| 4003 | 1.624915e-08 | 0.02121198 | 0.001979454 | 0.0000719378 | 0.0001615769 | 10021.5 |
+| 4004 | 2.667047e-08 | 0.02717573 | 0.001955405 | 0.0000969956 | 0.0001411954 | 10078.3 |
+| 4005 | 1.242768e-08 | 0.01855073 | 0.001554052 | 0.0001006231 | 0.0001876612 | 10238.4 |
+| 4006 | 5.094089e-08 | 0.03755771 | 0.001671433 | 0.0000724619 | 0.0001975204 | 10224.2 |
+| 4007 | 6.280506e-08 | 0.04170260 | 0.001787265 | 0.0001381890 | 0.0003216585 | 10241.4 |
+| 4008 | 3.215152e-08 | 0.02983779 | 0.001628041 | 0.0001252408 | 0.0002114375 | 10211.6 |
+| 4009 | 3.157047e-08 | 0.02956694 | 0.001642684 | 0.0001197628 | 0.0002898054 | 10155.2 |
+| Mean ± SD | 4.35474e-08 ± 3.57745e-08 | 0.0324404 ± 0.0130586 | 0.00180119 ± 0.000268183 | 0.000115797 ± 0.0000322503 | 0.000214532 ± 0.0000546788 | 10170.3 ± 74.3 |
+| Trimmed mean | — | 0.0308782 | 0.00175898 | — | — | — |
+
+Sampling updates: 700 per seed.
+
+### [PACMANN with diffusion](pacmann_diffusion/)
+
+| Seed | Solution MSE | Solution L2 (%) | Residual RMS | Boundary RMSE | Initial RMSE | Training seconds |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4000 | 1.998805e-08 | 0.02352616 | 0.002143818 | 0.0002316155 | 0.0003517909 | 10340.8 |
+| 4001 | 1.051858e-08 | 0.01706649 | 0.001002463 | 0.0001369017 | 0.0002205528 | 10230.0 |
+| 4002 | 2.888123e-08 | 0.02827963 | 0.002129822 | 0.0002237226 | 0.0003039760 | 10190.5 |
+| 4003 | 3.713147e-08 | 0.03206542 | 0.001762671 | 0.0000690758 | 0.0002229725 | 10350.1 |
+| 4004 | 4.901187e-08 | 0.03683973 | 0.001892818 | 0.0002245138 | 0.0003071160 | 10325.2 |
+| 4005 | 1.208667e-08 | 0.01829444 | 0.001209751 | 0.0000954426 | 0.0002192400 | 10354.8 |
+| 4006 | 9.238193e-09 | 0.01599408 | 0.001223920 | 0.0001001557 | 0.0001928588 | 10344.4 |
+| 4007 | 5.151344e-08 | 0.03776819 | 0.001318669 | 0.0001351416 | 0.0002390373 | 10206.3 |
+| 4008 | 2.231121e-08 | 0.02485578 | 0.001472758 | 0.0002289501 | 0.0003766330 | 10313.5 |
+| 4009 | 1.842975e-08 | 0.02259048 | 0.001552828 | 0.0001852353 | 0.0002823205 | 10132.4 |
+| Mean ± SD | 2.59110e-08 ± 1.53980e-08 | 0.0257280 ± 0.00785700 | 0.00157095 ± 0.000398408 | 0.000163075 ± 0.0000630832 | 0.000271650 ± 0.0000622357 | 10278.8 ± 81.1 |
+| Trimmed mean | — | 0.0254398 | 0.00157040 | — | — | — |
+
+Sampling updates: 700 per seed.
+
+### Paired diffusion contrast and optimizer work
+
+For the paired contrast, differences are PACMANN with diffusion minus PACMANN
+without diffusion. Solution L2 differences are percentage points. Negative
+values favor diffusion; counts are improved / tied / worse.
+
+| Metric | Mean paired difference ± sample SD | Improved / tied / worse |
+| --- | ---: | ---: |
+| Solution relative L2 | -0.6712 percentage points ± 1.6198 | 7 / 0 / 3 |
+| Residual RMS | -0.00023024 ± 0.00037751 | 9 / 0 / 1 |
+
+Every run performed 35,000 Adam iterations. The L-BFGS driver can exceed its
+configured per-stage iteration and function-evaluation limits, so the table
+reports observed per-seed totals from `training.json`. Training seconds include
+compilation and optimizer work, and exclude final evaluation.
+
+| Method | L-BFGS iterations per seed, mean ± sample SD | L-BFGS function evaluations per seed, mean ± sample SD |
+| --- | ---: | ---: |
+| Fixed Hammersley | 16322.7 ± 348.6 | 25513.6 ± 1698.4 |
+| Random resampling | 16603.6 ± 342.7 | 25799.7 ± 1379.3 |
+| RAD | 15735.5 ± 506.9 | 19807.0 ± 1944.8 |
+| PACMANN without diffusion | 16344.8 ± 276.0 | 24786.2 ± 904.8 |
+| PACMANN with diffusion | 16325.0 ± 476.6 | 25666.4 ± 882.2 |
+
+The comparisons are limited to this generated reference and viscosity.
+The selected diffusion setting shows lower mean errors than PACMANN without
+diffusion on these ten seeds, but does not establish a general diffusion benefit
+or a sharpness-dependent effect. The reference passed structural and loader
+checks without independent numerical-accuracy certification at this viscosity.
+The three baseline sampling methods retain upstream settings while diffusion
+was tuned on separate development seeds.
