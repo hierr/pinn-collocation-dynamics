@@ -1,0 +1,9 @@
+{
+  "final_mse": 5.345487797867949e-09,
+  "final_relative_l2": 0.00016327178009874392,
+  "final_residual_rms": 0.0009318695759266269,
+  "boundary_rmse": 0.00020435096897084676,
+  "initial_rmse": 0.00023916367195135824,
+  "training_seconds": 3124.241938634019,
+  "movement_events": 700
+}

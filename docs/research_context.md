@@ -76,12 +76,18 @@ smooth, intermediate, and sharp regimes. The N1024 reference at `0.01/pi` was
 accepted after validation on `dataset-validation`. The new N1024 references at
 `nu = 0.01`, `0.05`, and `0.1` passed structural and loader checks; those checks
 do not independently certify numerical accuracy. The approved `nu = 0.01`
-campaign proceeds with that limitation. The next
-[development sweep at `nu = 0.1`](../output/burgers/nu_0p1/sigma_0/README.md)
-is prepared with the same three-seed controls, positive-sigma selection rule, and
-bounded search policy; it has not started. Its reference was transferred
-unchanged from accepted dataset commit `dbeb289` on `main`. This setup does not
-start another ten-seed evaluation; `nu = 0.05` remains outside the campaign scope.
+campaign proceeds with that limitation. The separate nu = 0.1 development sweep
+[completed all 21 runs](../output/burgers/nu_0p1/sigma_0/README.md): ordinary
+PACMANN plus six positive settings, each on seeds 3000-3002. The initial positive
+winner was at the lower boundary, so the approved first expansion added
+sigma = 1e-7 and 1e-6. The best positive value, sigma = 1e-5, is now interior
+among tested positive candidates. It was selected by mean final solution
+relative L2; residual error was assessed at that same value. Freeze sigma = 1e-5
+for the separate ten-seed evaluation, using the reference transferred unchanged
+from accepted dataset commit dbeb289 on main. The reference passed structural
+and loader checks but has no independent numerical-accuracy certification at
+this viscosity. See the [results](results.md). Nu = 0.05 remains outside the
+campaign scope.
 
 Tune diffusion separately at each viscosity using development seeds, then
 freeze settings before ten-seed comparisons of fixed Hammersley, upstream random

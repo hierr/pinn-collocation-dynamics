@@ -82,3 +82,41 @@ passed structural checks, without independent accuracy certification at this
 viscosity. Per-seed outcomes, execution conditions, and optimizer-work limitations
 are in the campaign README and artifacts. No ten-seed evaluation at this
 viscosity has started.
+
+## Diffusion tuning at nu = 0.1
+
+The [nu = 0.1 development sweep](../output/burgers/nu_0p1/sigma_0/README.md)
+completed all 21 planned runs without numerical failures. It compared ordinary
+PACMANN with six positive settings, including one approved lower-boundary
+expansion, using paired development seeds 3000-3002. The reference at stored
+viscosity 0.1 passed structural and loader checks but has no independent
+numerical-accuracy certification at this viscosity. Solution relative L2 is
+reported in percent; paired changes are percentage points.
+
+| Sigma | Final solution relative L2, mean ± sample SD (%) | Mean paired change vs. sigma 0 (percentage points) | Seeds improved | Mean training time per run (s) |
+| ---: | ---: | ---: | ---: | ---: |
+| 0 | 0.0177093 ± 0.00715926 | - | - | 9344.3 |
+| 1e-7 | 0.0122791 ± 0.00109882 | -0.00543022 | 2/3 | 8951.1 |
+| 1e-6 | 0.0129587 ± 0.00294386 | -0.00475061 | 2/3 | 9373.4 |
+| **1e-5** | **0.00961106 ± 0.00186134** | **-0.00809823** | **3/3** | 9417.0 |
+| 1e-4 | 0.0168219 ± 0.00633167 | -0.000887435 | 2/3 | 8736.4 |
+| 1e-3 | 0.0150394 ± 0.0111366 | -0.00266984 | 2/3 | 9192.9 |
+| 1e-2 | 0.0288924 ± 0.0084914 | +0.0111831 | 1/3 | 9310.8 |
+
+The positive candidate with the lowest mean final solution relative L2 was
+selected, with exact ties assigned to the smaller positive value; sigma zero
+was a comparison baseline only. The selected sigma = 1e-5 is interior among
+the tested positive settings. Mean solution error was 45.73% lower than the
+baseline on these development seeds. Residual error was assessed at the same
+selected setting, without separate tuning.
+
+| Sigma | Final PDE-residual RMS, mean ± sample SD | Mean paired change vs. sigma 0 | Seeds improved |
+| ---: | ---: | ---: | ---: |
+| 0 | 0.00115176 ± 0.000400647 | - | - |
+| **1e-5** | **0.000773829 ± 0.000180949** | **-0.000377936** | **3/3** |
+
+These three-seed development results do not establish held-out performance or
+a general diffusion benefit across viscosities. Per-seed outcomes, search
+history, execution conditions, and provenance are in the campaign README and
+tracked artifacts. Training times reflect three-way GPU concurrency; they are
+not directly comparable with ten-way evaluation timing.
