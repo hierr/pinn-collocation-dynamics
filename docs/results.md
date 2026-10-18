@@ -178,10 +178,44 @@ On these development seeds, mean solution error is 9.29% lower and mean residual
 RMS is 7.57% lower, each improving in two of three paired seeds. These are
 selection-set observations, not evidence of a held-out benefit or a sharpness
 effect. The generated reference passed structural checks without independent
-accuracy certification at this viscosity. The ten-seed evaluation has not started.
+accuracy certification at this viscosity. The partial ten-seed evaluation is
+reported below.
 
 Accepted source: `hyperparameter-tuning` commit `2baa9dd`. Full per-seed results,
 the shared protocol, and execution conditions remain in that commit's
 `output/burgers/burgers_nu_0p01_sigma_0/README.md`, with all five candidate
 campaigns retained on the tuning branch. See the
 [study context](research_context.md#reference-validation-and-current-evidence).
+
+## Frozen evaluation at nu 0.01 (partial)
+
+Fixed Hammersley, random resampling, and RAD each completed all ten planned seeds
+4000–4009, with complete predictions and diagnostics and no numerical failures.
+Both PACMANN methods remain pending; no diffusion-effect conclusion is available.
+All 30 retained runs use source `c615f04`, the generated N1024 reference at
+**nu = 0.01**, and the frozen settings. Independent CPU evaluation of their final
+weights reproduced all five saved error metrics. See the
+[campaign protocol and per-seed results](../output/burgers/burgers_nu_0p01_10seed/README.md)
+and [configuration](../config/burgers_nu_0p01_10seed.yaml).
+
+Primary summaries include all ten planned seeds for each completed method and
+report mean ± sample SD. Solution relative L2 is percent; residual RMS is
+unnormalized. Supplementary trimmed means follow the same one-minimum,
+one-maximum exclusion rule used in the earlier campaign.
+
+| Method | Completed seeds | Solution L2 (%) | Trimmed solution L2 (%) | Residual RMS | Trimmed residual RMS | Training seconds |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Fixed Hammersley | 10/10 | 0.0115567 ± 0.00282369 | 0.0115932 | 0.000916508 ± 0.000128360 | 0.000904519 | 9945.9 ± 127.4 |
+| Random resampling | 10/10 | 0.0194975 ± 0.00456948 | 0.0183627 | 0.00120614 ± 0.000175615 | 0.00121857 | 10006.1 ± 112.7 |
+| RAD | 10/10 | 0.0172366 ± 0.00431413 | 0.0169540 | 0.000890220 ± 0.0000939736 | 0.000876878 | 9355.7 ± 125.7 |
+| PACMANN | 0/10 | Pending | — | Pending | — | — |
+| PACMANN + diffusion | 0/10 | Pending | — | Pending | — | — |
+
+Among the completed methods, fixed Hammersley has the lowest mean solution
+error, while RAD has the lowest mean residual RMS. These outcomes describe
+different error measures; the complete five-method comparison remains pending.
+Training times reflect ten concurrent seeds sharing one RTX 5070 and include
+compilation and optimizer stages, excluding final evaluation. Actual optimizer
+work varies under the retained L-BFGS driver and is recorded in each run.
+The reference-accuracy and cross-regime limitations in the campaign protocol
+remain applicable.

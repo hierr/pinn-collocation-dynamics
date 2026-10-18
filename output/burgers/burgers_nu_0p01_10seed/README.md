@@ -1,8 +1,11 @@
 # Burgers ν = 0.01: frozen ten-seed evaluation
 
-**Prepared; training has not started.** The
+**Partial evaluation: three method batches complete (30/50 runs).** Fixed
+Hammersley, random resampling, and RAD each have all ten seeds and complete
+evaluation artifacts. Both PACMANN method batches remain pending. The
 [configuration](../../../config/burgers_nu_0p01_10seed.yaml) freezes five methods
-and ten paired evaluation seeds, for 50 planned runs.
+and ten paired evaluation seeds, for 50 planned runs. Completed runs record source
+revision `c615f0436e00bdb82762f78a20fb49c4d74e7b60`.
 
 ## Design
 
@@ -41,8 +44,11 @@ settings while diffusion is locally tuned; disclose that tuning policy.
 ## Reproduction
 
 Use the [documented environment](../../../README.md#setup-and-execution).
-The runner selects `config/burgers_nu_0p01_10seed.yaml` and the five methods in
-the order listed above. Execute from the repository root:
+Select `config/burgers_nu_0p01_10seed.yaml` through `CONFIG_PATH` and the required
+method batches through `METHODS` in the runner. The current selection contains
+the two pending PACMANN methods. For a full repetition, select all five methods
+in the order listed above, using a copy of the YAML with a new campaign name.
+Execute from the repository root:
 
 ```sh
 venv/bin/python -m scripts.run_experiments.run_burgers_campaign
@@ -62,8 +68,79 @@ other workers finish. Preserve artifacts and follow the
 copy the YAML with a new campaign name and select that copy in the runner;
 keep scientific settings fixed.
 
-Outputs will appear under `<method>/seed_<seed>/` alongside this README.
-Add per-seed results and aggregates here after verification, and consolidate
-comparisons in [results](../../../docs/results.md). See
+Outputs are under `<method>/seed_<seed>/` alongside this README. Per-seed and
+aggregate results for completed batches follow; consolidated comparisons are in
+[results](../../../docs/results.md#frozen-evaluation-at-nu-001-partial). See
 [study context](../../../docs/research_context.md#reference-validation-and-current-evidence)
 and the [artifact dictionary](../../../docs/output_format.md).
+
+## Verified outcomes
+
+All 30 retained runs completed without numerical failures. Independent CPU
+evaluation of final weights reproduced the saved solution, residual, boundary,
+and initial-condition errors within floating-point tolerance. Initial point
+designs match across methods within each seed; constraints remain fixed and
+interior points do not change during L-BFGS.
+
+L2 is expressed as a percentage. SD is the sample standard deviation over all
+ten planned seeds. Supplementary trimmed means remove one minimum and one
+maximum independently for solution L2 and residual RMS; they do not replace
+the full-seed summaries. Training time includes compilation and optimizer work,
+excluding final evaluation. Actual optimizer work is retained in `training.json`.
+
+### [Fixed Hammersley](fixed_hammersley/)
+
+| Seed | Solution MSE | Solution L2 (%) | Residual RMS | Boundary RMSE | Initial RMSE | Training seconds |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4000 | 1.55786e-09 | 0.006568 | 0.000717407 | 5.31879e-05 | 9.64406e-05 | 9860.8 |
+| 4001 | 8.54823e-09 | 0.015385 | 0.000975933 | 0.000140406 | 0.000272621 | 10014.4 |
+| 4002 | 3.68692e-09 | 0.010104 | 0.000901633 | 9.71121e-05 | 0.00019483 | 9614.9 |
+| 4003 | 9.54087e-09 | 0.016254 | 0.00121153 | 0.000125287 | 0.000204179 | 10038.7 |
+| 4004 | 3.61468e-09 | 0.010005 | 0.000982779 | 0.000103999 | 0.00014496 | 9975.0 |
+| 4005 | 3.93917e-09 | 0.010444 | 0.000911176 | 7.93961e-05 | 0.00017565 | 9952.4 |
+| 4006 | 5.91946e-09 | 0.012803 | 0.000860622 | 9.89826e-05 | 0.000234447 | 10009.6 |
+| 4007 | 3.62135e-09 | 0.010014 | 0.000826064 | 8.57494e-05 | 0.000217292 | 9953.0 |
+| 4008 | 5.03032e-09 | 0.011802 | 0.000871417 | 0.00014071 | 0.000207061 | 10024.9 |
+| 4009 | 5.36481e-09 | 0.012188 | 0.000906525 | 0.000108764 | 0.000204948 | 10014.9 |
+| Mean ± SD | 5.08237e-09 ± 2.41842e-09 | 0.0115567 ± 0.00282369 | 0.000916508 ± 0.000128360 | 0.000103359 ± 0.0000273611 | 0.000195243 ± 0.0000483028 | 9945.9 ± 127.4 |
+| Trimmed mean | — | 0.0115932 | 0.000904519 | — | — | — |
+
+Sampling updates: zero per seed.
+
+### [Random resampling](random_resampling/)
+
+| Seed | Solution MSE | Solution L2 (%) | Residual RMS | Boundary RMSE | Initial RMSE | Training seconds |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4000 | 1.10435e-08 | 0.017487 | 0.00141039 | 0.000154216 | 0.000223996 | 10063.0 |
+| 4001 | 1.18661e-08 | 0.018127 | 0.00135034 | 0.000172743 | 0.000206285 | 10098.9 |
+| 4002 | 1.30291e-08 | 0.018994 | 0.00122969 | 9.74498e-05 | 0.000133886 | 10072.9 |
+| 4003 | 1.26713e-08 | 0.018732 | 0.00102766 | 0.000132954 | 0.000208636 | 9787.0 |
+| 4004 | 1.71057e-08 | 0.021764 | 0.0013609 | 0.000124841 | 0.000209764 | 9843.0 |
+| 4005 | 1.19514e-08 | 0.018192 | 0.00139559 | 0.00013335 | 0.000220234 | 10114.5 |
+| 4006 | 9.74878e-09 | 0.016430 | 0.00090242 | 8.06021e-05 | 0.000164535 | 9981.5 |
+| 4007 | 9.64829e-09 | 0.016345 | 0.0011039 | 7.5171e-05 | 0.00023393 | 10066.2 |
+| 4008 | 3.63542e-08 | 0.031728 | 0.00121578 | 0.000184118 | 0.00017566 | 10076.8 |
+| 4009 | 1.06543e-08 | 0.017176 | 0.00106469 | 0.000133716 | 0.000195837 | 9957.5 |
+| Mean ± SD | 1.44072e-08 ± 8.00069e-09 | 0.0194975 ± 0.00456948 | 0.00120614 ± 0.000175615 | 0.000128916 ± 0.0000363573 | 0.000197276 ± 0.0000307504 | 10006.1 ± 112.7 |
+| Trimmed mean | — | 0.0183627 | 0.00121857 | — | — | — |
+
+Sampling updates: 700 per seed.
+
+### [RAD](rad/)
+
+| Seed | Solution MSE | Solution L2 (%) | Residual RMS | Boundary RMSE | Initial RMSE | Training seconds |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4000 | 1.97284e-08 | 0.023373 | 0.00110785 | 0.000138692 | 0.000246656 | 9073.4 |
+| 4001 | 1.35694e-08 | 0.019384 | 0.000925153 | 0.000123554 | 0.000267904 | 9320.4 |
+| 4002 | 9.1463e-09 | 0.015914 | 0.000857204 | 0.000119156 | 0.000185808 | 9337.0 |
+| 4003 | 6.19486e-09 | 0.013097 | 0.000912479 | 0.000114644 | 0.000154414 | 9448.9 |
+| 4004 | 7.87385e-09 | 0.014766 | 0.000779329 | 0.000100216 | 0.000229829 | 9318.8 |
+| 4005 | 6.37352e-09 | 0.013285 | 0.000824063 | 0.000102557 | 0.00014942 | 9418.7 |
+| 4006 | 1.02606e-08 | 0.016856 | 0.000821751 | 0.000131393 | 0.00023252 | 9251.1 |
+| 4007 | 5.27253e-09 | 0.012083 | 0.000880522 | 6.4301e-05 | 0.000176795 | 9443.3 |
+| 4008 | 2.19451e-08 | 0.024651 | 0.000834613 | 0.000117867 | 0.000177876 | 9494.0 |
+| 4009 | 1.29777e-08 | 0.018957 | 0.000959236 | 0.000164745 | 0.000218937 | 9451.6 |
+| Mean ± SD | 1.13342e-08 ± 5.73904e-09 | 0.0172366 ± 0.00431413 | 0.000890220 ± 0.0000939736 | 0.000117713 ± 0.0000264021 | 0.000204016 ± 0.0000405491 | 9355.7 ± 125.7 |
+| Trimmed mean | — | 0.0169540 | 0.000876878 | — | — | — |
+
+Sampling updates: 700 per seed.
