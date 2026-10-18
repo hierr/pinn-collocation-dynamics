@@ -215,7 +215,7 @@ all ten seeds.
 | PACMANN with diffusion, sigma 1e-3 | 10/10 | 0.0257280 ± 0.00785700 | 0.0254398 | 0.00157095 ± 0.000398408 | 0.00157040 | 10278.8 ± 81.1 |
 
 For PACMANN with diffusion minus PACMANN without diffusion, the mean paired
-solution L2 difference was **-0.6712 percentage points ± 1.6198**; diffusion
+solution L2 difference was **-0.006712 percentage points ± 0.016198**; diffusion
 had lower solution error in seven of ten seeds. The mean paired residual RMS
 difference was **-0.00023024 ± 0.00037751**, lower in nine of ten seeds.
 Negative differences favor diffusion. These are observations for the selected

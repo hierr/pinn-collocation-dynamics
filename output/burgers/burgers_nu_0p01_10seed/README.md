@@ -197,7 +197,7 @@ values favor diffusion; counts are improved / tied / worse.
 
 | Metric | Mean paired difference ± sample SD | Improved / tied / worse |
 | --- | ---: | ---: |
-| Solution relative L2 | -0.6712 percentage points ± 1.6198 | 7 / 0 / 3 |
+| Solution relative L2 | -0.006712 percentage points ± 0.016198 | 7 / 0 / 3 |
 | Residual RMS | -0.00023024 ± 0.00037751 | 9 / 0 / 1 |
 
 Every run performed 35,000 Adam iterations. The L-BFGS driver can exceed its
