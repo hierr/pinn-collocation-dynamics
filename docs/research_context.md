@@ -107,35 +107,93 @@ The `nu = 0.05` reference has no approved PINN campaign.
 
 ## Parameterized sharpness study
 
-Start with Burgers references over a viscosity range spanning smooth,
-intermediate, and sharp regimes. Use the generated references after checking
-numerical accuracy. Tune diffusion separately at each viscosity with development
-seeds, then freeze settings before ten-seed comparisons of fixed Hammersley,
-upstream random resampling, RAD, PACMANN, and PACMANN with diffusion. Other PDE
-families can follow later.
+The core Burgers comparison uses viscosities `0.1`, `0.01`, and `0.01/pi` to
+cover relatively smooth, intermediate, and sharply varying solutions within
+this study. Tune diffusion separately at each viscosity with development seeds,
+then freeze settings before ten-seed comparisons of fixed Hammersley, upstream
+random resampling, RAD, PACMANN, and PACMANN with diffusion. Retain the reference
+accuracy limitations described above. Other PDE families can follow later.
 
 This design tests performance after local tuning at each viscosity. It does not
 test transfer of one fixed sigma across the range. Disclose tuning costs and
 apply a fair tuning policy for competing methods. A ranking at one viscosity
 alone does not answer how relative benefit changes with sharpness.
 
-Parameter values, sharpness measures, feature regions, tuning grids and selection
-rules, evaluation seeds, point populations, and training budgets remain to be
-specified in an approved campaign protocol. The controlled study matches
+The three campaign protocols fix the viscosities, tuning decisions, evaluation
+seeds, point populations, and training budgets. The controlled study matches
 interior PDE populations and fixed constraints across methods, while retaining
 the shared upstream optimizer schedule and its L-BFGS stopping behavior.
+Feature-region definitions and the cross-regime performance analysis remain
+separate work.
 
 The trainer loads the generated reference selected by YAML and keeps training
 separate from final-checkpoint evaluation. Fixed Hammersley, upstream random
 resampling, RAD, PACMANN-Adam, and PACMANN with diffusion are implemented.
 The template retains upstream RAD settings rather than separately tuning RAD;
 the final protocol must disclose this tuning policy and the methods' costs.
-Sharpness and feature-region evaluation remain future work. The general settings
-template is not an approved campaign.
+Reference characterization below describes the selected regimes; feature-region
+error evaluation remains future work. The general settings template is not an
+approved campaign.
 
 Accepted training and evaluation changes were transferred from `59e2de8`, with
 plot improvements from `95c02f8`. Tuning evidence remains on its development
 branch; these transfers do not import its campaigns.
+
+### Reference characterization and regime coverage
+
+This characterization was formalized after the initial campaigns, using only
+the reference solutions. It describes the accepted coverage without changing
+the frozen training settings, model-selection rules, or error metrics.
+
+Use the campaign domain `[-1, 1] × [0, 0.99]`, with the native 1,025
+Chebyshev-Lobatto spatial nodes and 199 saved times at spacing `0.005`.
+Differentiate each snapshot's Chebyshev interpolant in space and define
+
+$$
+g_\nu(t_j) = \max_i |\partial_x u_\nu(x_i,t_j)|,
+\qquad G_\nu = \max_j g_\nu(t_j).
+$$
+
+Also record the sampled time of the peak and the solution amplitude
+`max_i |u(x_i,t_peak)|` at that time. Maxima are evaluated at the native nodes
+and saved times. They are numerical descriptors, not bounds on continuous
+maxima or an independent certification of reference or derivative accuracy.
+The common initial condition `-sin(pi*x)` has maximum spatial gradient `pi`.
+
+| Viscosity | Relative regime | Peak gradient G | Peak time | Amplitude at peak |
+| --- | --- | ---: | ---: | ---: |
+| 0.1 | Relatively smooth | 4.211 | 0.240 | 0.7836 |
+| 0.01 | Intermediate | 44.566 | 0.540 | 0.9307 |
+| 0.01/pi | Sharply varying | 151.933 | 0.510 | 0.9813 |
+
+![Maximum spatial gradient over time for the three Burgers references](burgers_reference_regimes.png)
+
+The reference solution slices below use the same times as the run diagnostics
+(`0.25`, `0.50`, `0.75`, and `0.99`), with shared axes and time colors.
+
+![Burgers reference solution slices for the three viscosity regimes](burgers_reference_slices.png)
+
+Regime labels are relative to this comparison. Viscosity also changes amplitude
+and temporal evolution, so performance differences across these cases cannot be
+attributed solely to sharpness.
+
+The three regimes define the current coverage and stopping point for viscosity
+selection. Keep `nu = 0.05` outside the core comparison. Treat `nu = 0.001` as an
+optional sharper extension after a separate reference-convergence check within
+an agreed computational budget. Additional viscosities require a specific
+coverage objective and protocol approval.
+
+Reproduce the table's numerical descriptors and both figures from the repository
+root using the [documented environment](../README.md#setup-and-execution):
+
+```sh
+venv/bin/python -m scripts.post_processing.characterize_burgers_references
+```
+
+The [script](../scripts/post_processing/characterize_burgers_references.py) reads
+the reference paths and domains from the three frozen campaign YAMLs. It prints
+the descriptors and writes the two figures; it does not modify datasets or
+campaign artifacts.
 
 ## Accepted controls and evaluation policy
 
@@ -204,8 +262,9 @@ branch; these transfers do not import its campaigns.
   points changed relative L2 by less than 0.003% relative in a six-model check.
   Uniform-grid and native-grid quadrature scores differed by less than 0.25%
   relative. Recheck resolution for sharper regimes.
-- Resolve reference generation, parameter ranges, sharpness metrics, and the
-  final parameterized protocol before making cross-regime claims. Negative or
+- Complete feature-region definitions and the cross-regime analysis before
+  making broader sharpness claims. Retain reference-accuracy limitations and
+  seek approval for extensions beyond the three selected regimes. Negative or
   uncertain outcomes remain valid results within the tested scope.
 
 ## Supporting references
