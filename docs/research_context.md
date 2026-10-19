@@ -89,6 +89,16 @@ and loader checks but has no independent numerical-accuracy certification at
 this viscosity. See the [results](results.md). Nu = 0.05 remains outside the
 campaign scope.
 
+The next prepared development regime is `nu = pi/100` (approximately
+`0.0314159265`). It was selected after inspecting the existing reference
+profiles to fill the multiplicative gap in spatial gradients between `0.1`
+and `0.01`. Reuse the N1024 reference from dataset commit `52b9359` unchanged.
+Its measured spatial gradients lie between those cases; basic data and
+constraint checks do not independently certify numerical accuracy. The
+[three-seed sigma sweep](../output/burgers/nu_0p031415927/sigma_0/README.md)
+is prepared with matching viscosity and the shared tuning policy. This does
+not start a new ten-seed evaluation.
+
 Tune diffusion separately at each viscosity using development seeds, then
 freeze settings before ten-seed comparisons of fixed Hammersley, upstream random
 resampling, RAD, PACMANN, and PACMANN with diffusion. Per-viscosity tuning measures
@@ -110,9 +120,9 @@ diffusion. Sharpness and feature-region evaluation remain future work.
   needs a stated experimental rationale. Record actual optimizer work and
   runtime, since equal training schedules do not imply equal computation.
 - In the earlier `nu = 0.01/pi` tuning campaign, sigma zero was an eligible
-  candidate and remains the historical comparison rule. For the `nu = 0.01`
-  and `nu = 0.1` phases, ordinary PACMANN at sigma zero is a comparison baseline
-  only. Select the positive sigma with the lowest arithmetic mean final solution
+  candidate and remains the historical comparison rule. For the `nu = 0.01`,
+  `nu = 0.1`, and `nu = pi/100` phases, ordinary PACMANN at sigma zero is a
+  comparison baseline only. Select the positive sigma with the lowest arithmetic mean final solution
   relative L2 over all three development seeds; exact ties go to the smaller positive sigma,
   regardless of whether sigma zero has lower error. If the winner is at either
   positive search boundary, add the approved pair of values two decades beyond

@@ -1,6 +1,7 @@
 """Verify matched sweep controls, execution safeguards, and artifact summaries."""
 
 import json
+import math
 
 import pytest
 import yaml
@@ -39,7 +40,7 @@ def save_completed(configs, root, errors=None):
                 root
                 / "output"
                 / "burgers"
-                / "nu_0p1"
+                / "nu_0p031415927"
                 / config["campaign"]
                 / method
                 / f"seed_{seed}"
@@ -89,9 +90,9 @@ def test_prepared_grid_matches_controlled_template(sweep):
             assert config[field] == template[field]
         for field in ("interior_points", "boundary_points", "initial_points"):
             assert config["problem"][field] == template["problem"][field]
-        assert config["problem"]["viscosity"] == 0.1
+        assert config["problem"]["viscosity"] == math.pi / 100
         assert config["problem"]["reference_path"] == (
-            "data/burgers_dataset/burgers_nu_0p1_N1024.npz"
+            "data/burgers_dataset/burgers_nu_0p031415927_N1024.npz"
         )
         method = next(iter(config["methods"]))
         method_settings = dict(config["methods"][method])
@@ -108,7 +109,7 @@ def test_preflight_entire_sweep_before_execution(sweep, tmp_path, monkeypatch):
     last = sweep[-1]
     existing = (
         tmp_path
-        / "output/burgers/nu_0p1"
+        / "output/burgers/nu_0p031415927"
         / last["campaign"]
         / "pacmann_diffusion/seed_3002"
     )
@@ -122,7 +123,9 @@ def test_preflight_entire_sweep_before_execution(sweep, tmp_path, monkeypatch):
     with pytest.raises(FileExistsError):
         tuning.run_tuning(sweep)
     assert calls == []
-    assert not (tmp_path / "output/burgers/nu_0p1" / sweep[0]["campaign"]).exists()
+    assert not (
+        tmp_path / "output/burgers/nu_0p031415927" / sweep[0]["campaign"]
+    ).exists()
 
 
 def test_sweep_order(sweep, monkeypatch):
@@ -336,7 +339,7 @@ def test_tiny_sweep_trains_analyzes_and_summarizes(
 ):
     """Exercise all five settings and three seeds with a disposable tiny budget."""
     reference = load_reference(
-        train.ROOT, sweep[0]["problem"], config["evaluation"]["solution_nx"]
+        train.ROOT, config["problem"], config["evaluation"]["solution_nx"]
     )
     monkeypatch.setattr(train, "ROOT", tmp_path)
     monkeypatch.setattr(
@@ -352,10 +355,11 @@ def test_tiny_sweep_trains_analyzes_and_summarizes(
         lambda *args, **kwargs: "test-revision\n",
     )
     evaluation = config["evaluation"]
-    reference_path = sweep[0]["problem"]["reference_path"]
+    reference_path = config["problem"]["reference_path"]
     for candidate in sweep:
         candidate["evaluation"] = evaluation
         candidate["problem"]["reference_path"] = reference_path
+        candidate["problem"]["viscosity"] = config["problem"]["viscosity"]
         candidate["problem"]["interior_points"] = 16
         candidate["network"]["layers"] = [2, 8, 1]
         candidate["training"].update(phases=1, adam_steps=2, display_every=1)
@@ -376,7 +380,8 @@ def test_tiny_sweep_trains_analyzes_and_summarizes(
     assert "Selected positive sigma by mean final relative L2:" in result
     assert "No sigma selected" not in result
     for candidate in sweep:
-        directory = tmp_path / "output/burgers/nu_0p1" / candidate["campaign"]
+        nu_tag = f"{candidate['problem']['viscosity']:.8g}".replace(".", "p")
+        directory = tmp_path / "output/burgers" / f"nu_{nu_tag}" / candidate["campaign"]
         method = next(iter(candidate["methods"]))
         for seed in candidate["seeds"]:
             run = directory / method / f"seed_{seed}"

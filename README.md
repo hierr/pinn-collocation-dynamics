@@ -8,11 +8,11 @@ branches, citing the source commit, rather than merging entire workstreams.
 
 ## Current development campaign
 
-The [N1024 sigma sweep](output/burgers/nu_0p0031830989/sigma_0/README.md)
-completed all 15 planned runs on the validated generated Burgers reference at
-`nu = 0.01/pi`, with matched controls and three paired development seeds per
-setting. The development-selected candidate is `sigma = 1e-4`; it awaits
-evaluation on new seeds. See [results](docs/results.md) for the comparison.
+The next prepared sweep uses `nu = pi/100` and the restored N1024 reference.
+See the
+[campaign protocol](output/burgers/nu_0p031415927/sigma_0/README.md) for the
+reference provenance, candidate grid, and selection rule. Earlier tuning
+campaigns and their selected settings remain in [results](docs/results.md).
 
 Tune separately at each Burgers viscosity, then evaluate the frozen settings
 for solution and independent PDE-residual error on ten new seeds. The
@@ -23,8 +23,8 @@ record the accepted controls; [results](docs/results.md) will consolidate outcom
 
 Use Python 3.12 and the existing uv-managed local `venv`; conda is unnecessary.
 The locked stack includes DeepXDE 1.14.0 and PyTorch 2.7.1 with CUDA 12.8
-wheels. Remote training used `hier-wsl` with its existing `.venv`, Python
-3.12.12, an NVIDIA GeForce RTX 5070 (driver 617.42), and CUDA device `cuda:0`.
+wheels. Completed tuning used Python 3.12.12 and an NVIDIA GeForce RTX 5070
+(12 GB, driver 617.42).
 The backend is PyTorch with float64; saved metadata records the training device,
 source revision, dataset fingerprint, and dependency versions.
 
@@ -33,18 +33,16 @@ uv venv --python 3.12 venv
 VIRTUAL_ENV="$PWD/venv" uv sync --active --locked
 ```
 
-After pulling `hyperparameter-tuning` on `hier-wsl`, use the existing remote
-environment and run the sweep from `/home/hiero/pinn-collocation-dynamics`:
+From the repository root, run the prepared tuning sweep using the tracked reference.
 `ACTION = "run"` is selected in `scripts/run_experiments/run_burgers_sigma_tuning.py`.
 
 ```bash
-.venv/bin/python -m scripts.run_experiments.run_burgers_sigma_tuning
+venv/bin/python -m scripts.run_experiments.run_burgers_sigma_tuning
 ```
 
 Select `ACTION = "summarize"` in the same script to print the comparison without
 training. `CONFIG_PATHS` lists the full YAMLs; all selected destinations are
-checked before training and existing runs cannot be overwritten. Run this
-scientific sweep on the remote machine only. Obtain approval and commit the
+checked before training and existing runs cannot be overwritten. Obtain approval and commit the
 scientific protocol before starting a new campaign. Campaign READMEs are
 maintained manually alongside the outputs.
 
