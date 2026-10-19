@@ -27,8 +27,11 @@ see the [development result](docs/results.md#n1024-diffusion-development-selecti
 The [first frozen evaluation](output/burgers/burgers_nu_0p0031830989_10seed/README.md)
 completed all 50 runs across five methods and ten paired seeds. See the
 [evaluation results](docs/results.md#frozen-n1024-ten-seed-evaluation).
-Extension across a validated viscosity range, with separate tuning in each
-regime, remains planned. Development campaigns remain on `hyperparameter-tuning`.
+The comparison extends across viscosity with separate tuning in each regime.
+The [prepared pi/100 campaign](output/burgers/burgers_nu_0p031415927_10seed/README.md)
+uses the restored N1024 reference and awaits its development-selected diffusion
+coefficient. The runner rejects an unset sigma before launching any selected
+method. Development campaigns remain on `hyperparameter-tuning`.
 
 ## Structure
 

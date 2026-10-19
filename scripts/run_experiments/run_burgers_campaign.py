@@ -10,7 +10,7 @@ from scripts.post_processing.analyze_burgers import analyze_run
 from src.train import ROOT, run_training
 
 # Select the batch order here; the full scientific protocol remains in YAML.
-CONFIG_PATH = ROOT / "config/burgers_nu_0p1_10seed.yaml"
+CONFIG_PATH = ROOT / "config/burgers_nu_0p031415927_10seed.yaml"
 METHODS = [
     "fixed_hammersley",
     "random_resampling",
@@ -54,6 +54,12 @@ def check_campaign(config: dict, method: str):
         )
     ):
         raise ValueError("Methods must select supported Burgers sampling methods")
+
+    # Require the development-selected coefficient before launching diffusion.
+    if method == "pacmann_diffusion" and methods[method]["sigma"] is None:
+        raise ValueError(
+            "Freeze diffusion sigma from development tuning before evaluation"
+        )
 
     # Other methods can already be complete; reject conflicts only for this launch.
     for seed in seeds:

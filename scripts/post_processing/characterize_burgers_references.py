@@ -1,4 +1,4 @@
-"""Describe spatial steepening in the three selected Burgers references."""
+"""Describe spatial steepening in the selected Burgers references."""
 
 from pathlib import Path
 
@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATHS = [
     ROOT / "config/burgers_nu_0p1_10seed.yaml",
+    ROOT / "config/burgers_nu_0p031415927_10seed.yaml",
     ROOT / "config/burgers_nu_0p01_10seed.yaml",
     ROOT / "config/burgers_nu_0p0031830989_10seed.yaml",
 ]
@@ -92,7 +93,7 @@ def main():
         sharey=True,
         squeeze=False,
     )
-    colors = ["#0072b2", "#009e73", "#d55e00"]
+    colors = ["#0072b2", "#cc79a7", "#009e73", "#d55e00"]
 
     # Describe each regime on the same domain, independently of training results.
     print("nu,peak_gradient,time_at_peak,amplitude_at_peak")
@@ -141,7 +142,7 @@ def main():
     plt.close(fig)
     print(f"Saved {OUTPUT_PATH.relative_to(ROOT)}")
 
-    # Share the slice colors, legend, and axis scales across the three regimes.
+    # Share the slice colors, legend, and axis scales across the regimes.
     slices_axes[0, 0].set_ylabel("u(x, t)")
     slices_fig.suptitle("Burgers reference solutions")
     slices_fig.legend(

@@ -107,21 +107,33 @@ The `nu = 0.05` reference has no approved PINN campaign.
 
 ## Parameterized sharpness study
 
-The core Burgers comparison uses viscosities `0.1`, `0.01`, and `0.01/pi` to
-cover relatively smooth, intermediate, and sharply varying solutions within
+The core Burgers comparison uses viscosities `0.1`, `pi/100`, `0.01`, and
+`0.01/pi` to span relatively smooth through sharply varying solutions within
 this study. Tune diffusion separately at each viscosity with development seeds,
 then freeze settings before ten-seed comparisons of fixed Hammersley, upstream
 random resampling, RAD, PACMANN, and PACMANN with diffusion. Retain the reference
 accuracy limitations described above. Other PDE families can follow later.
+
+The `pi/100` case was added after inspecting the existing reference profiles
+to fill the spatial-gradient gap between `0.1` and `0.01`. Its N1024 reference
+originates at dataset commit `52b9359` and was transferred unchanged from
+`hyperparameter-tuning` commit `cb6c6e8`, which retains the separate tuning protocol.
+Structural, constraint, and loader checks passed; these checks do not
+independently certify numerical accuracy. Its
+[ten-seed protocol](../output/burgers/burgers_nu_0p031415927_10seed/README.md)
+is prepared with the shared controls, but diffusion sigma must be selected on
+development seeds and frozen before execution.
 
 This design tests performance after local tuning at each viscosity. It does not
 test transfer of one fixed sigma across the range. Disclose tuning costs and
 apply a fair tuning policy for competing methods. A ranking at one viscosity
 alone does not answer how relative benefit changes with sharpness.
 
-The three campaign protocols fix the viscosities, tuning decisions, evaluation
-seeds, point populations, and training budgets. The controlled study matches
-interior PDE populations and fixed constraints across methods, while retaining
+The three existing campaign protocols fix the viscosities, tuning decisions,
+evaluation seeds, point populations, and training budgets. The prepared
+`pi/100` protocol retains those controls with its diffusion coefficient pending.
+The controlled study matches interior PDE populations and fixed constraints
+across methods, while retaining
 the shared upstream optimizer schedule and its L-BFGS stopping behavior.
 Feature-region definitions and the cross-regime performance analysis remain
 separate work.
@@ -163,21 +175,22 @@ The common initial condition `-sin(pi*x)` has maximum spatial gradient `pi`.
 | Viscosity | Relative regime | Peak gradient G | Peak time | Amplitude at peak |
 | --- | --- | ---: | ---: | ---: |
 | 0.1 | Relatively smooth | 4.211 | 0.240 | 0.7836 |
-| 0.01 | Intermediate | 44.566 | 0.540 | 0.9307 |
-| 0.01/pi | Sharply varying | 151.933 | 0.510 | 0.9813 |
+| pi/100 | Intermediate | 11.873 | 0.515 | 0.8228 |
+| 0.01 | Steep | 44.566 | 0.540 | 0.9307 |
+| 0.01/pi | Steepest tested | 151.933 | 0.510 | 0.9813 |
 
-![Maximum spatial gradient over time for the three Burgers references](burgers_reference_regimes.png)
+![Maximum spatial gradient over time for the four Burgers references](burgers_reference_regimes.png)
 
 The reference solution slices below use the same times as the run diagnostics
 (`0.25`, `0.50`, `0.75`, and `0.99`), with shared axes and time colors.
 
-![Burgers reference solution slices for the three viscosity regimes](burgers_reference_slices.png)
+![Burgers reference solution slices for the four viscosities](burgers_reference_slices.png)
 
 Regime labels are relative to this comparison. Viscosity also changes amplitude
 and temporal evolution, so performance differences across these cases cannot be
 attributed solely to sharpness.
 
-The three regimes define the current coverage and stopping point for viscosity
+The four viscosities define the current coverage and stopping point for viscosity
 selection. Keep `nu = 0.05` outside the core comparison. Treat `nu = 0.001` as an
 optional sharper extension after a separate reference-convergence check within
 an agreed computational budget. Additional viscosities require a specific
@@ -191,8 +204,9 @@ venv/bin/python -m scripts.post_processing.characterize_burgers_references
 ```
 
 The [script](../scripts/post_processing/characterize_burgers_references.py) reads
-the reference paths and domains from the three frozen campaign YAMLs. It prints
-the descriptors and writes the two figures; it does not modify datasets or
+the reference paths and domains from the four campaign YAMLs, including the
+prepared `pi/100` protocol. It prints the descriptors and writes the two figures;
+it does not modify datasets or
 campaign artifacts.
 
 ## Accepted controls and evaluation policy
@@ -205,7 +219,7 @@ campaign artifacts.
   needs a stated experimental rationale. Record actual optimizer work and
   runtime, since equal training schedules do not imply equal computation.
 - The earlier `nu = 0.01/pi` tuning included zero as an eligible candidate.
-  For the new `nu = 0.01` phase, ordinary PACMANN at zero is a comparison baseline
+  For later development phases, ordinary PACMANN at zero is a comparison baseline
   only. Select the positive sigma with the lowest arithmetic mean final solution
   relative L2 over all three development seeds; exact ties favor the smaller
   positive sigma, even if zero outperforms every positive setting. A positive
@@ -264,7 +278,7 @@ campaign artifacts.
   relative. Recheck resolution for sharper regimes.
 - Complete feature-region definitions and the cross-regime analysis before
   making broader sharpness claims. Retain reference-accuracy limitations and
-  seek approval for extensions beyond the three selected regimes. Negative or
+  seek approval for extensions beyond the four selected viscosities. Negative or
   uncertain outcomes remain valid results within the tested scope.
 
 ## Supporting references

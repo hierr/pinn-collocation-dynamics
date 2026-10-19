@@ -65,12 +65,17 @@ def test_reference_viscosity_must_match(config):
         characterization.characterize_reference(config["problem"])
 
 
-def test_documentation_figure_and_summary(config, tmp_path, monkeypatch, capsys):
-    """Produce both figures and the numerical summary without changing source data."""
+@pytest.mark.parametrize("reference_count", [1, 4])
+def test_documentation_figure_and_summary(
+    config, tmp_path, monkeypatch, capsys, reference_count
+):
+    """Include every reference in both figures and the summary, preserving source data."""
     config_path = tmp_path / "reference.yaml"
     config_path.write_text(yaml.safe_dump(config))
     monkeypatch.setattr(characterization, "ROOT", tmp_path)
-    monkeypatch.setattr(characterization, "CONFIG_PATHS", [config_path])
+    monkeypatch.setattr(
+        characterization, "CONFIG_PATHS", [config_path] * reference_count
+    )
     figure = tmp_path / "regimes.png"
     monkeypatch.setattr(characterization, "OUTPUT_PATH", figure)
     slices = tmp_path / "slices.png"
@@ -80,7 +85,9 @@ def test_documentation_figure_and_summary(config, tmp_path, monkeypatch, capsys)
 
     characterization.main()
 
-    assert "nu,peak_gradient,time_at_peak,amplitude_at_peak" in capsys.readouterr().out
+    summary = capsys.readouterr().out
+    assert "nu,peak_gradient,time_at_peak,amplitude_at_peak" in summary
+    assert summary.count(f"{config['problem']['viscosity']:.10g},") == reference_count
     assert figure.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
     assert slices.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
     assert source.read_bytes() == original

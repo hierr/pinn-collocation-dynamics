@@ -93,6 +93,21 @@ def test_configuration_loading_and_execution_order(
     assert calls == expected
 
 
+def test_pending_diffusion_sigma_prevents_entire_sequence(
+    all_methods_config, tmp_path, monkeypatch, calls
+):
+    """Reject an unset diffusion coefficient before starting any method's workers."""
+    config = all_methods_config
+    config["methods"]["pacmann_diffusion"]["sigma"] = None
+    config_path = tmp_path / "campaign.yaml"
+    config_path.write_text(yaml.safe_dump(config, sort_keys=False))
+    monkeypatch.setattr(runner, "CONFIG_PATH", config_path)
+    monkeypatch.setattr(runner, "METHODS", list(config["methods"]))
+    with pytest.raises(ValueError, match="Freeze diffusion sigma"):
+        runner.main()
+    assert calls == []
+
+
 def test_later_method_conflict_prevents_entire_sequence(
     config, tmp_path, monkeypatch, calls
 ):
@@ -209,7 +224,9 @@ def test_start_failure_waits_for_already_started_worker(config, monkeypatch, cal
         return result
 
     monkeypatch.setattr(
-        runner.multiprocessing, "get_context", lambda name: SimpleNamespace(Process=process)
+        runner.multiprocessing,
+        "get_context",
+        lambda name: SimpleNamespace(Process=process),
     )
     with pytest.raises(OSError, match="cannot start process"):
         runner.run_campaign(config, "pacmann_adam")
