@@ -332,3 +332,26 @@ sequentially. These timings should be compared only with runs under the same
 concurrency conditions. The result is specific to this generated reference,
 viscosity, and per-viscosity tuning policy; it does not isolate a sharpness
 effect. See the [study context](research_context.md).
+
+## Diffusion selection at pi/100
+
+The [π/100 tuning sweep](https://github.com/hierr/pinn-collocation-dynamics/commit/e089cb9d02def773fa16b9811e2f2f6ee5c59a7c)
+completed all 15 initial-grid runs and selected **sigma = 1e-4**, the positive
+candidate with the lowest mean final solution relative L2. This value is
+interior among the four tested positive settings, so no expansion was required.
+Sigma zero was a comparison baseline only, although its mean solution error
+(0.0135490%) was lower than the selected positive value (0.0142509%). The
+paired solution difference was +0.000701916 percentage points, with lower
+error in one of three seeds. At sigma 1e-4, mean residual RMS was 0.000968064
+versus 0.000959376 at sigma zero; the paired residual difference was
++0.00000868754, with lower residual in one of three seeds. Residual did not
+select a separate value. These three-seed development outcomes do not establish
+held-out performance or a general diffusion benefit.
+
+The tuning artifacts record training source revision
+[`cb6c6e8`](https://github.com/hierr/pinn-collocation-dynamics/commit/cb6c6e85642b82a70ce9e64013b74cd5633788ff).
+The selected setting is frozen for the separate ten-seed evaluation on seeds
+4000–4009; see its [configuration](../config/burgers_nu_0p031415927_10seed.yaml)
+and [campaign protocol](../output/burgers/burgers_nu_0p031415927_10seed/README.md).
+The restored reference passed structural and loader checks but has no
+independent numerical-accuracy certification at this viscosity.

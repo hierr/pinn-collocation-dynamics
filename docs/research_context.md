@@ -124,21 +124,27 @@ accuracy limitations described above. Other PDE families can follow later.
 The `pi/100` case was added after inspecting the existing reference profiles
 to fill the spatial-gradient gap between `0.1` and `0.01`. Its N1024 reference
 originates at dataset commit `52b9359` and was transferred unchanged from
-`hyperparameter-tuning` commit `cb6c6e8`, which retains the separate tuning protocol.
+`hyperparameter-tuning` commit `cb6c6e8`, which retains the tuning protocol.
 Structural, constraint, and loader checks passed; these checks do not
-independently certify numerical accuracy. Its
-[ten-seed protocol](../output/burgers/burgers_nu_0p031415927_10seed/README.md)
-is prepared with the shared controls, but diffusion sigma must be selected on
-development seeds and frozen before execution.
+independently certify numerical accuracy. The three-seed sigma sweep selected
+positive `sigma = 1e-4` by mean final solution relative L2. This value was
+interior among tested positive candidates, so no expansion was required.
+Sigma zero had lower mean solution error, but remained a comparison baseline
+under the positive-only selection rule. Residual error was assessed at the
+selected value and did not select a separate sigma. See the
+[selection results](results.md#diffusion-selection-at-pi100) and the
+[frozen ten-seed protocol](../output/burgers/burgers_nu_0p031415927_10seed/README.md).
+The selected sigma is frozen for the five-method comparison on paired seeds
+4000–4009; the tuning and evaluation seeds are separate.
 
 This design tests performance after local tuning at each viscosity. It does not
 test transfer of one fixed sigma across the range. Disclose tuning costs and
 apply a fair tuning policy for competing methods. A ranking at one viscosity
 alone does not answer how relative benefit changes with sharpness.
 
-The three existing campaign protocols fix the viscosities, tuning decisions,
-evaluation seeds, point populations, and training budgets. The prepared
-`pi/100` protocol retains those controls with its diffusion coefficient pending.
+The four campaign protocols fix the viscosities, tuning decisions, evaluation
+seeds, point populations, and training budgets. The `pi/100` protocol retains
+those controls with the development-selected diffusion coefficient frozen.
 The controlled study matches interior PDE populations and fixed constraints
 across methods, while retaining
 the shared upstream optimizer schedule and its L-BFGS stopping behavior.
@@ -212,7 +218,7 @@ venv/bin/python -m scripts.post_processing.characterize_burgers_references
 
 The [script](../scripts/post_processing/characterize_burgers_references.py) reads
 the reference paths and domains from the four campaign YAMLs, including the
-prepared `pi/100` protocol. It prints the descriptors and writes the two figures;
+frozen `pi/100` protocol. It prints the descriptors and writes the two figures;
 it does not modify datasets or
 campaign artifacts.
 

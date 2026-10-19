@@ -1,4 +1,4 @@
-# Prepared evaluation protocol at pi/100; freeze sigma after development tuning.
+# Frozen evaluation protocol at pi/100; sigma selected on separate development seeds.
 campaign: burgers_nu_0p031415927_10seed
 seeds: [4000, 4001, 4002, 4003, 4004, 4005, 4006, 4007, 4008, 4009]
 problem:
@@ -50,4 +50,4 @@ methods:
     step_size: 1.0e-5
     betas: [0.9, 0.999]
     epsilon: 1.0e-7
-    sigma: null  # Set the development-selected value before evaluation.
+    sigma: 1.0e-4  # Selected by final solution error on seeds 3000-3002.
