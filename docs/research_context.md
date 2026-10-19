@@ -100,9 +100,16 @@ mean final solution relative L2. Its accepted results and artifacts are on
 [`hyperparameter-tuning`](https://github.com/hierr/pinn-collocation-dynamics/commit/1968b350a5d44adc9180782406357c2c8763be92),
 using training source commit
 [`0948ad9`](https://github.com/hierr/pinn-collocation-dynamics/commit/0948ad936fb32502c19f0b174572866799ca1285).
-The frozen five-method, ten-seed evaluation now uses this value and the
-separate N1024 reference; see its [protocol](../output/burgers/burgers_nu_0p1_10seed/README.md)
-and the [selection result](results.md#diffusion-development-selection-at-nu-01).
+The subsequent frozen five-method evaluation completed all 50 runs on paired
+seeds 4000–4009 at the selected sigma. Diffusion had lower mean solution and
+residual errors than PACMANN without diffusion, improving in seven of ten pairs
+for each metric; this is evidence for the tested setting, not a general
+diffusion benefit. Runs record source revision
+[`e261b37`](https://github.com/hierr/pinn-collocation-dynamics/commit/e261b3720062491aad5898603a0d6b3826211dfe).
+The N1024 reference passed structural and loader checks but has no independent
+numerical-accuracy certification at this viscosity. See the
+[frozen evaluation results](results.md#frozen-evaluation-at-nu-01) and
+[campaign protocol](../output/burgers/burgers_nu_0p1_10seed/README.md).
 The `nu = 0.05` reference has no approved PINN campaign.
 
 ## Parameterized sharpness study

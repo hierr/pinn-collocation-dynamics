@@ -265,3 +265,70 @@ reference; see its [configuration](../config/burgers_nu_0p1_10seed.yaml) and
 [campaign protocol](../output/burgers/burgers_nu_0p1_10seed/README.md). The
 reference passed structural and loader checks but has no independent numerical-
 accuracy certification at this viscosity.
+
+## Frozen evaluation at nu 0.1
+
+The [frozen five-method evaluation](../output/burgers/burgers_nu_0p1_10seed/README.md)
+completed all 50 runs on paired seeds 4000–4009, using the generated N1024
+reference at viscosity **nu = 0.1** and the development-selected **sigma =
+1e-5**. Every run records source revision `e261b37`. The reference passed
+structural and loader checks, but it has no independent numerical-accuracy
+certification at this viscosity. All runs completed with finite saved outcomes
+and no numerical failures. Independent CPU checkpoint evaluation reproduced
+the five saved error metrics for every run.
+
+Primary summaries use all ten seeds and report mean ± sample SD. Solution
+relative L2 is expressed as percent, residual RMS is unnormalized, and training
+time includes compilation and optimizer work but excludes final evaluation.
+The supplementary 10% trimmed means remove the minimum and maximum independently
+for each error metric and average the remaining eight seeds.
+
+| Method | Completed seeds | Solution L2 (%) | Trimmed solution L2 (%) | Residual RMS | Trimmed residual RMS | Training seconds |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Fixed Hammersley | 10/10 | 0.0141698 ± 0.0036669 | 0.0140509 | 0.000644720 ± 0.000161940 | 0.000622642 | 9741.4 ± 106.3 |
+| Random resampling | 10/10 | 0.0124963 ± 0.0035691 | 0.0124078 | 0.000655814 ± 0.000100990 | 0.000647543 | 9876.2 ± 127.7 |
+| RAD | 10/10 | 0.0135256 ± 0.0031563 | 0.0135410 | 0.000541087 ± 0.000065500 | 0.000533121 | 10025.0 ± 189.7 |
+| PACMANN | 10/10 | 0.0158011 ± 0.0026410 | 0.0158341 | 0.000906068 ± 0.000145750 | 0.000885028 | 10134.9 ± 132.5 |
+| PACMANN + diffusion, sigma 1e-5 | 10/10 | 0.0146387 ± 0.0043371 | 0.0142006 | 0.000806642 ± 0.000118780 | 0.000796086 | 10036.5 ± 344.0 |
+
+Each paired contrast is the first method minus the second over all ten seeds.
+Solution differences are percentage points; residual differences retain
+residual RMS units. Negative differences favor the first method. Counts are
+improved / tied / worse for that first method.
+
+| Contrast | Solution difference (pp), mean ± sample SD | Improved / tied / worse | Residual difference, mean ± sample SD | Improved / tied / worse |
+| --- | ---: | ---: | ---: | ---: |
+| PACMANN + diffusion − PACMANN | -0.00116244 ± 0.00372667 | 7 / 0 / 3 | -0.0000994261 ± 0.0001731714 | 7 / 0 / 3 |
+| RAD − Fixed Hammersley | -0.00064418 ± 0.00376597 | 6 / 0 / 4 | -0.0001036325 ± 0.0001927985 | 7 / 0 / 3 |
+| PACMANN − Fixed Hammersley | +0.00163130 ± 0.00538301 | 4 / 0 / 6 | +0.0002613481 ± 0.0001941871 | 1 / 0 / 9 |
+| PACMANN + diffusion − Fixed Hammersley | +0.00046886 ± 0.00585162 | 5 / 0 / 5 | +0.0001619220 ± 0.0002387009 | 2 / 0 / 8 |
+| RAD − Random resampling | +0.00102937 ± 0.00409004 | 4 / 0 / 6 | -0.0001147264 ± 0.0001145805 | 9 / 0 / 1 |
+| PACMANN − Random resampling | +0.00330485 ± 0.00448874 | 2 / 0 / 8 | +0.0002502542 ± 0.0001791322 | 1 / 0 / 9 |
+| PACMANN + diffusion − Random resampling | +0.00214241 ± 0.00584420 | 6 / 0 / 4 | +0.0001508281 ± 0.0001553290 | 1 / 0 / 9 |
+
+On these held-out seeds, the selected diffusion setting had lower mean solution
+and residual errors than PACMANN without diffusion, with improvements in seven
+of ten pairs for both metrics. The paired spreads are wider than the mean
+differences, so this comparison does not establish a general diffusion benefit.
+Random resampling had the lowest mean solution error, while RAD had the lowest
+mean residual RMS. Compared with random resampling, RAD had a slightly higher
+mean solution error and lower residual RMS, with the latter lower in nine of
+ten paired runs.
+
+Every run performed 35,000 Adam steps. Mean ± sample SD observed L-BFGS work
+and function evaluations per seed were:
+
+| Method | L-BFGS iterations | L-BFGS function evaluations |
+| --- | ---: | ---: |
+| Fixed Hammersley | 16713.6 ± 721.2 | 24811.4 ± 2490.6 |
+| Random resampling | 16363.6 ± 720.8 | 25333.2 ± 1514.8 |
+| RAD | 16737.6 ± 660.3 | 24161.7 ± 2714.4 |
+| PACMANN | 16557.8 ± 481.8 | 25087.1 ± 2712.2 |
+| PACMANN + diffusion | 17181.9 ± 494.0 | 25184.1 ± 1485.6 |
+
+Training times reflect ten concurrent seeds sharing one RTX 5070 using
+float64, with one numerical CPU thread per worker. Method batches ran
+sequentially. These timings should be compared only with runs under the same
+concurrency conditions. The result is specific to this generated reference,
+viscosity, and per-viscosity tuning policy; it does not isolate a sharpness
+effect. See the [study context](research_context.md).
