@@ -89,15 +89,23 @@ and loader checks but has no independent numerical-accuracy certification at
 this viscosity. See the [results](results.md). Nu = 0.05 remains outside the
 campaign scope.
 
-The next prepared development regime is `nu = pi/100` (approximately
-`0.0314159265`). It was selected after inspecting the existing reference
-profiles to fill the multiplicative gap in spatial gradients between `0.1`
-and `0.01`. Reuse the N1024 reference from dataset commit `52b9359` unchanged.
-Its measured spatial gradients lie between those cases; basic data and
-constraint checks do not independently certify numerical accuracy. The
-[three-seed sigma sweep](../output/burgers/nu_0p031415927/sigma_0/README.md)
-is prepared with matching viscosity and the shared tuning policy. This does
-not start a new ten-seed evaluation.
+The intermediate regime `nu = pi/100` (0.031415926535897934) fills the
+multiplicative gap in sampled spatial gradients between `0.1` and `0.01`.
+The tracked N1024 reference was restored unchanged from dataset commit
+`52b9359`. Its measured gradient lies between those cases; structural and
+loader checks do not independently certify its numerical accuracy.
+
+The [three-seed sigma sweep](../output/burgers/nu_0p031415927/sigma_0/README.md)
+completed all 15 planned runs without numerical failures. It selected positive
+`sigma = 1e-4` by mean final solution relative L2; this value is interior among
+the tested positive settings, so no expansion was required. Sigma zero had
+lower mean solution error than each positive candidate but remained a
+comparison baseline under the approved positive-only rule. Residual error was
+assessed at the selected sigma and was slightly higher than sigma zero on
+average. The small selection sample does not establish held-out performance or
+a general diffusion benefit. Freeze `sigma = 1e-4` for the separate ten-seed
+evaluation on seeds 4000–4009 after transferring the setting to `main`; see
+the [selection results](results.md#diffusion-tuning-at-pi100).
 
 Tune diffusion separately at each viscosity using development seeds, then
 freeze settings before ten-seed comparisons of fixed Hammersley, upstream random

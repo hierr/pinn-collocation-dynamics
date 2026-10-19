@@ -1,5 +1,7 @@
 # Burgers diffusion tuning: sigma = 1e-5
 
-Prepared candidate at `nu = pi/100`; training has not started.
-See the [shared protocol and reproduction instructions](../sigma_0/README.md)
-and [configuration](../../../../config/burgers/nu_0p031415927/burgers_nu_0p031415927_sigma_1e-5.yaml).
+This candidate completed all three planned development seeds. Its per-seed
+outcomes and the shared protocol and comparison are in the
+[canonical tuning results](../sigma_0/README.md#solution-outcomes).
+See the [candidate configuration](../../../../config/burgers/nu_0p031415927/burgers_nu_0p031415927_sigma_1e-5.yaml)
+and [artifact dictionary](../../../../docs/output_format.md).
