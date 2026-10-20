@@ -84,20 +84,24 @@ def main():
     """Print reference descriptors and save gradient and solution-slice comparisons."""
     configs = [yaml.safe_load(path.read_text()) for path in CONFIG_PATHS]
     common = configs[0]["problem"]
-    fig, ax = plt.subplots(figsize=(8, 4.8), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(8, 6.8), constrained_layout=True)
+    columns = min(2, len(configs))
+    rows = (len(configs) + columns - 1) // columns
     slices_fig, slices_axes = plt.subplots(
-        1,
-        len(configs),
-        figsize=(4 * len(configs), 4),
+        rows,
+        columns,
+        figsize=(8, 3.4 * rows),
         sharex=True,
         sharey=True,
         squeeze=False,
     )
-    colors = ["#0072b2", "#cc79a7", "#009e73", "#d55e00"]
+    # Encode viscosity in purple tones, separately from the solution time colors.
+    gradient_colors = ["#a58abf", "#8762a6", "#693f8c", "#461866"]
+    time_colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"]
 
     # Describe each regime on the same domain, independently of training results.
     print("nu,peak_gradient,time_at_peak,amplitude_at_peak")
-    for config, color, slice_ax in zip(configs, colors, slices_axes.flat):
+    for config, color, slice_ax in zip(configs, gradient_colors, slices_axes.flat):
         problem = config["problem"]
         if any(problem[key] != common[key] for key in ("x_bounds", "t_bounds")):
             raise ValueError("Reference characterization requires a common domain")
@@ -111,13 +115,16 @@ def main():
         ax.scatter(times[peak], gradients[peak], color=color, s=24, zorder=3)
 
         # Compare the same saved reference times in every viscosity panel.
-        for time in SLICE_TIMES:
+        for time, time_color in zip(SLICE_TIMES, time_colors):
             index = int(np.argmin(np.abs(times - time)))
             slice_ax.plot(
-                x, solution[index], linewidth=1.6, label=f"t = {times[index]:.2f}"
+                x,
+                solution[index],
+                color=time_color,
+                linewidth=1.6,
+                label=f"t = {times[index]:.2f}",
             )
         slice_ax.set(
-            xlabel="x",
             title=f"ν = {nu:.6g}",
             xlim=problem["x_bounds"],
             xticks=[-1, -0.5, 0, 0.5, 1],
@@ -132,7 +139,7 @@ def main():
     ax.set(
         xlabel="Time t",
         ylabel=r"Maximum spatial gradient $g_\nu(t)$",
-        title="Spatial steepening in the Burgers reference solutions",
+        title="Maximum spatial gradient over time",
         xlim=common["t_bounds"],
         yscale="log",
     )
@@ -143,7 +150,12 @@ def main():
     print(f"Saved {OUTPUT_PATH.relative_to(ROOT)}")
 
     # Share the slice colors, legend, and axis scales across the regimes.
-    slices_axes[0, 0].set_ylabel("u(x, t)")
+    for slice_ax in slices_axes[:, 0]:
+        slice_ax.set_ylabel("u(x, t)")
+    for slice_ax in slices_axes[-1]:
+        slice_ax.set_xlabel("x")
+    for unused_ax in slices_axes.flat[len(configs) :]:
+        unused_ax.set_visible(False)
     slices_fig.suptitle("Burgers reference solutions")
     slices_fig.legend(
         *slices_axes[0, 0].get_legend_handles_labels(),
@@ -152,7 +164,7 @@ def main():
         frameon=False,
     )
     slices_fig.subplots_adjust(
-        bottom=0.23, top=0.81, left=0.065, right=0.99, wspace=0.12
+        bottom=0.13, top=0.89, left=0.09, right=0.985, wspace=0.13, hspace=0.28
     )
     slices_fig.savefig(SLICES_OUTPUT_PATH, dpi=200)
     plt.close(slices_fig)

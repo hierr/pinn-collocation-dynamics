@@ -6,6 +6,7 @@
 \usepackage{amsmath}
 \usepackage{booktabs}
 \usepackage{graphicx}
+\usepackage{animate}
 
 % Keep the visual style simple; edit these colors to customize the template.
 \usetheme{Madrid}
@@ -47,10 +48,6 @@
     \item Concentrating points near difficult features may help, while leaving
       other regions insufficiently constrained.
   \end{itemize}
-  \begin{block}{What must be evaluated independently?}
-    A small residual at training points does not guarantee a small residual
-    throughout the domain or an accurate solution.
-  \end{block}
 \end{frame}
 
 \begin{frame}{Five ways to place the same interior point budget}
@@ -74,6 +71,13 @@
   \end{block}
 \end{frame}
 
+\begin{frame}{Collocation sampling: a mechanism illustration}
+  \centering
+  \animategraphics[autoplay,loop,poster=first,
+    width=\linewidth,height=0.80\textheight,keepaspectratio]
+    {6}{figures/collocation_methods_frames}{}{}
+\end{frame}
+
 \begin{frame}{Research questions}
   \begin{enumerate}
     \item How does the benefit of point-adaptive collocation change across
@@ -87,9 +91,6 @@
     sharp features. Both the adaptive-sampling and diffusion benefits remain
     open questions.
   \end{block}
-  \smallskip
-  Sharp solution gradients and coordinate gradients of residual scores are
-  different quantities.
 \end{frame}
 
 \section{Problem, implementation, and reference validation}
@@ -107,25 +108,35 @@
     \item Train from the PDE and fixed initial/boundary constraints.
     \item Use numerical reference solutions only for evaluation.
   \end{itemize}
-  \begin{block}{Two distinct parameters}
-    $\nu$ changes the physical problem; $\sigma$ controls stochastic diffusion
-    of collocation points in PACMANN + diffusion.
-  \end{block}
 \end{frame}
 
-\begin{frame}{From the released PACMANN code to a controlled study}
+\begin{frame}{Reference solutions across viscosity regimes}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.50\textwidth}
+      \includegraphics[width=\linewidth]{burgers_reference_slices.png}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \includegraphics[width=\linewidth]{burgers_reference_regimes.png}
+    \end{column}
+  \end{columns}
+  \smallskip
+  {\footnotesize Colors denote time (left) and viscosity (right).
+    $g_\nu(t)=\max_x|\partial_x u_\nu(x,t)|$.}
+\end{frame}
+
+\begin{frame}{Released PACMANN code to a controlled study}
   \small
   \begin{tabular}{@{}p{0.15\textwidth}p{0.81\textwidth}@{}}
     \toprule
     Category & Implementation choice \\
     \midrule
     Retained & Four 64-neuron tanh layers, float64, five alternating Adam/L-BFGS
-      stages, upstream sampler settings and coordinate-Adam procedure. \\
+      stages, sampler settings, coordinate-Adam procedure, keep initial/boundary constraints fixed. \\
     Changed & Match 2,500 interior PDE points from initialization for every
-      method; keep initial/boundary constraints fixed. Use generated references
+      method;  Use generated references
       and common final-checkpoint evaluation. \\
     Added / tuned & Gaussian diffusion of point coordinates; select its
-      coefficient separately at each viscosity on development seeds. \\
+      coefficient separately at each viscosity on tuning seeds. \\
     \bottomrule
   \end{tabular}
   \medskip
@@ -134,8 +145,6 @@
     \item Evaluate final models and retain all planned seeds, including failures.
     \item Record actual optimizer work; shared limits do not imply equal computation.
   \end{itemize}
-  {\footnotesize These are disclosed controlled-study choices. Published-result
-    reproduction has not been established.}
 \end{frame}
 
 \begin{frame}{Reference generation and validation at $\nu=0.01/\pi$}
