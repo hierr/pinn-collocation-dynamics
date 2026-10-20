@@ -1,7 +1,7 @@
 """Animate the five sampler classes on a prescribed, fixed residual landscape.
 
 Run from the repository root with
-    venv/bin/python -m scripts.animate_collocation_methods
+    venv/bin/python -m scripts.illustrations.animate_collocation_methods
 
 This presentation illustration does not train a PINN or replay an experiment.
 The smaller population and larger movement/noise scales make the rules visible.
@@ -32,7 +32,7 @@ from deepxde import config as dde_config  # isort: skip
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 GIF_PATH = ROOT / "docs/presentation/figures/collocation_methods.gif"
 PREVIEW_PATH = GIF_PATH.with_suffix(".png")
 FRAMES_PATH = GIF_PATH.with_name("collocation_methods_frames.pdf")

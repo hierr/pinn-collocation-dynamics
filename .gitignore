@@ -26,3 +26,6 @@ AGENTS.local.md
 htmlcov/
 .pytest_cache/
 .ruff_cache/
+
+# Reproducible tables accompanying the retained cross-regime figures
+/output/burgers/regime_comparison/

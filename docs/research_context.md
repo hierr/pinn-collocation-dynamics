@@ -148,8 +148,8 @@ those controls with the development-selected diffusion coefficient frozen.
 The controlled study matches interior PDE populations and fixed constraints
 across methods, while retaining
 the shared upstream optimizer schedule and its L-BFGS stopping behavior.
-Feature-region definitions and the cross-regime performance analysis remain
-separate work.
+The accepted [cross-regime comparison](results.md#comparison-across-three-burgers-regimes)
+uses final-model outcomes. Feature-region error analysis remains outside this pass.
 
 The trainer loads the generated reference selected by YAML and keeps training
 separate from final-checkpoint evaluation. Fixed Hammersley, upstream random
@@ -192,12 +192,12 @@ The common initial condition `-sin(pi*x)` has maximum spatial gradient `pi`.
 | 0.01 | Steep | 44.566 | 0.540 | 0.9307 |
 | 0.01/pi | Steepest tested | 151.933 | 0.510 | 0.9813 |
 
-![Maximum spatial gradient over time for the four Burgers references](burgers_reference_regimes.png)
+![Maximum spatial gradient over time for the four Burgers references](figures/burgers_reference_regimes.png)
 
 The reference solution slices below use the same times as the run diagnostics
 (`0.25`, `0.50`, `0.75`, and `0.99`), with shared axes and time colors.
 
-![Burgers reference solution slices for the four viscosities](burgers_reference_slices.png)
+![Burgers reference solution slices for the four viscosities](figures/burgers_reference_slices.png)
 
 Regime labels are relative to this comparison. Viscosity also changes amplitude
 and temporal evolution, so performance differences across these cases cannot be
@@ -213,10 +213,10 @@ Reproduce the table's numerical descriptors and both figures from the repository
 root using the [documented environment](../README.md#setup-and-execution):
 
 ```sh
-venv/bin/python -m scripts.post_processing.characterize_burgers_references
+venv/bin/python -m scripts.analysis.characterize_burgers_references
 ```
 
-The [script](../scripts/post_processing/characterize_burgers_references.py) reads
+The [script](../scripts/analysis/characterize_burgers_references.py) reads
 the reference paths and domains from the four campaign YAMLs, including the
 frozen `pi/100` protocol. It prints the descriptors and writes the two figures;
 it does not modify datasets or

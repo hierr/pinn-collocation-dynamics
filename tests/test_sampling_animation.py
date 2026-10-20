@@ -3,7 +3,7 @@
 import numpy as np
 from PIL import Image, ImageSequence
 
-from scripts import animate_collocation_methods as animation
+from scripts.illustrations import animate_collocation_methods as animation
 
 
 def test_squared_residual_gradient():

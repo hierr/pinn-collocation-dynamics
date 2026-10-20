@@ -92,7 +92,7 @@ PDE residual with saved PDE points in black; the bottom panels compare reference
 figures from archived checkpoints without training:
 
 ```bash
-venv/bin/python -m scripts.diagnoses.plot_burgers_nu_0p0031830989_displaced_front
+venv/bin/python -m scripts.analysis.diagnose_burgers_displaced_front
 ```
 
 ## Per-method results

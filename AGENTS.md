@@ -8,8 +8,13 @@ Read ignored `AGENTS.local.md`, if present, at session start.
   full evaluation campaigns, and concise accepted conclusions. Dataset checks
   live on persistent `dataset-validation`; development runs and tuning settings
   live on persistent `hyperparameter-tuning`; exploratory post-processing lives
-  on persistent `analysis`. Transfer selected code or decisions with their source
-  commit; do not merge entire workstreams and their artifacts.
+  on persistent `analysis`. When an analysis supports an accepted result or
+  retained figure, transfer its reproducible implementation to
+  `scripts/analysis/` on `main`. Keep standard per-run artifact generation in
+  `scripts/post_processing/` and explanatory visuals in `scripts/illustrations/`.
+  Leave superseded or unadopted explorations on their workstream branch.
+  Transfer selected code or decisions with their source commit; do not merge
+  entire workstreams and their artifacts.
 
 - Communicate and write code and documentation in English.
 - This is an independent research repository, separate from coursework repositories.
@@ -65,6 +70,10 @@ Read ignored `AGENTS.local.md`, if present, at session start.
   concurrency, provenance, and deviations that affect reproducibility or
   interpretation. Keep observations distinct from hypotheses and disclose
   analyses chosen after inspecting results.
+- Put shared scientific figures in `docs/figures/` and reference them from
+  documents and presentations. Keep per-run diagnostics with their run and
+  campaign-specific diagnostics with their campaign. Reserve
+  `docs/presentation/figures/` for assets specific to the presentation.
 - Obtain approval for the scientific objective, comparisons, evaluation, and
   decision rules before execution. Keep campaign-specific reasoning not captured
   by configurations or artifacts in a concise, objective

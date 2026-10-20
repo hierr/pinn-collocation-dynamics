@@ -15,10 +15,10 @@ from deepxde import config as dde_config  # isort: skip
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = ROOT / "config/burgers_template.yaml"
 SEED = 3000
-OUTPUT_PATH = ROOT / "docs/burgers_initial_collocation.png"
+OUTPUT_PATH = ROOT / "docs/figures/burgers_initial_collocation.png"
 
 
 def main():

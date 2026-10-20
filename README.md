@@ -14,11 +14,14 @@ accepted decisions; [results](docs/results.md) consolidate accepted comparisons.
 | `dataset-validation` | Reference generation, validation scripts, and evidence |
 | `hyperparameter-tuning` | Development configurations, tuning campaigns, and selections |
 | `analysis` | Exploratory post-processing and reproducible comparisons awaiting synthesis |
-| `main` | Accepted code and conclusions, frozen evaluation settings, and full evaluations |
+| `main` | Accepted implementations and analyses, conclusions, frozen settings, and full evaluations |
 
 Transfer selected changes with the supporting commit rather than merging all
 side-branch artifacts into `main`. Each branch preserves its own continuing
 history; a new branch per campaign is unnecessary.
+Develop analyses on `analysis`; transfer scripts that support accepted results
+or retained figures to `scripts/analysis/` on `main`. Unadopted explorations
+remain on their workstream branch.
 
 The generated N1024 Burgers reference at viscosity `0.01/pi` has been
 [validated against PACMANN](docs/results.md#generated-burgers-reference-validation).
@@ -28,10 +31,9 @@ The [first frozen evaluation](output/burgers/burgers_nu_0p0031830989_10seed/READ
 completed all 50 runs across five methods and ten paired seeds. See the
 [evaluation results](docs/results.md#frozen-n1024-ten-seed-evaluation).
 The comparison extends across viscosity with separate tuning in each regime.
-The [prepared pi/100 campaign](output/burgers/burgers_nu_0p031415927_10seed/README.md)
-uses the restored N1024 reference and awaits its development-selected diffusion
-coefficient. The runner rejects an unset sigma before launching any selected
-method. Development campaigns remain on `hyperparameter-tuning`.
+The [pi/100 campaign](output/burgers/burgers_nu_0p031415927_10seed/README.md)
+uses the restored N1024 reference and development-selected `sigma=1e-4`.
+Development campaigns remain on `hyperparameter-tuning`.
 
 ## Structure
 
@@ -39,9 +41,12 @@ method. Development campaigns remain on `hyperparameter-tuning`.
 src/                    Burgers problem, sampling classes, training, and artifacts
 scripts/run_experiments/ Reusable campaign runner
 scripts/post_processing/ Saved-run diagnostics
+scripts/analysis/       Accepted comparisons, reference characterization, and diagnoses
+scripts/illustrations/  Explanatory setup and method visuals
 scripts/dataset_generation/ Accepted collaborator solver
 config/                 Scientific YAML settings
 docs/                   Research context, results, and artifact dictionary
+docs/figures/           Scientific figures shared by documents and presentations
 references/             Immutable PACMANN source snapshot and provenance
 data/                   Original and generated reference datasets
 output/                 Retained full evaluation campaigns
@@ -111,9 +116,12 @@ Validation scripts and artifacts are available by switching to
 [source provenance](references/upstream.md).
 
 ```bash
-venv/bin/python -m pytest --cov=src --cov=scripts.run_experiments.run_burgers_campaign --cov=scripts.post_processing.analyze_burgers --cov-report=term-missing
-venv/bin/ruff check src scripts/run_experiments scripts/post_processing scripts/plot_burgers_initial_points.py tests
-venv/bin/ty check src tests scripts/run_experiments scripts/post_processing scripts/plot_burgers_initial_points.py
+venv/bin/python -m pytest --cov=src \
+  --cov=scripts.run_experiments.run_burgers_campaign \
+  --cov=scripts.post_processing.analyze_burgers \
+  --cov=scripts.analysis --cov=scripts.illustrations --cov-report=term-missing
+venv/bin/ruff check src scripts/run_experiments scripts/post_processing scripts/analysis scripts/illustrations tests
+venv/bin/ty check src tests scripts/run_experiments scripts/post_processing scripts/analysis scripts/illustrations
 ```
 
 For saved-run diagnostics, use
@@ -124,9 +132,31 @@ and initial RMSE. Existing predictions and metrics are retained when regeneratin
 plots. Evaluation settings are archived in each run; see the
 [evaluation policy](docs/research_context.md#accepted-controls-and-evaluation-policy).
 
-To regenerate the [initial Hammersley figure](docs/burgers_initial_collocation.png)
+To regenerate the [initial Hammersley figure](docs/figures/burgers_initial_collocation.png)
 from the template and reference, without training or tuning artifacts:
 
 ```bash
-venv/bin/python -m scripts.plot_burgers_initial_points
+venv/bin/python -m scripts.illustrations.plot_burgers_initial_points
 ```
+
+To compare the five final collocation populations over the same reference
+solution, using the first evaluation seed (4000) at `nu=0.01/pi`:
+
+```bash
+venv/bin/python -m scripts.analysis.plot_burgers_final_collocation
+```
+
+The script reads saved points and reference values without training or inference
+and writes `docs/figures/burgers_final_collocation.png`.
+
+To reproduce the accepted three-regime comparison from saved final artifacts:
+
+```bash
+venv/bin/python -m scripts.analysis.burgers_regime_comparison
+```
+
+The script reads the fixed campaign snapshot `741c19b` from Git. It writes four
+figures under `docs/figures/burgers_regime_comparison/` and regenerable CSV tables
+under `output/burgers/regime_comparison/`. Figures are tracked; derived tables
+are ignored. No training or new inference is required. See the
+[comparison and interpretation](docs/results.md#comparison-across-three-burgers-regimes).

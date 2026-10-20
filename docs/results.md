@@ -355,3 +355,72 @@ The selected setting is frozen for the separate ten-seed evaluation on seeds
 and [campaign protocol](../output/burgers/burgers_nu_0p031415927_10seed/README.md).
 The restored reference passed structural and loader checks but has no
 independent numerical-accuracy certification at this viscosity.
+
+## Comparison across three Burgers regimes
+
+This post hoc comparison uses all 150 final models from the completed campaigns
+at `nu = 0.1`, `0.01`, and `0.01/pi`. The
+[analysis script](../scripts/analysis/burgers_regime_comparison.py), transferred
+from `analysis` commit `2f8af94`, reads the fixed campaign snapshot `741c19b`.
+Solution scores recomputed from saved predictions match the archived final
+scores; residual RMS values are the archived independent-grid evaluations.
+No new training or inference is performed. The intermediate `pi/100` case is
+outside this three-regime comparison.
+
+![Final solution and residual errors for every planned seed](figures/burgers_regime_comparison/final_errors.png)
+
+Full-seed arithmetic means remain the primary summaries. Random resampling has
+the lowest mean solution error at `nu=0.1`, fixed Hammersley at `nu=0.01`, and
+RAD at `nu=0.01/pi`; RAD has the lowest mean residual RMS in all three cases.
+At the sharpest case, PACMANN has the lowest median solution error (0.05659%),
+but large errors lift its mean to 11.913%. The distinction between typical
+accuracy and unfavorable outcomes is retained rather than resolved by
+discarding seeds.
+
+The [paired baseline comparisons](figures/burgers_regime_comparison/baseline_ratios.png)
+divide each method's error by its baseline's error for the same seed and
+viscosity. They show lower median ratios for RAD and PACMANN in the sharpest
+case, with occasional large unfavorable ratios. The advantage is not consistent
+across the other two viscosities. Connecting median lines are descriptive;
+viscosity cases are categorical and are not pooled as independent replications.
+Labels use the reference-only peak gradient `G` defined in
+[regime characterization](research_context.md#reference-characterization-and-regime-coverage).
+
+The [diffusion comparison](figures/burgers_regime_comparison/diffusion_ratios.png)
+isolates diffusion versus ordinary PACMANN at the frozen per-viscosity sigma.
+These are medians of same-seed ratios, not ratios of method medians:
+
+| Viscosity | Median solution ratio | Median residual ratio | Lower solution / residual errors |
+| --- | ---: | ---: | --- |
+| 0.1 | 0.985 | 0.913 | 7/10; 7/10 |
+| 0.01 | 0.869 | 0.886 | 7/10; 9/10 |
+| 0.01/pi | 1.036 | 1.277 | 4/10; 4/10 |
+
+Diffusion lowers both mean errors relative to PACMANN in the smoother two cases,
+but raises both at the sharpest case. This does not establish a general benefit
+or make diffusion the method with the lowest mean error in the smoother cases.
+
+The [physical-time profiles](figures/burgers_regime_comparison/solution_error_over_time.png)
+show mean and median solution errors of the final models over the PDE time
+coordinate. The sharpest case's mean/median separation persists at later times.
+These are not training trajectories and do not establish error localization
+at the front. Each relative error uses the reference norm at that time, which
+changes as the solution decays; the derived table also provides absolute RMSE.
+Reference accuracy, per-viscosity tuning, and the fact that viscosity changes
+more than sharpness limit the interpretation. No additional feature-region or
+checkpoint analysis is included.
+
+Reproduce the four figures and five derived CSV tables from the repository root
+with the [documented environment](../README.md#setup-and-execution):
+
+```sh
+venv/bin/python -m scripts.analysis.burgers_regime_comparison
+```
+
+Figures go to `docs/figures/burgers_regime_comparison/` and are tracked. Regenerable
+tables go to the ignored `output/burgers/regime_comparison/`.
+`final_metrics.csv` and `final_summary.csv`
+contain the individual scores and aggregates; `paired_seed_ratios.csv` and
+`paired_summary.csv` retain the same-seed contrasts; `physical_time_errors.csv`
+contains per-time relative L2 (%) and absolute RMSE. Solution differences in
+the paired summary are percentage points; residual differences retain RMS units.

@@ -19,8 +19,8 @@ CONFIG_PATHS = [
     ROOT / "config/burgers_nu_0p01_10seed.yaml",
     ROOT / "config/burgers_nu_0p0031830989_10seed.yaml",
 ]
-OUTPUT_PATH = ROOT / "docs/burgers_reference_regimes.png"
-SLICES_OUTPUT_PATH = ROOT / "docs/burgers_reference_slices.png"
+OUTPUT_PATH = ROOT / "docs/figures/burgers_reference_regimes.png"
+SLICES_OUTPUT_PATH = ROOT / "docs/figures/burgers_reference_slices.png"
 SLICE_TIMES = (0.25, 0.50, 0.75, 0.99)
 
 

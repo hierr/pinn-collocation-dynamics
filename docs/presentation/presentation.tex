@@ -7,6 +7,7 @@
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{animate}
+\usepackage{tikz}
 
 % Keep the visual style simple; edit these colors to customize the template.
 \usetheme{Madrid}
@@ -16,7 +17,7 @@
 \setbeamercolor{alerted text}{fg=studyteal}
 \setbeamertemplate{navigation symbols}{}
 \setbeamertemplate{footline}[frame number]
-\graphicspath{{figures/}{../}}
+\graphicspath{{figures/}{../figures/}{../figures/burgers_regime_comparison/}}
 
 % TODO: Replace the author, affiliation, and date before presenting.
 \title[PINN collocation]{Collocation Dynamics in Physics-Informed Neural Networks}
@@ -113,18 +114,21 @@
 \begin{frame}{Reference solutions across viscosity regimes}
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.50\textwidth}
-      \includegraphics[width=\linewidth]{burgers_reference_slices.png}
+      \includegraphics[width=\linewidth,height=0.68\textheight,keepaspectratio]{burgers_reference_slices.png}
+      \par\smallskip
+      {\footnotesize\textbf{Solution profiles.} Colors identify the four
+        physical times.}
     \end{column}
     \begin{column}{0.48\textwidth}
-      \includegraphics[width=\linewidth]{burgers_reference_regimes.png}
+      \includegraphics[width=\linewidth,height=0.68\textheight,keepaspectratio]{burgers_reference_regimes.png}
+      \par\smallskip
+      {\footnotesize\textbf{Sharpness.} Each curve tracks the steepest spatial
+        slope over time; $G$ is its largest value.}
     \end{column}
   \end{columns}
-  \smallskip
-  {\footnotesize Colors denote time (left) and viscosity (right).
-    $g_\nu(t)=\max_x|\partial_x u_\nu(x,t)|$.}
 \end{frame}
 
-\begin{frame}{Released PACMANN code to a controlled study}
+\begin{frame}{Released PACMANN code changes to the controlled study}
   \small
   \begin{tabular}{@{}p{0.15\textwidth}p{0.81\textwidth}@{}}
     \toprule
@@ -141,7 +145,8 @@
   \end{tabular}
   \medskip
   \begin{itemize}
-    \item DeepXDE with a PyTorch backend, adapted from the released implementation.
+    \item DeepXDE\textsuperscript{\cite{deepxde}} with a PyTorch backend,
+      adapted from the released implementation.
     \item Evaluate final models and retain all planned seeds, including failures.
     \item Record actual optimizer work; shared limits do not imply equal computation.
   \end{itemize}
@@ -168,14 +173,14 @@
     \begin{column}{0.55\textwidth}
       \includegraphics[width=\linewidth]{reference_model_comparison.png}
       \par\smallskip
-      {\footnotesize Each line is one fixed trained model. Only the reference
-        used to score its predictions changes; no retraining occurs.}
+      {\footnotesize\textbf{Reading the plot.} Each line is one fixed trained
+        model. Only the reference used to score its predictions changes.}
     \end{column}
   \end{columns}
   \medskip
-  {\footnotesize Generated values are barycentrically interpolated in space at
-    exact shared times. Agreement supports N1024 at this viscosity; it does not
-    certify other viscosities or reproduce published training results.}
+  {\footnotesize\textbf{Interpretation.} At this viscosity, the generated
+    reference closely matches the original and gives essentially the same error
+    scores for these three trained models.}
   % Figure copied unchanged from dataset-validation, commit 035deb16e574d21591b04f9a8fb290ff0e0f1d7e.
   % Source: output/burgers_reference_validation/pacmann_3seed/comparison.png.
 \end{frame}
@@ -187,14 +192,13 @@
     \begin{column}{0.55\textwidth}
       \includegraphics[width=\linewidth]{burgers_initial_collocation.png}
       \par\smallskip
-      {\footnotesize Initial Hammersley points at $\nu=0.01/\pi$;
-        paired across methods.}
+      {\footnotesize\textbf{Initial design.} Shared points at $\nu=0.01/\pi$.}
     \end{column}
     \begin{column}{0.42\textwidth}
       \small
       \textbf{Training controls}
       \begin{itemize}
-        \item Paired seeds and initial weights.
+        \item Same ten paired seeds and initial weights per method.
         \item 2,500 PDE; 80 BC; 160 IC.
         \item Interior updates during Adam only.
       \end{itemize}
@@ -206,15 +210,16 @@
       \end{itemize}
     \end{column}
   \end{columns}
-  \smallskip
-  {\footnotesize Float64; DeepXDE 1.14.0 / PyTorch 2.7.1; RTX 5070 (12 GB).
-    Ten concurrent seeds per method; method batches run sequentially.}
+  \medskip
+  {\footnotesize\textbf{Comparison principle.} Every method is evaluated on the
+    same fixed grids, regardless of how it places its training points.}
 \end{frame}
+
 
 \begin{frame}{Tune first, freeze settings, then evaluate}
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.48\textwidth}
-      \begin{block}{Development: three paired seeds}
+      \begin{block}{$\sigma$ tuning: three paired seeds}
         \begin{itemize}
           \item Seeds 3000--3002.
           \item Test $\sigma=0$ and positive values $10^{-5},10^{-4},10^{-3},10^{-2}$.
@@ -226,8 +231,7 @@
       \begin{block}{Evaluation: ten paired seeds}
         \begin{itemize}
           \item Freeze sigma before using seeds 4000--4009.
-          \item Use the same sigma for residual-error evaluation.
-          \item Compare all five methods; retain every planned seed.
+          \item Compare all five methods; retain all seeds.
         \end{itemize}
       \end{block}
     \end{column}
@@ -235,83 +239,91 @@
   \medskip
   \centering
   Frozen diffusion settings:
-  $\nu=0.01/\pi \Rightarrow \sigma=10^{-4}$;\quad
-  $\nu=0.01 \Rightarrow \sigma=10^{-3}$.
+  $\nu=0.1 \Rightarrow \sigma=10^{-5}$;\quad
+  $\nu=0.01 \Rightarrow \sigma=10^{-3}$;\quad
+  $\nu=0.01/\pi \Rightarrow \sigma=10^{-4}$.
   \par\medskip
   \raggedright
-  {\footnotesize At $\nu=0.01$, zero is a comparison baseline only: select the best
-    positive sigma and expand a boundary winner under the approved stopping rule.
-    The earlier sweep allowed zero as a candidate. Other samplers retain upstream
-    settings; disclose this tuning asymmetry.}
+  {\footnotesize\textbf{Tuning scope.} Diffusion is tuned separately at each
+    viscosity; the other samplers retain their upstream parameter settings.}
 \end{frame}
 
-\section{Results and analysis: reserved for verified campaigns}
-
-% Populate these three frames together after the ongoing nu=0.01 campaign is verified.
-\begin{frame}{Results: solution and residual accuracy}
-  \begin{block}{Results to be added}
-    Complete this comparison after the $\nu=0.01$ campaign is finished and verified.
-    Include the accepted $\nu=0.01/\pi$ campaign and the new campaign.
-  \end{block}
-  \begin{itemize}
-    \item TODO: Compare all five methods for both error metrics at each viscosity.
-    \item TODO: Show ten-seed means and sample standard deviations; label units.
-    \item TODO: Link each table or figure to its frozen campaign and configuration.
-  \end{itemize}
-  % Accepted numerical evidence: ../results.md and the verified campaign artifacts.
-  % Do not insert partial-run rankings or compare tuning errors as held-out results.
+\begin{frame}{Final collocation positions across methods}
+  \centering
+  \includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{burgers_final_collocation.png}
+  \par\smallskip
+  \raggedright
+  {\footnotesize Shared reference background; black dots are the 2,500 final
+    interior points ($\nu=0.01/\pi$, seed 4000).}
 \end{frame}
 
-\begin{frame}{Results: variability and paired comparisons}
-  \begin{block}{Analysis to be added}
-    Use the complete seed sets, including unfavorable and failed outcomes.
-  \end{block}
-  \begin{itemize}
-    \item TODO: Show individual-seed distributions alongside aggregate results.
-    \item TODO: Assess paired diffusion-minus-PACMANN changes for both metrics.
-    \item TODO: Compare adaptive methods with fixed Hammersley and random resampling.
-    \item TODO: Describe large-error outcomes and the sensitivity of means;
-      keep any trimmed means supplementary.
-  \end{itemize}
-  % Retain planned seeds; do not select model-history minima or favorable retries.
+\section{Results and analysis}
+
+% Figures reproduce analysis checkpoint 2f8af94 using campaign snapshot 741c19b.
+\begin{frame}{Final accuracy and seed variability}
+  \centering
+  \includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{final_errors.png}
+  \par\smallskip
+  \raggedright
+  {\footnotesize RAD has the lowest mean residual RMS in all three cases.
+    The sharpest regime shows instability across seeds, particularly for PACMANN
+    and its diffusion variant: low median errors coexist with very large errors.}
 \end{frame}
 
-\begin{frame}{Analysis: what changes across viscosities?}
-  \begin{block}{Interpretation to be added}
-    Connect verified campaign comparisons to the two research questions.
-  \end{block}
-  \begin{itemize}
-    \item TODO: Assess whether the effect of diffusion changes across viscosities.
-    \item TODO: Compare method benefits for solution and residual error separately.
-    \item TODO: Discuss variability, reference accuracy, and per-viscosity tuning.
-  \end{itemize}
-  \medskip
-  \alert{A viscosity-dependent ranking alone does not establish a sharpness effect.}
-  Sharpness and feature-region definitions must be independent of adaptive sampling.
-  % Do not infer a mechanism from outcome rankings or partial nu=0.01 results.
+\begin{frame}{Paired benefits relative to both baselines}
+  \centering
+  \includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{baseline_ratios.png}
+  \par\smallskip
+  \raggedright
+  {\footnotesize RAD and PACMANN show lower median error
+    ratios against both baselines in the sharpest regime.}
+\end{frame}
+
+\begin{frame}{Does diffusion improve PACMANN?}
+  \centering
+  \includegraphics[width=\linewidth,height=0.63\textheight,keepaspectratio]{diffusion_ratios.png}
+  \par\medskip
+  \raggedright
+  {\footnotesize Lower solution error in \textbf{7/10}, \textbf{7/10}, and \textbf{4/10} paired
+  seeds, respectively; lower residual RMS in \textbf{7/10}, \textbf{9/10}, and
+  \textbf{4/10}. Mean errors decrease in the smoother two cases and increase
+  in the sharpest case.}
+\end{frame}
+
+\begin{frame}{Where in physical time do final-model errors grow?}
+  \centering
+  \includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{solution_error_over_time.png}
+  \par\smallskip
+  \raggedright
+  {\footnotesize In the sharpest regime, large-error runs
+    dominate the later-time mean, while the median remains much lower.}
 \end{frame}
 
 \section{Conclusions}
 
 \begin{frame}{Conclusions, limitations, and next steps}
   \begin{itemize}
-    \item \textbf{Evidence:} TODO: State what the completed comparisons support
-      about adaptive collocation and diffusion.
-    \item \textbf{Limitations:} TODO: Summarize reference accuracy, seed variability,
-      and the scope of the tested viscosities.
-    \item \textbf{Next step:} TODO: State the next bounded study decision.
+    \item \textbf{Adaptive collocation:} No consistent PACMANN advantage across
+      the three regimes. In the sharpest case, median errors are lower than both
+      baselines, but means are higher. RAD has the lowest mean residual RMS in all three.
+    \item \textbf{Diffusion:} Lower mean errors than ordinary PACMANN in two
+      smoother cases; higher mean errors in the sharpest. No general benefit.
+    \item \textbf{Limits and design choices:} One PDE, ten seeds per setting, references with limited
+      independent accuracy checks, and per-viscosity diffusion tuning.
+    \item \textbf{Next steps:} Extend to 1D Allen--Cahn with a varying
+      interface-width parameter, 2D Burgers, and other problems.
   \end{itemize}
   \medskip
   \begin{block}{Interpretation boundary}
-    Distinguish observations from hypotheses about their causes. Improvement in
-    solution error need not imply improvement in independent residual error.
+    Viscosity changes sharpness, amplitude, and temporal evolution together.
+    These comparisons do not isolate a causal sharpness effect.
   \end{block}
 \end{frame}
 
 \section{References}
 \begin{frame}{References}
   \setbeamertemplate{bibliography item}[text]
-  \begin{thebibliography}{2}
+  \begin{thebibliography}{3}
     \bibitem{rad}
       C. Wu, M. Zhu, Q. Tan, Y. Kartha, and L. Lu.
       \newblock A comprehensive study of non-adaptive and residual-based adaptive
@@ -322,19 +334,35 @@
       C. Visser, A. Heinlein, and B. Giovanardi.
       \newblock PACMANN: Point adaptive collocation method for artificial neural networks.
       \newblock 2025.
+    \bibitem{deepxde}
+      L. Lu, X. Meng, Z. Mao, and G. E. Karniadakis.
+      \newblock DeepXDE: A deep learning library for solving differential equations.
+      \newblock SIAM Review, 2021.
+      % Bibliographic metadata follows the DeepXDE 1.14.0 citation documentation.
   \end{thebibliography}
-  \medskip
-  \small
-  Released-code provenance and controlled-study deviations are recorded in
-  \texttt{references/upstream.md}.
   % TODO: Add a primary PINN reference if its derivation is presented.
 \end{frame}
 
-% Backup slides support questions and are excluded from the main-slide counter.
-\section*{Backup}
+% Official logo: https://www.poli.usp.br/comunicacao/material-institucional/identidadevisualpoliusp/
+% Asset: https://www.poli.usp.br/wp-content/uploads/2025/05/Logo_Escola-Politecnica-Minerva-sem-fundo.png
+% Keep the final main-deck slide empty apart from the centered logo.
+{
+\usebackgroundtemplate{%
+  \begin{tikzpicture}[remember picture,overlay]
+    \node[opacity=0.08,inner sep=0pt] at (current page.center)
+      {\includegraphics[height=0.78\paperheight,keepaspectratio]{poli_minerva.png}};
+  \end{tikzpicture}%
+}
+\begin{frame}[plain,noframenumbering]
+  \null
+\end{frame}
+}
+
+% Appendix slides support questions and are excluded from the main-slide counter.
+\section*{Appendix}
 \setbeamertemplate{footline}{}
 
-\begin{frame}[noframenumbering]{Backup: detailed scientific settings}
+\begin{frame}[noframenumbering]{Appendix: detailed scientific settings}
   \footnotesize
   \begin{tabular}{@{}p{0.25\textwidth}p{0.71\textwidth}@{}}
     \toprule
@@ -361,7 +389,43 @@
   \par\medskip
   The retained DeepXDE L-BFGS driver can exceed nominal stage limits.
   Report recorded iterations, function evaluations, and training time.
-  % Source: the two frozen campaign YAMLs and references/upstream.md.
+  % Source: the frozen campaign YAMLs and references/upstream.md.
+\end{frame}
+
+\begin{frame}[noframenumbering]{Appendix: reference checks, tuning, and computation}
+  \footnotesize
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.51\textwidth}
+      \textbf{Reference comparison at $\nu=0.01/\pi$}
+      \begin{itemize}
+        \item Compare at the original 256 spatial points and 100 snapshot times.
+        \item Use barycentric interpolation in space at exact shared times.
+        \item Score the same three trained models without retraining.
+      \end{itemize}
+      \medskip
+      \textbf{Diffusion selection details}
+      \begin{itemize}
+        \item At $\nu=0.01/\pi$, zero was eligible for selection.
+        \item At $\nu=0.01$ and $0.1$, select the positive sigma with the lowest
+          mean final solution error; zero is a comparison baseline.
+        \item A positive boundary winner triggers search expansion,
+          with at most two expansion rounds.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.45\textwidth}
+      \textbf{Computational setup}
+      \par\smallskip
+      \begin{tabular}{@{}p{0.27\linewidth}p{0.67\linewidth}@{}}
+        \toprule
+        Numerics & Float64. \\
+        Software & DeepXDE 1.14.0; PyTorch 2.7.1. \\
+        Hardware & RTX 5070, 12 GB VRAM. \\
+        Execution & Ten concurrent seeds per method; method batches run
+          sequentially. \\
+        \bottomrule
+      \end{tabular}
+    \end{column}
+  \end{columns}
 \end{frame}
 
 

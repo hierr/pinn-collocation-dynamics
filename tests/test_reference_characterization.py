@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 import yaml
 
-from scripts.post_processing import characterize_burgers_references as characterization
+from scripts.analysis import characterize_burgers_references as characterization
 
 
 @pytest.mark.parametrize("degree", [32, 33])
