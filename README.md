@@ -32,7 +32,9 @@ completed all 50 runs across five methods and ten paired seeds. See the
 [evaluation results](docs/results.md#frozen-n1024-ten-seed-evaluation).
 The comparison extends across viscosity with separate tuning in each regime.
 The [pi/100 campaign](output/burgers/burgers_nu_0p031415927_10seed/README.md)
-uses the restored N1024 reference and development-selected `sigma=1e-4`.
+completed all 50 runs using the restored N1024 reference and
+development-selected `sigma=1e-4`; see its
+[evaluation results](docs/results.md#frozen-evaluation-at-pi100).
 Development campaigns remain on `hyperparameter-tuning`.
 
 ## Structure

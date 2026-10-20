@@ -134,8 +134,11 @@ under the positive-only selection rule. Residual error was assessed at the
 selected value and did not select a separate sigma. See the
 [selection results](results.md#diffusion-selection-at-pi100) and the
 [frozen ten-seed protocol](../output/burgers/burgers_nu_0p031415927_10seed/README.md).
-The selected sigma is frozen for the five-method comparison on paired seeds
-4000–4009; the tuning and evaluation seeds are separate.
+The frozen five-method comparison completed all 50 runs on paired seeds
+4000–4009, separate from the tuning seeds. Fixed Hammersley had the lowest mean
+solution and residual errors. Diffusion lowered PACMANN's mean solution error
+but raised its mean residual; see the
+[evaluation results](results.md#frozen-evaluation-at-pi100).
 
 This design tests performance after local tuning at each viscosity. It does not
 test transfer of one fixed sigma across the range. Disclose tuning costs and

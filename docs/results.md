@@ -356,6 +356,78 @@ and [campaign protocol](../output/burgers/burgers_nu_0p031415927_10seed/README.m
 The restored reference passed structural and loader checks but has no
 independent numerical-accuracy certification at this viscosity.
 
+## Frozen evaluation at pi/100
+
+The [five-method evaluation](../output/burgers/burgers_nu_0p031415927_10seed/README.md)
+completed all 50 planned runs on paired seeds 4000–4009 at **nu = pi/100**
+(approximately 0.031416), with frozen **sigma = 1e-4**. All runs record
+source revision `09b380e`, the same pinned environment, CUDA execution, and
+the configured N1024 reference fingerprint. Saved outcomes are finite, with
+no recorded numerical failures. Independent CPU evaluation of every final
+checkpoint reproduced the five saved error metrics. Initial point designs
+match across methods, constraints stay fixed, and physics points do not move
+during L-BFGS. The reference has no independent numerical-accuracy certification
+at this viscosity.
+
+Primary summaries use all ten seeds and report mean ± sample SD. Solution L2
+is percent; residual RMS is unnormalized. Supplementary 10% trimmed means
+remove one minimum and one maximum independently for each error metric.
+
+| Method | Completed seeds | Solution L2 (%) | Trimmed solution L2 (%) | Residual RMS | Trimmed residual RMS | Training seconds |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Fixed Hammersley | 10/10 | 0.0096267 ± 0.0027322 | 0.0096418 | 0.000676303 ± 0.000093294 | 0.000676085 | 10280.5 ± 62.8 |
+| Random resampling | 10/10 | 0.0115675 ± 0.0034111 | 0.0115390 | 0.000767601 ± 0.000143477 | 0.000758348 | 10124.7 ± 56.6 |
+| RAD | 10/10 | 0.0115145 ± 0.0018647 | 0.0115063 | 0.000682291 ± 0.000117920 | 0.000693719 | 10364.9 ± 217.5 |
+| PACMANN | 10/10 | 0.0167485 ± 0.0047115 | 0.0161800 | 0.001114322 ± 0.000202999 | 0.001106621 | 10623.0 ± 121.3 |
+| PACMANN + diffusion, sigma 1e-4 | 10/10 | 0.0158724 ± 0.0044469 | 0.0156874 | 0.001132372 ± 0.000241172 | 0.001104242 | 10617.1 ± 102.8 |
+
+Paired differences are the first method minus the second over the same ten
+seeds. Solution differences are percentage points; residual differences are
+in residual RMS units. Negative differences favor the first method. Counts
+are improved / tied / worse; no seeds are removed from these comparisons.
+
+| Contrast | Solution difference (pp), mean ± sample SD | Improved / tied / worse | Residual difference, mean ± sample SD | Improved / tied / worse |
+| --- | ---: | ---: | ---: | ---: |
+| PACMANN + diffusion − PACMANN | -0.00087609 ± 0.00280704 | 7 / 0 / 3 | +0.0000180498 ± 0.0002006116 | 5 / 0 / 5 |
+| RAD − Fixed Hammersley | +0.00188772 ± 0.00346704 | 2 / 0 / 8 | +0.0000059875 ± 0.0001822173 | 5 / 0 / 5 |
+| PACMANN − Fixed Hammersley | +0.00712177 ± 0.00534495 | 1 / 0 / 9 | +0.0004380187 ± 0.0002499726 | 0 / 0 / 10 |
+| PACMANN + diffusion − Fixed Hammersley | +0.00624568 ± 0.00520237 | 0 / 0 / 10 | +0.0004560685 ± 0.0002412814 | 0 / 0 / 10 |
+| RAD − Random resampling | -0.00005308 ± 0.00286948 | 4 / 0 / 6 | -0.0000853101 ± 0.0001164004 | 8 / 0 / 2 |
+| PACMANN − Random resampling | +0.00518096 ± 0.00536231 | 1 / 0 / 9 | +0.0003467212 ± 0.0002214248 | 0 / 0 / 10 |
+| PACMANN + diffusion − Random resampling | +0.00430488 ± 0.00606849 | 2 / 0 / 8 | +0.0003647710 ± 0.0002776425 | 1 / 0 / 9 |
+
+Fixed Hammersley has the lowest mean solution error and residual RMS. RAD's
+mean residual is close to fixed Hammersley's and lower than random resampling's,
+with lower residual in eight of ten pairs against random resampling. Both
+PACMANN variants have higher residual RMS than fixed Hammersley in every seed.
+All final solution errors lie between 0.00537% and 0.02644%.
+
+Diffusion lowers PACMANN's mean solution L2 from 0.0167485% to 0.0158724%,
+with lower error in seven of ten pairs. Mean residual RMS instead rises from
+0.00111432 to 0.00113237, with lower residual in five of ten pairs. The paired
+spread exceeds each mean difference. The tested seed batch shows a modest mean
+solution-error reduction, without a consistent improvement across both metrics
+or an advantage over fixed Hammersley.
+
+Every run used 35,000 Adam steps. Observed L-BFGS work per seed is mean ± sample
+SD; actual work varies despite shared configured limits.
+
+| Method | L-BFGS iterations | L-BFGS function evaluations |
+| --- | ---: | ---: |
+| Fixed Hammersley | 16878.8 ± 350.3 | 27223.0 ± 1997.6 |
+| Random resampling | 16888.1 ± 422.0 | 26128.7 ± 2015.8 |
+| RAD | 16774.5 ± 735.4 | 26630.4 ± 3128.2 |
+| PACMANN | 17223.9 ± 391.2 | 27478.0 ± 1613.3 |
+| PACMANN + diffusion | 16971.7 ± 465.9 | 27752.0 ± 1186.1 |
+
+Training times reflect ten concurrent seeds sharing one RTX 5070 (12 GB),
+float64, and one numerical CPU thread per worker. Method batches run
+sequentially; timings include compilation and training and exclude final
+evaluation. These results concern a generated reference at one viscosity after
+per-viscosity diffusion tuning. They do not isolate sharpness as the cause of
+method differences. The accepted three-regime figures below retain their
+original scope and input snapshot; this campaign is reported separately here.
+
 ## Comparison across three Burgers regimes
 
 This post hoc comparison uses all 150 final models from the completed campaigns
