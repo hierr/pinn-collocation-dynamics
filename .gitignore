@@ -27,3 +27,8 @@ AGENTS.local.md
 htmlcov/
 .pytest_cache/
 .ruff_cache/
+
+# Generated presentation and analysis files
+/docs/presentation/build/
+*.synctex.gz
+/output/burgers/regime_comparison/

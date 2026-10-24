@@ -17,7 +17,7 @@ they do not by themselves establish scientific independence.
 ## Contents and execution
 
 ```text
-scripts/dataset_generation/           Collaborator's Burgers reference solver
+scripts/dataset_generation/           Burgers solver and generation entry points
 scripts/dataset_validation/           Solver and fixed-PINN reference comparisons
 data/burgers_dataset/                 Original/generated reference datasets
 output/burgers_reference_validation/  Comparisons and retained source models
@@ -52,10 +52,40 @@ See the [comparison protocol](output/burgers_reference_validation/README.md),
 [results](docs/results.md), [study context](docs/research_context.md),
 [artifact dictionary](docs/output_format.md), and [upstream provenance](references/upstream.md).
 
+## Finer reference at nu = 0.001
+
+The existing
+[N1024 reference](data/burgers_dataset/burgers_nu_0p001_N1024.npz)
+is transferred unchanged from dataset commit `52b9359` for a resolution check.
+The [generation script](scripts/dataset_generation/generate_burgers_nu_0p001.py)
+prepares one N2048 candidate using the unchanged collaborator solver. N is the
+Chebyshev degree, so the new dataset has 2,049 spatial nodes. Temporal settings
+match the N1024 input: 201 snapshots through `t = 1`, Radau tolerances
+`rtol = 1e-11`, `atol = 1e-13`, and `max_step = 0.005`.
+
+The script contains the generation settings. From the repository root, run:
+
 ```bash
-venv/bin/python -m pytest --cov=scripts.dataset_validation --cov-report=term-missing
-venv/bin/ruff check scripts/dataset_validation/burguers_compare_pinn_solutions.py tests
-venv/bin/ty check scripts/dataset_validation tests
+OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
+MPLBACKEND=Agg venv/bin/python -u -m scripts.dataset_generation.generate_burgers_nu_0p001
+```
+
+This executes one CPU solve with one numerical thread and saves
+`data/burgers_dataset/burgers_nu_0p001_N2048.npz`. The script refuses an existing
+destination. Generation produces a candidate reference; acceptance requires
+comparing N1024 and N2048 at common coordinates, including the steep-front
+profiles and gradients. The PINN study uses the snapshots through `t = 0.99`.
+Resolution acceptance criteria remain to be agreed before that comparison.
+
+## Code checks
+
+```bash
+venv/bin/python -m pytest --cov=scripts.dataset_validation \
+  --cov=scripts.dataset_generation.generate_burgers_nu_0p001 --cov-report=term-missing
+venv/bin/ruff check scripts/dataset_validation/burguers_compare_pinn_solutions.py \
+  scripts/dataset_generation/generate_burgers_nu_0p001.py tests
+venv/bin/ty check scripts/dataset_validation \
+  scripts/dataset_generation/generate_burgers_nu_0p001.py tests
 ```
 
 The collaborator's solver retains its original formatting and numerical logic.
