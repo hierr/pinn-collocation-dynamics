@@ -152,7 +152,9 @@ The controlled study matches interior PDE populations and fixed constraints
 across methods, while retaining
 the shared upstream optimizer schedule and its L-BFGS stopping behavior.
 The accepted [cross-regime comparison](results.md#comparison-across-three-burgers-regimes)
-uses final-model outcomes. Feature-region error analysis remains outside this pass.
+uses final-model outcomes. Its temporal evidence motivates the
+[spatially localized evaluation](#motivation-for-spatially-localized-evaluation)
+described below; feature-region error analysis remains unperformed.
 
 The trainer loads the generated reference selected by YAML and keeps training
 separate from final-checkpoint evaluation. Fixed Hammersley, upstream random
@@ -224,6 +226,27 @@ the reference paths and domains from the four campaign YAMLs, including the
 frozen `pi/100` protocol. It prints the descriptors and writes the two figures;
 it does not modify datasets or
 campaign artifacts.
+
+### Motivation for spatially localized evaluation
+
+Post hoc [physical-time comparisons](results.md#exploratory-temporal-evidence-in-the-steepest-regime)
+at `nu = 0.01/pi` show a conditional accuracy benefit: PACMANN has lower typical
+solution errors than the sampling baselines during the developed steep-front
+regime. Large-error runs still make its mean performance poor. The observation
+is consistent with the first research question's sharpness hypothesis, but
+whole-domain time-slice errors cannot identify where the benefit occurs or
+establish its cause. It does not establish a diffusion benefit.
+
+This motivates a bounded spatial comparison using the retained final models
+across the selected viscosities. Define the front region from reference
+solution properties independently of method errors and collocation positions.
+Compare errors inside that region and in its complement, retaining all paired
+seeds and reporting typical accuracy and unfavorable outcomes alongside global
+metrics. The decision is whether the observed benefit is concentrated in the
+steep spatial region. Region definitions, regional solution and residual
+metrics, and comparison rules remain to be agreed before execution. Disclose
+that the analysis was motivated by inspected outcomes; it does not change the
+frozen global evaluation or model-selection rules.
 
 ## Accepted controls and evaluation policy
 

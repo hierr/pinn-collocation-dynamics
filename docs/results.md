@@ -444,10 +444,10 @@ outside this three-regime comparison.
 Full-seed arithmetic means remain the primary summaries. Random resampling has
 the lowest mean solution error at `nu=0.1`, fixed Hammersley at `nu=0.01`, and
 RAD at `nu=0.01/pi`; RAD has the lowest mean residual RMS in all three cases.
-At the sharpest case, PACMANN has the lowest median solution error (0.05659%),
-but large errors lift its mean to 11.913%. The distinction between typical
-accuracy and unfavorable outcomes is retained rather than resolved by
-discarding seeds.
+At the sharpest case, PACMANN has the lowest median solution error (0.05659%,
+compared with RAD's 0.06642%), but large errors lift its mean to 11.913%.
+The distinction between typical accuracy and unfavorable outcomes is retained
+rather than resolved by discarding seeds.
 
 The [paired baseline comparisons](figures/burgers_regime_comparison/baseline_ratios.png)
 divide each method's error by its baseline's error for the same seed and
@@ -472,15 +472,47 @@ Diffusion lowers both mean errors relative to PACMANN in the smoother two cases,
 but raises both at the sharpest case. This does not establish a general benefit
 or make diffusion the method with the lowest mean error in the smoother cases.
 
+### Exploratory temporal evidence in the steepest regime
+
 The [physical-time profiles](figures/burgers_regime_comparison/solution_error_over_time.png)
 show mean and median solution errors of the final models over the PDE time
-coordinate. The sharpest case's mean/median separation persists at later times.
-These are not training trajectories and do not establish error localization
-at the front. Each relative error uses the reference norm at that time, which
-changes as the solution decays; the derived table also provides absolute RMSE.
-Reference accuracy, per-viscosity tuning, and the fact that viscosity changes
-more than sharpness limit the interpretation. No additional feature-region or
-checkpoint analysis is included.
+coordinate. At `nu = 0.01/pi`, PACMANN's typical accuracy improves relative to
+the sampling baselines as the solution develops a steep front. Selected times
+illustrate the pattern; they were inspected after observing the curves and do
+not define a pre-specified evaluation window:
+
+| Physical time | PACMANN median solution L2 (%) | Fixed Hammersley median solution L2 (%) | PACMANN lower than fixed Hammersley |
+| --- | ---: | ---: | ---: |
+| 0.25 | 0.0461 | 0.0281 | 3/10 seeds |
+| 0.75 | 0.0705 | 0.7718 | 9/10 seeds |
+| 0.99 | 0.0970 | 0.8867 | 9/10 seeds |
+
+Against random resampling, PACMANN has lower solution error in seven of ten
+paired seeds at `t = 0.75` and eight at `t = 0.99`. Reference maximum spatial
+gradients at `t = 0.25`, `0.75`, and `0.99` are approximately 12.8, 119.1,
+and 85.1. The gradient peaks at approximately 151.9 near `t = 0.51`, then
+decreases while the front remains steep. Later times therefore represent a
+developed steep-front regime, rather than continuously increasing sharpness.
+
+This is exploratory evidence consistent with a regime-dependent benefit in
+typical PACMANN accuracy. Robustness remains a separate finding: large-error
+outcomes keep its later-time mean and global mean solution errors high. The
+median ordering also does not imply paired superiority over every method:
+at `t = 0.99`, PACMANN's median is lower than RAD's (0.0970% versus 0.1101%),
+but PACMANN has lower error in only three of ten same-seed comparisons.
+This observation does not establish a diffusion benefit.
+
+Each time-slice score covers the whole spatial domain. It cannot establish
+that the improvement occurs specifically inside the front, or that solution
+sharpness caused it. These are physical-time profiles of final models, not
+training trajectories. Each relative error uses the reference norm at that
+time, which changes as the solution decays; the derived table also provides
+absolute RMSE. Reference accuracy, per-viscosity tuning, and changes in solution
+amplitude and evolution limit the interpretation. Spatially localized error
+analysis is motivated by this observation but has not been performed here;
+see the [research direction](research_context.md#motivation-for-spatially-localized-evaluation).
+
+### Reproduction
 
 Reproduce the four figures and five derived CSV tables from the repository root
 with the [documented environment](../README.md#setup-and-execution):
