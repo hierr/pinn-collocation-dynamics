@@ -11,7 +11,7 @@ from scripts.dataset_generation import generate_burgers_nu_0p001 as generation
 def test_existing_reference_is_preserved(tmp_path, monkeypatch):
     """Reject an occupied destination before invoking the expensive solver."""
     monkeypatch.setattr(generation, "DATA_DIR", tmp_path)
-    destination = tmp_path / "burgers_nu_0p001_N2048.npz"
+    destination = tmp_path / f"burgers_nu_0p001_N{generation.RESOLUTION}.npz"
     destination.write_bytes(b"existing reference")
     monkeypatch.setattr(
         generation,

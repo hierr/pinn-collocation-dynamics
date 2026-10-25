@@ -1,0 +1,41 @@
+{
+  "viscosity": 0.001,
+  "degrees": [
+    1024,
+    2048
+  ],
+  "inputs": [
+    "data/burgers_dataset/burgers_nu_0p001_N1024.npz",
+    "data/burgers_dataset/burgers_nu_0p001_N2048.npz"
+  ],
+  "time_interval": [
+    0.0,
+    0.99
+  ],
+  "snapshots": 199,
+  "uniform_points": 8193,
+  "shared_nodes_relative_l2": 0.00098251777046717,
+  "shared_nodes_max_abs_difference": 0.017523613937747484,
+  "uniform_relative_l2": 0.0026157221062046783,
+  "uniform_max_abs_difference": 0.062393796646801225,
+  "uniform_max_difference_location": {
+    "t": 0.505,
+    "x": 0.001220703125
+  },
+  "uniform_gradient_relative_l2": 0.14454049392436316,
+  "maximum_peak_gradient_relative_change": 0.15876004444923794,
+  "references": [
+    {
+      "degree": 1024,
+      "peak_spatial_gradient": 410.3624619192575,
+      "peak_gradient_time": 0.5,
+      "highest_10pct_modes_relative_max": 0.0006362932062394844
+    },
+    {
+      "degree": 2048,
+      "peak_spatial_gradient": 487.80545257607747,
+      "peak_gradient_time": 0.505,
+      "highest_10pct_modes_relative_max": 3.866732824898605e-05
+    }
+  ]
+}

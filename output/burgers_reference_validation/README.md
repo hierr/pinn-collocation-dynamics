@@ -32,3 +32,7 @@ artifacts. See [study context](../../docs/research_context.md),
 [results and limitations](../../docs/results.md), and
 [artifact meanings](../../docs/output_format.md). Agreement at this viscosity
 supports the accepted benchmark reference; it does not certify other regimes.
+
+The [ν = 0.001 resolution check](nu_0p001_n1024_n2048/README.md) compares saved
+N1024 and N2048 solutions without an upstream reference. It finds material
+disagreement near the front and leaves N2048 accuracy unresolved before tuning.

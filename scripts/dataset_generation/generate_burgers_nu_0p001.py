@@ -3,13 +3,13 @@
 from scripts.dataset_generation.burgers_spectral import DATA_DIR, save_solution_for_pinn
 
 VISCOSITY = 0.001
-RESOLUTION = 2048  # Chebyshev degree: RESOLUTION + 1 spatial nodes.
+RESOLUTION = 4096  # Chebyshev degree: RESOLUTION + 1 spatial nodes.
 FINAL_TIME = 1.0
 SNAPSHOTS = 201
 
 
 def main():
-    """Save one N2048 candidate reference while preserving existing datasets."""
+    """Save one candidate at the configured degree, preserving existing datasets."""
     nu_tag = f"{VISCOSITY:.8g}".replace(".", "p")
     filename = DATA_DIR / f"burgers_nu_{nu_tag}_N{RESOLUTION}.npz"
     if filename.exists():

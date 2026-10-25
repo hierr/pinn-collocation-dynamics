@@ -6,6 +6,7 @@ Reference datasets are under `data/burgers_dataset/`:
 | --- | --- |
 | `PACMANN_Burgers.npz` | Original reference: `x` (256, 1), `t` (100, 1), `usol` (256, 100). |
 | `burgers_nu_0p0031830989_N{512,1024}.npz` | Generated Chebyshev references: `x` has N+1 nodes, `t` has 201 snapshots through 1.0, `U` is time by space; includes viscosity and solver settings. |
+| `burgers_nu_0p001_N{1024,2048}.npz` | Sharper-case resolution inputs with the same field layout; N2048 remains a candidate pending further refinement. |
 
 Retained artifacts are under `output/burgers_reference_validation/`. Its
 [campaign README](../output/burgers_reference_validation/README.md) describes
@@ -20,6 +21,7 @@ execution and source-model provenance.
 | `pacmann_3seed/model_errors.csv` | Nine rows: seed, reference choice, and final relative L2 as a fraction; multiply by 100 for percent. |
 | `pacmann_3seed/comparison.png` | One line per fixed model, changing only the reference used to score its predictions on the original grid. |
 | `source_models/seed_<seed>/` | Immutable evaluation inputs copied from the original PACMANN baseline. |
+| `nu_0p001_n1024_n2048/` | Resolution check: `summary.json` for pooled disagreement and spectral diagnostics, `time_series.csv` for per-snapshot comparisons, and two figures; its README defines metrics and limitations. Relative quantities are fractions. |
 
 Each source-model directory retains its original `config.yaml` (including
 selected seed and network layers), `metadata.json` (training revision, dependency
