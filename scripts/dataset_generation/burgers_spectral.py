@@ -4,9 +4,11 @@ from scipy.interpolate import BarycentricInterpolator
 import csv
 import json
 from pathlib import Path
+from time import perf_counter
 import matplotlib.pyplot as plt
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data/burgers_dataset"
+PROGRESS_INTERVAL_SECONDS = 60.0
 
 
 ########################################################################
@@ -81,6 +83,10 @@ def solve_burgers(
     if rtol <= 0 or atol <= 0 or max_step <= 0:
         raise ValueError("rtol, atol and max_step must be positive")
 
+    started = perf_counter()
+    last_report = started
+    rhs_calls = 0
+    print(f"Building Chebyshev operators: nu={nu}, N={N}", flush=True)
     x, D = chebyshev_differentiation_matrix(N)
     D2 = D @ D
 
@@ -88,6 +94,18 @@ def solve_burgers(
     t = np.linspace(0.0, T, n_snap)
 
     def rhs(t_now, u_interior):
+        nonlocal last_report, rhs_calls
+        # Count all RHS calls, including finite-difference Jacobian evaluations.
+        rhs_calls += 1
+        now = perf_counter()
+        if now - last_report >= PROGRESS_INTERVAL_SECONDS:
+            print(
+                f"Radau progress: elapsed={now - started:.1f}s, "
+                f"RHS trial t={t_now:.10g}/{T:g}, RHS calls={rhs_calls}",
+                flush=True,
+            )
+            last_report = now
+
         u = np.zeros(N + 1)
         u[1:-1] = u_interior
 
@@ -96,6 +114,7 @@ def solve_burgers(
 
         return (-u * ux + nu * uxx)[1:-1]
 
+    print("Starting Radau integration; reported RHS times include trial stages.", flush=True)
     sol = solve_ivp(
         rhs,
         (0.0, T),
@@ -109,6 +128,13 @@ def solve_burgers(
 
     if not sol.success:
         raise RuntimeError(f"Time integration failed: {sol.message}")
+
+    print(
+        f"Radau finished: elapsed={perf_counter() - started:.1f}s, "
+        f"t={sol.t[-1]:g}, RHS calls={rhs_calls}, "
+        f"nfev={sol.nfev}, njev={sol.njev}, nlu={sol.nlu}",
+        flush=True,
+    )
 
     U = np.zeros((n_snap, N + 1))
     U[:, 1:-1] = sol.y.T

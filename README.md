@@ -78,6 +78,10 @@ script to `2048` to reproduce the earlier generation. Generation produces a
 candidate reference; acceptance requires comparing N2048 and N4096 at common
 coordinates, including the steep-front profiles and gradients. The PINN study
 uses the snapshots through `t = 0.99`.
+The solver logs operator construction, then elapsed time, RHS trial time, and
+RHS call count about once per minute while evaluating the RHS. Trial times can
+repeat or move backwards; they are not accepted-step progress. Completion reports
+Radau's function, Jacobian, and LU-factorization counts.
 The [resolution comparison](output/burgers_reference_validation/nu_0p001_n1024_n2048/README.md)
 reports material disagreement and does not yet establish N2048 accuracy.
 Regenerate its metrics and figures without solving again:
