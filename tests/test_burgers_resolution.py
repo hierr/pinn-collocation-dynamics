@@ -43,10 +43,12 @@ def test_comparison_reports_known_relative_disagreement(tmp_path, monkeypatch):
     monkeypatch.setattr(comparison, "DEGREES", (8, 16))
     monkeypatch.setattr(comparison, "UNIFORM_POINTS", 129)
     for degree, scale in ((8, 1.001), (16, 1.0)):
+        jacobian = {"jacobian": "analytic"} if degree == 16 else {}
         write_reference(
             tmp_path / f"data/burgers_dataset/burgers_nu_0p001_N{degree}.npz",
             degree,
             scale,
+            **jacobian,
         )
 
     comparison.main()
@@ -55,6 +57,10 @@ def test_comparison_reports_known_relative_disagreement(tmp_path, monkeypatch):
     summary = json.loads((output / "summary.json").read_text())
     assert summary["time_interval"] == [0.0, 0.75]
     assert summary["snapshots"] == 4
+    assert [ref["jacobian"] for ref in summary["references"]] == [
+        "finite_difference",
+        "analytic",
+    ]
     for field in (
         "shared_nodes_relative_l2",
         "uniform_relative_l2",
@@ -68,10 +74,32 @@ def test_comparison_reports_known_relative_disagreement(tmp_path, monkeypatch):
     np.testing.assert_allclose(series[:, 1], 0.001, atol=1e-12)
 
 
-def test_mismatched_temporal_settings_are_rejected(tmp_path):
-    """Prevent attributing a temporal-solver change to spatial refinement."""
+@pytest.mark.parametrize(
+    "field, coarse, fine",
+    [
+        ("max_step", 0.005, 0.01),
+        ("rtol", 1e-11, 1e-8),
+        ("time_integrator", "Radau", "BDF"),
+        ("equation", "u_t + u*u_x = nu*u_xx", "u_t = nu*u_xx"),
+    ],
+)
+def test_mismatched_problem_or_temporal_settings_are_rejected(
+    tmp_path, field, coarse, fine
+):
+    """Allow a Jacobian change without weakening PDE or time-integration checks."""
     paths = [tmp_path / "coarse.npz", tmp_path / "fine.npz"]
-    write_reference(paths[0], 8, max_step=0.005)
-    write_reference(paths[1], 16, max_step=0.01)
-    with pytest.raises(ValueError, match="times and non-spatial solver settings"):
+    write_reference(paths[0], 8, **{field: coarse})
+    write_reference(paths[1], 16, jacobian="analytic", **{field: fine})
+    with pytest.raises(
+        ValueError, match="PDE parameters, and temporal solver settings"
+    ):
+        comparison.load_references(paths)
+
+
+def test_unvalidated_jacobian_source_is_rejected(tmp_path):
+    """Limit compatibility to the two Jacobian implementations checked here."""
+    paths = [tmp_path / "coarse.npz", tmp_path / "fine.npz"]
+    write_reference(paths[0], 8)
+    write_reference(paths[1], 16, jacobian="unknown")
+    with pytest.raises(ValueError, match="unvalidated Jacobian source"):
         comparison.load_references(paths)

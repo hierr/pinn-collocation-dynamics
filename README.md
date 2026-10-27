@@ -58,11 +58,16 @@ The existing
 [N1024 reference](data/burgers_dataset/burgers_nu_0p001_N1024.npz)
 is transferred unchanged from dataset commit `52b9359` for a resolution check.
 The [generation script](scripts/dataset_generation/generate_burgers_nu_0p001.py)
-is now configured for one N4096 candidate using the unchanged collaborator solver,
-to assess the adequacy of N2048. N is the Chebyshev degree, so the new dataset
-will have 4,097 spatial nodes. Temporal settings
-match the N1024 input: 201 snapshots through `t = 1`, Radau tolerances
+is configured for the retained N4096 working reference using the collaborator's
+spatial scheme. N is the Chebyshev degree, giving 4,097 spatial nodes. Temporal
+settings match the N1024 input: 201 snapshots through `t = 1`, Radau tolerances
 `rtol = 1e-11`, `atol = 1e-13`, and `max_step = 0.005`.
+Radau receives the analytical Jacobian of the same interior PDE discretization.
+Earlier retained references used numerical Jacobians; new datasets record
+`"jacobian": "analytic"` in `config_json`.
+The resolution comparator permits these two validated Jacobian sources and
+records them in `summary.json`. It treats a missing field in legacy references
+as `finite_difference`, while requiring matching PDE and temporal solver settings.
 
 The script contains the generation settings. From the repository root, run:
 
@@ -74,17 +79,20 @@ MPLBACKEND=Agg venv/bin/python -u -m scripts.dataset_generation.generate_burgers
 This executes one CPU solve with up to eight BLAS threads and saves
 `data/burgers_dataset/burgers_nu_0p001_N4096.npz`. The script refuses an existing
 destination and preserves the N1024 and N2048 inputs. Set `RESOLUTION` in the
-script to `2048` to reproduce the earlier generation. Generation produces a
-candidate reference; acceptance requires comparing N2048 and N4096 at common
-coordinates, including the steep-front profiles and gradients. The PINN study
-uses the snapshots through `t = 0.99`.
+script to `2048` to generate at that resolution. The N2048–N4096 comparison
+supports using N4096 for the next development campaign, with remaining numerical
+uncertainty. The PINN study uses the snapshots through `t = 0.99`; its evaluation
+grid requires a separate adequacy check before sigma selection.
 The solver logs operator construction, then elapsed time, RHS trial time, and
 RHS call count about once per minute while evaluating the RHS. Trial times can
 repeat or move backwards; they are not accepted-step progress. Completion reports
 Radau's function, Jacobian, and LU-factorization counts.
-The [resolution comparison](output/burgers_reference_validation/nu_0p001_n1024_n2048/README.md)
-reports material disagreement and does not yet establish N2048 accuracy.
-Regenerate its metrics and figures without solving again:
+The [N1024–N2048 comparison](output/burgers_reference_validation/nu_0p001_n1024_n2048/README.md)
+reports material disagreement; the
+[N2048–N4096 comparison](output/burgers_reference_validation/nu_0p001_n2048_n4096/README.md)
+provides stronger convergence evidence while leaving absolute accuracy unbounded.
+Select `DEGREES = (2048, 4096)` in the comparison script (or `(1024, 2048)` for
+the earlier check), then regenerate metrics and figures without solving again:
 
 ```bash
 OMP_NUM_THREADS=8 MKL_NUM_THREADS=8 OPENBLAS_NUM_THREADS=8 \
@@ -103,4 +111,5 @@ venv/bin/ty check scripts/dataset_validation \
   scripts/dataset_generation/generate_burgers_nu_0p001.py tests
 ```
 
-The collaborator's solver retains its original formatting and numerical logic.
+The collaborator's PDE and spatial operators are preserved; approved additions
+are progress logging and the analytical Jacobian.

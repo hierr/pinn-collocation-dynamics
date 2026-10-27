@@ -36,3 +36,6 @@ supports the accepted benchmark reference; it does not certify other regimes.
 The [ν = 0.001 resolution check](nu_0p001_n1024_n2048/README.md) compares saved
 N1024 and N2048 solutions without an upstream reference. It finds material
 disagreement near the front and leaves N2048 accuracy unresolved before tuning.
+The [N2048–N4096 check](nu_0p001_n2048_n4096/README.md) finds substantially smaller
+disagreement, supporting N4096 as the working reference without an absolute-error
+certification. Each README specifies the `DEGREES` setting for reproduction.

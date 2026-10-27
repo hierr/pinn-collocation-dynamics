@@ -15,7 +15,7 @@ from scripts.dataset_generation.burgers_spectral import (
 
 ROOT = Path(__file__).resolve().parents[2]
 VISCOSITY = 0.001
-DEGREES = (1024, 2048)
+DEGREES = (2048, 4096)
 FINAL_TIME = 0.99  # Match the time interval used for PINN evaluation.
 UNIFORM_POINTS = 8193
 PROFILE_TIMES = (0.35, 0.505, 0.99)
@@ -23,8 +23,8 @@ FRONT_COORDINATES = np.linspace(-0.025, 0.025, 2001)
 
 
 def load_references(paths):
-    """Load matching Burgers cases, allowing only their spatial degrees to differ."""
-    references = []
+    """Load matching cases, allowing spatial degree and validated Jacobian sources to differ."""
+    references: list[dict] = []
     previous_settings = None
     previous_times = None
     for path in paths:
@@ -38,17 +38,25 @@ def load_references(paths):
             raise ValueError("Expected time-by-space data on Chebyshev-Lobatto nodes.")
         if not np.isfinite(u).all():
             raise ValueError("Reference contains non-finite solution values.")
+        # Legacy references used numerical Jacobians without recording this field.
+        jacobian = config.get("jacobian", "finite_difference")
+        if jacobian not in ("finite_difference", "analytic"):
+            raise ValueError("Reference uses an unvalidated Jacobian source.")
         settings = {
-            k: v for k, v in config.items() if k not in ("N", "number_of_spatial_nodes")
+            k: v
+            for k, v in config.items()
+            if k not in ("N", "number_of_spatial_nodes", "jacobian")
         }
         if previous_times is not None and (
             settings != previous_settings or not np.array_equal(t, previous_times)
         ):
             raise ValueError(
-                "Reference times and non-spatial solver settings must match."
+                "Reference times, PDE parameters, and temporal solver settings must match."
             )
         selected = t <= FINAL_TIME
-        references.append({"x": x, "t": t[selected], "u": u[selected]})
+        references.append(
+            {"x": x, "t": t[selected], "u": u[selected], "jacobian": jacobian}
+        )
         previous_settings, previous_times = settings, t
     if not np.array_equal(references[0]["x"], references[1]["x"][::2]):
         raise ValueError("This comparison requires nested grids with doubled degree.")
@@ -125,6 +133,7 @@ def main():
         summary["references"].append(
             {
                 "degree": degree,
+                "jacobian": reference["jacobian"],
                 "peak_spatial_gradient": float(np.max(peak)),
                 "peak_gradient_time": float(times[np.argmax(peak)]),
                 "highest_10pct_modes_relative_max": float(np.max(tail_ratio)),

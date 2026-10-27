@@ -37,8 +37,12 @@ and evaluation seeds require a concrete approved protocol before execution.
 Preserve failures and report variability. New viscosities require numerical
 accuracy checks; this validation does not certify the whole parameter range.
 
-The sharper `nu = 0.001` extension remains at reference validation. Spatial
+The sharper `nu = 0.001` extension uses a refined working reference. Spatial
 refinement from N1024 to N2048 materially changes the steep front and its
-gradients; see the [resolution check](../output/burgers_reference_validation/nu_0p001_n1024_n2048/README.md).
-Establish adequate reference resolution before tuning. The density of the PINN
-evaluation grid is a separate check that remains necessary for this sharper case.
+gradients; see the [first resolution check](../output/burgers_reference_validation/nu_0p001_n1024_n2048/README.md).
+The [N2048–N4096 comparison](../output/burgers_reference_validation/nu_0p001_n2048_n4096/README.md)
+shows markedly smaller differences and supports N4096 as the working reference
+for development, without claiming an absolute error bound. Reference resolution
+may differ across viscosities to resolve their different front widths; training
+point budgets remain matched. The density of the PINN evaluation grid is a
+separate check that remains necessary before sigma selection for this sharper case.

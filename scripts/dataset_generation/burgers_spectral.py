@@ -95,7 +95,7 @@ def solve_burgers(
 
     def rhs(t_now, u_interior):
         nonlocal last_report, rhs_calls
-        # Count all RHS calls, including finite-difference Jacobian evaluations.
+        # Count RHS evaluations independently of Radau's own counters.
         rhs_calls += 1
         now = perf_counter()
         if now - last_report >= PROGRESS_INTERVAL_SECONDS:
@@ -114,12 +114,23 @@ def solve_burgers(
 
         return (-u * ux + nu * uxx)[1:-1]
 
+    def jacobian(_t, u_interior):
+        """Return the exact RHS Jacobian with respect to the interior values."""
+        u = np.zeros(N + 1)
+        u[1:-1] = u_interior
+
+        # Differentiate both factors of -u * (D @ u), keeping boundary values fixed.
+        J = nu * D2[1:-1, 1:-1] - u_interior[:, None] * D[1:-1, 1:-1]
+        J[np.diag_indices_from(J)] -= (D @ u)[1:-1]
+        return J
+
     print("Starting Radau integration; reported RHS times include trial stages.", flush=True)
     sol = solve_ivp(
         rhs,
         (0.0, T),
         u0[1:-1],
         method="Radau",
+        jac=jacobian,
         t_eval=t,
         rtol=rtol,
         atol=atol,
@@ -582,6 +593,7 @@ def save_solution_for_pinn(
         "atol": float(atol),
         "max_step": float(max_step),
         "time_integrator": "Radau",
+        "jacobian": "analytic",
         "spatial_method": "Chebyshev collocation",
     }
 

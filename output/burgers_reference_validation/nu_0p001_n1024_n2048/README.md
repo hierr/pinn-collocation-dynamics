@@ -53,7 +53,8 @@ material resolution dependence, without changing the solver or training methods.
 
 ## Reproduction and artifacts
 
-From the repository root, using the [documented environment](../../../README.md):
+From the repository root, using the [documented environment](../../../README.md),
+select `DEGREES = (1024, 2048)` in the comparison script, then run:
 
 ```bash
 OMP_NUM_THREADS=8 MKL_NUM_THREADS=8 OPENBLAS_NUM_THREADS=8 \

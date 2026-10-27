@@ -40,6 +40,7 @@ def test_small_reference_records_the_requested_problem(tmp_path, monkeypatch):
         settings = json.loads(str(saved["config_json"]))
         assert float(saved["nu"]) == settings["nu"] == 0.001
         assert settings["N"] == 16
+        assert settings["jacobian"] == "analytic"
         assert saved["U"].shape == (3, 17)
         assert np.isfinite(saved["U"]).all()
         np.testing.assert_array_equal(saved["t"], [0.0, 0.005, 0.01])
@@ -71,5 +72,56 @@ def test_progress_logging_preserves_solution(monkeypatch, capsys):
     counts = re.search(r"RHS calls=(\d+), nfev=(\d+), njev=(\d+), nlu=(\d+)", output)
     assert counts is not None
     rhs_calls, nfev, njev, nlu = map(int, counts.groups())
-    assert rhs_calls > nfev  # The manual counter also includes Jacobian probes.
+    assert rhs_calls == nfev  # Analytical Jacobians require no extra RHS probes.
     assert njev > 0 and nlu > 0
+
+
+@pytest.mark.parametrize("degree", [16, 32])
+def test_analytical_jacobian_matches_directional_finite_differences(
+    monkeypatch, degree
+):
+    """Check the production Jacobian on smooth and irregular interior states."""
+    original_solve = solver.solve_ivp
+
+    def verify_and_solve(fun, span, initial, **settings):
+        rng = np.random.default_rng(42)
+        states = [initial, rng.uniform(-0.9, 0.9, size=initial.shape)]
+        for state in states:
+            direction = rng.normal(size=initial.shape)
+            direction /= np.linalg.norm(direction)
+            epsilon = 1e-6
+            finite_difference = (
+                fun(0, state + epsilon * direction)
+                - fun(0, state - epsilon * direction)
+            ) / (2 * epsilon)
+            jacobian = settings["jac"](0, state)
+            assert jacobian.shape == (degree - 1, degree - 1)
+            derivative = jacobian @ direction
+            relative_difference = np.linalg.norm(
+                derivative - finite_difference
+            ) / np.linalg.norm(finite_difference)
+            assert relative_difference < 1e-7
+        return original_solve(fun, span, initial, **settings)
+
+    monkeypatch.setattr(solver, "solve_ivp", verify_and_solve)
+    solver.solve_burgers(nu=0.001, N=degree, T=0.01, n_snap=3, max_step=0.005)
+
+
+def test_analytical_and_numerical_jacobians_give_matching_solutions(monkeypatch):
+    """Compare short integrations while changing only Radau's Jacobian source."""
+    analytic = solver.solve_burgers(
+        nu=0.001, N=64, T=0.05, n_snap=11, rtol=1e-11, atol=1e-13, max_step=0.005
+    )
+    original_solve = solver.solve_ivp
+
+    def solve_with_finite_differences(fun, span, initial, **settings):
+        settings["jac"] = None
+        return original_solve(fun, span, initial, **settings)
+
+    monkeypatch.setattr(solver, "solve_ivp", solve_with_finite_differences)
+    numerical = solver.solve_burgers(
+        nu=0.001, N=64, T=0.05, n_snap=11, rtol=1e-11, atol=1e-13, max_step=0.005
+    )
+    np.testing.assert_array_equal(analytic[0], numerical[0])
+    np.testing.assert_array_equal(analytic[1], numerical[1])
+    np.testing.assert_allclose(analytic[2], numerical[2], rtol=0, atol=1e-9)
