@@ -54,6 +54,14 @@ final checkpoint and archived settings to write `predictions.npz`, `metrics.json
 and diagnostics. The campaign runner performs both steps automatically. A failed
 or interrupted run can have only a subset of these files.
 
+For the `nu = 0.001` development campaign, `sigma_0/evaluation_grid_check.json`
+records fixed-model scores, relative changes, time counts, the dataset
+fingerprint, training revision, and selected spatial density. If density changes,
+`pacmann_adam/seed_3000/initial_evaluation/` retains the original configuration
+and derived evaluation files. The run's current configuration and evaluation
+files then use the selected grid; its original training records and weights
+remain unchanged. This is scoring resolution, not a training restart.
+
 ## Configuration, provenance, and status
 
 | File | Contents and purpose |

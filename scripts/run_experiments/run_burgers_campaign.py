@@ -76,9 +76,12 @@ def run_seed(config: dict, method: str, seed: int):
     print(f"Completed {method}, seed {seed}: {run_dir}", flush=True)
 
 
-def run_campaign(config: dict, method: str):
-    """Launch one process per seed and wait for every worker before reporting failures."""
-    check_campaign(config, method)
+def run_campaign(config: dict, method: str, seeds=None):
+    """Run selected planned seeds concurrently, retaining the full archived configuration."""
+    selected_seeds = config["seeds"] if seeds is None else seeds
+    if seeds is not None and any(seed not in config["seeds"] for seed in seeds):
+        raise ValueError("Execution seeds must belong to the configured campaign")
+    check_campaign(dict(config, seeds=selected_seeds), method)
 
     # Fresh processes inherit these limits before importing numerical libraries.
     for variable in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS"):
@@ -88,7 +91,7 @@ def run_campaign(config: dict, method: str):
 
     # Start the whole method batch, then allow every started worker to finish.
     try:
-        for seed in config["seeds"]:
+        for seed in selected_seeds:
             process = context.Process(target=run_seed, args=(config, method, seed))
             process.start()
             processes.append((seed, process))

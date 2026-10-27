@@ -11,6 +11,7 @@ from src.train import ROOT
 
 # Select execution here. Summarization never launches training or writes artifacts.
 ACTION = "summarize"  # Freeze the nu=0.001 evaluation grid before launching the sweep.
+BASELINE_SEEDS = [3001, 3002]  # Seed 3000 runs separately before the grid check.
 CONFIG_PATHS = [
     ROOT / "config/burgers/nu_0p001/burgers_nu_0p001_sigma_0.yaml",
     ROOT / "config/burgers/nu_0p001/burgers_nu_0p001_sigma_1e-5.yaml",
@@ -60,17 +61,25 @@ def check_tuning_configs(configs):
             raise ValueError("Coordinate-Adam settings must match the baseline")
 
 
-def run_tuning(configs):
-    """Check the entire sweep, then train and analyze configurations sequentially."""
+def run_tuning(configs, baseline_seeds=None):
+    """Run the sweep with an optional explicit subset of the planned baseline seeds."""
     check_tuning_configs(configs)
-    for config in configs:
+    for index, config in enumerate(configs):
         method = next(iter(config["methods"]))
-        campaign.check_campaign(config, method)
+        selected = (
+            baseline_seeds
+            if index == 0 and baseline_seeds is not None
+            else config["seeds"]
+        )
+        campaign.check_campaign(dict(config, seeds=selected), method)
 
     # Execute each matched method batch in its configured order.
-    for config in configs:
+    for index, config in enumerate(configs):
         method = next(iter(config["methods"]))
-        campaign.run_campaign(config, method)
+        if index == 0 and baseline_seeds is not None:
+            campaign.run_campaign(config, method, seeds=baseline_seeds)
+        else:
+            campaign.run_campaign(config, method)
 
 
 def summarize_tuning(configs):
@@ -262,7 +271,7 @@ def main():
         raise ValueError("ACTION must be 'run' or 'summarize'")
     configs = load_configurations()
     if ACTION == "run":
-        run_tuning(configs)
+        run_tuning(configs, baseline_seeds=BASELINE_SEEDS)
     print(summarize_tuning(configs))
 
 

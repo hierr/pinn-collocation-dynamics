@@ -45,15 +45,25 @@ venv/bin/python -m scripts.run_experiments.run_burgers_baseline
 ```
 
 The [campaign protocol](output/burgers/nu_0p001/sigma_0/README.md) specifies the
-comparison and stopping rule. To summarize the prepared sweep without training,
+comparison, bounded fallback, and stopping rule. After baseline training, run
+the checker to compare fixed weights and resolve the common scoring density:
+
+```bash
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+venv/bin/python -m scripts.post_processing.check_burgers_evaluation_grid
+```
+
+To summarize the prepared sweep without training,
 `ACTION = "summarize"` is selected in `scripts/run_experiments/run_burgers_sigma_tuning.py`.
 
 ```bash
 venv/bin/python -m scripts.run_experiments.run_burgers_sigma_tuning
 ```
 
-After reviewing the grid check, prepare the remaining tuning runs while preserving
-the completed baseline. `CONFIG_PATHS` lists the full YAMLs; all selected
+After a successful grid check, select `ACTION = "run"` for the prepared
+continuation. `BASELINE_SEEDS = [3001, 3002]` retains the completed seed 3000;
+the full three-seed plan is still archived and summarized. `CONFIG_PATHS` lists
+the full YAMLs; all selected
 destinations are checked before training and existing runs cannot be overwritten.
 Obtain approval and commit the scientific protocol before starting a new campaign.
 Campaign READMEs are maintained manually alongside the outputs.

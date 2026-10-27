@@ -121,7 +121,12 @@ with planned PACMANN baseline seed 3000 before sigma selection. Compare the same
 saved model on 1,024 and 4,096 spatial evaluation points, keeping the 199 native
 solution times and 200 residual midpoint times unchanged. Retain the current
 grid if both solution relative L2 and residual RMS change by less than 1%
-relative to the finer-grid scores; otherwise stop and review before tuning.
+relative to the finer-grid scores. If either fails, the approved autonomous
+fallback checks 4,096 against 8,192 and then 8,192
+against 16,384 spatial points, selecting the first coarser grid passing both
+metrics. If no comparison passes, tuning remains blocked pending review.
+When density changes, retain the baseline's original evaluation and rescore its
+fixed weights before completing the remaining tuning runs on the chosen grid.
 This bounded check screens spatial sampling for one model, without certifying
 temporal sampling or requiring checks on every tuning model. Revisit only if
 sensitivity appears or conclusions depend on differences of comparable size.

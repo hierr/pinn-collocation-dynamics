@@ -122,13 +122,13 @@ def test_baseline_executes_one_seed_without_changing_the_plan(tmp_path, monkeypa
     calls = []
     monkeypatch.setattr(
         campaign,
-        "run_seed",
-        lambda config, method, seed: calls.append((config, method, seed)),
+        "run_campaign",
+        lambda config, method, seeds: calls.append((config, method, seeds)),
     )
 
     baseline.main()
 
-    assert calls == [(tuning.load_configurations()[0], "pacmann_adam", 3000)]
+    assert calls == [(tuning.load_configurations()[0], "pacmann_adam", [3000])]
     assert calls[0][0]["seeds"] == [3000, 3001, 3002]
     assert not (tmp_path / "output").exists()
 
@@ -165,6 +165,27 @@ def test_sweep_order(sweep, monkeypatch):
     )
     tuning.run_tuning(sweep)
     assert calls == [config["campaign"] for config in sweep]
+
+
+def test_continuation_preserves_completed_baseline(sweep, tmp_path, monkeypatch):
+    """Launch the remaining baseline seeds and all diffusion seeds explicitly."""
+    completed = tmp_path / "output/burgers/nu_0p001/sigma_0/pacmann_adam/seed_3000"
+    completed.mkdir(parents=True)
+    marker = completed / "run.log"
+    marker.write_text("completed baseline\n")
+    calls = []
+    monkeypatch.setattr(
+        campaign,
+        "run_campaign",
+        lambda config, method, seeds=None: calls.append((list(config["seeds"]), seeds)),
+    )
+
+    tuning.run_tuning(sweep, baseline_seeds=[3001, 3002])
+
+    assert (
+        calls == [([3000, 3001, 3002], [3001, 3002])] + [([3000, 3001, 3002], None)] * 4
+    )
+    assert marker.read_text() == "completed baseline\n"
 
 
 def test_sweep_stops_on_failure(sweep, tmp_path, monkeypatch):
@@ -351,11 +372,15 @@ def test_run_action_and_invalid_action(sweep, monkeypatch, capsys):
     """Dispatch explicit execution before summarization and reject unknown actions."""
     calls = []
     monkeypatch.setattr(tuning, "load_configurations", lambda: sweep)
-    monkeypatch.setattr(tuning, "run_tuning", lambda configs: calls.append("run"))
+    monkeypatch.setattr(
+        tuning,
+        "run_tuning",
+        lambda configs, baseline_seeds: calls.append(("run", baseline_seeds)),
+    )
     monkeypatch.setattr(tuning, "summarize_tuning", lambda configs: "summary")
     monkeypatch.setattr(tuning, "ACTION", "run")
     tuning.main()
-    assert calls == ["run"] and capsys.readouterr().out == "summary\n"
+    assert calls == [("run", [3001, 3002])] and capsys.readouterr().out == "summary\n"
     monkeypatch.setattr(tuning, "ACTION", "invalid")
     with pytest.raises(ValueError, match="ACTION"):
         tuning.main()

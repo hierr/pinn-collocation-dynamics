@@ -13,12 +13,8 @@ SEED = 3000
 def main():
     """Train and evaluate only the selected seed, preserving the full campaign plan."""
     config = yaml.safe_load(CONFIG_PATH.read_text())
-    if SEED not in config["seeds"]:
-        raise ValueError("The selected seed must belong to the configured campaign")
-
     # Check only this destination while retaining all planned seeds in the run config.
-    campaign.check_campaign(dict(config, seeds=[SEED]), METHOD)
-    campaign.run_seed(config, METHOD, SEED)
+    campaign.run_campaign(config, METHOD, seeds=[SEED])
 
 
 if __name__ == "__main__":

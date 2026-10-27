@@ -34,8 +34,10 @@ fixed saved weights and the same N4096 reference, compare solution relative L2
 and residual RMS at 1,024 versus 4,096 spatial evaluation points. Keep the 199
 native solution times through `0.99` and 200 residual midpoint times unchanged.
 For each metric, compute `100 * abs(coarse - fine) / abs(fine)`. Retain the
-current grid if both changes are below 1%; otherwise stop and review before
-tuning. This screens spatial sampling for one model and does not certify
+current grid if both changes are below 1%. If either fails, the bounded fallback
+compares 4,096 with 8,192, then 8,192 with 16,384
+spatial points, retaining the first coarser grid passing both metrics. Stop if
+none passes. This screens spatial sampling for one model and does not certify
 temporal resolution. Revisit only if sensitivity appears or conclusions depend
 on differences of comparable size.
 
@@ -59,11 +61,26 @@ venv/bin/python -m scripts.run_experiments.run_burgers_baseline
 ```
 
 The baseline entry point archives the full three-seed configuration but executes
-only seed 3000. Its weights remain available for the spatial-grid check.
+only seed 3000. Check its fixed weights and resolve the evaluation settings with:
+
+```sh
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+venv/bin/python -m scripts.post_processing.check_burgers_evaluation_grid
+```
+
+The checker writes `evaluation_grid_check.json` in this directory and updates
+all five configurations to the selected density. If density changes, it retains
+the baseline's original configuration, predictions, metrics, and diagnostics
+in `seed_3000/initial_evaluation/` before regenerating derived evaluation files.
+Training records, metadata, and model weights remain unchanged.
 The separate `scripts/run_experiments/run_burgers_sigma_tuning.py` retains
 `ACTION = "summarize"`; it reads artifacts without training or writing files.
-After reviewing the grid check, prepare the remaining runs without overwriting
-the completed baseline. Outputs use
+After a successful check, select `ACTION = "run"` to execute the prepared
+continuation: baseline seeds 3001–3002 and all three seeds for each positive
+candidate. `BASELINE_SEEDS` selects launch seeds only; archived plans and summary
+comparisons retain all three seeds. Keep the preparation revision fixed during
+training; approved expansion configurations and execution selections can be
+resolved under this protocol and committed with the completed results. Outputs use
 `output/burgers/nu_0p001/sigma_*/<method>/seed_<seed>/`.
 See [study context](../../../../docs/research_context.md),
 [results](../../../../docs/results.md), and

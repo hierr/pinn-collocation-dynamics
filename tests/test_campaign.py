@@ -150,6 +150,40 @@ def test_other_methods_and_unused_destinations_are_allowed(config, tmp_path, cal
     assert marker.read_text() == "previous run\n"
 
 
+def test_seed_subset_preserves_the_full_plan(config, tmp_path, monkeypatch, calls):
+    """Skip a completed seed while passing the original configuration to each worker."""
+    config["seeds"] = [1000, 1001, 1002]
+    previous = (
+        tmp_path
+        / "output/burgers/nu_0p0031830989"
+        / config["campaign"]
+        / "pacmann_adam/seed_1000"
+    )
+    previous.mkdir(parents=True)
+    archived_plans = []
+    original = runner.run_training
+
+    def record_plan(selected_config, method, seed):
+        """Record the plan received by the existing training entry point."""
+        archived_plans.append(list(selected_config["seeds"]))
+        return original(selected_config, method, seed)
+
+    monkeypatch.setattr(runner, "run_training", record_plan)
+    runner.run_campaign(config, "pacmann_adam", seeds=[1001, 1002])
+
+    assert [event[2] for event in calls if event[0] == "train"] == [1001, 1002]
+    assert archived_plans == [[1000, 1001, 1002], [1000, 1001, 1002]]
+    assert config["seeds"] == [1000, 1001, 1002]
+
+
+@pytest.mark.parametrize("seeds", [[], [1000, 1000], [9999], [1000.0], [True]])
+def test_invalid_execution_subset_starts_nothing(config, calls, seeds):
+    """Reject invalid or unplanned launch selections without starting workers."""
+    with pytest.raises(ValueError):
+        runner.run_campaign(config, "pacmann_adam", seeds=seeds)
+    assert calls == []
+
+
 def test_later_destination_conflict_prevents_all_workers(config, tmp_path, calls):
     """Reject a conflict at the final selected seed before starting any worker."""
     config["seeds"] = [1000, 1001]
