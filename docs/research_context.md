@@ -89,8 +89,8 @@ and loader checks but has no independent numerical-accuracy certification at
 this viscosity. See the [results](results.md). Nu = 0.05 remains outside the
 campaign scope.
 
-The next prepared development regime is `nu = pi/100` (approximately
-`0.0314159265`). It was selected after inspecting the existing reference
+The retained development protocol at `nu = pi/100` (approximately
+`0.0314159265`) was selected after inspecting the existing reference
 profiles to fill the multiplicative gap in spatial gradients between `0.1`
 and `0.01`. Reuse the N1024 reference from dataset commit `52b9359` unchanged.
 Its measured spatial gradients lie between those cases; basic data and
@@ -98,6 +98,25 @@ constraint checks do not independently certify numerical accuracy. The
 [three-seed sigma sweep](../output/burgers/nu_0p031415927/sigma_0/README.md)
 is prepared with matching viscosity and the shared tuning policy. This does
 not start a new ten-seed evaluation.
+
+The next prepared regime is `nu = 0.001`, extending the study toward a sharper
+front. Use the N4096 working reference transferred unchanged from
+`dataset-validation` checkpoint `41529cb`. N2048–N4096 solution disagreement
+is 0.00964855% relative L2 on a dense common grid, compared with 0.261572%
+for N1024–N2048. This convergence evidence supports the reference choice but
+does not bound absolute error or certify temporal convergence. References may
+use different solver resolutions to resolve different front widths; training
+budgets and within-viscosity evaluation coordinates remain matched.
+The [prepared sweep](../output/burgers/nu_0p001/sigma_0/README.md) retains the
+shared settings and three development seeds. Establish evaluation-grid adequacy
+with planned PACMANN baseline seed 3000 before sigma selection. Compare the same
+saved model on 1,024 and 4,096 spatial evaluation points, keeping the 199 native
+solution times and 200 residual midpoint times unchanged. Retain the current
+grid if both solution relative L2 and residual RMS change by less than 1%
+relative to the finer-grid scores; otherwise stop and review before tuning.
+This bounded check screens spatial sampling for one model, without certifying
+temporal sampling or requiring checks on every tuning model. Revisit only if
+sensitivity appears or conclusions depend on differences of comparable size.
 
 Tune diffusion separately at each viscosity using development seeds, then
 freeze settings before ten-seed comparisons of fixed Hammersley, upstream random
@@ -121,9 +140,10 @@ diffusion. Sharpness and feature-region evaluation remain future work.
   runtime, since equal training schedules do not imply equal computation.
 - In the earlier `nu = 0.01/pi` tuning campaign, sigma zero was an eligible
   candidate and remains the historical comparison rule. For the `nu = 0.01`,
-  `nu = 0.1`, and `nu = pi/100` phases, ordinary PACMANN at sigma zero is a
-  comparison baseline only. Select the positive sigma with the lowest arithmetic mean final solution
-  relative L2 over all three development seeds; exact ties go to the smaller positive sigma,
+  `nu = 0.1`, `nu = pi/100`, and `nu = 0.001` phases, ordinary PACMANN at sigma
+  zero is a comparison baseline only. Select the positive sigma with the lowest
+  arithmetic mean final solution relative L2 over all three development seeds;
+  exact ties go to the smaller positive sigma,
   regardless of whether sigma zero has lower error. If the winner is at either
   positive search boundary, add the approved pair of values two decades beyond
   that side and reselect over all completed positive candidates. Permit at most

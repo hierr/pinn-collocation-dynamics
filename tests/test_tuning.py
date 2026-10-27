@@ -1,12 +1,12 @@
 """Verify matched sweep controls, execution safeguards, and artifact summaries."""
 
 import json
-import math
 
 import pytest
 import yaml
 
 from scripts.post_processing import analyze_burgers
+from scripts.run_experiments import run_burgers_baseline as baseline
 from scripts.run_experiments import run_burgers_campaign as campaign
 from scripts.run_experiments import run_burgers_sigma_tuning as tuning
 from src import train
@@ -40,7 +40,7 @@ def save_completed(configs, root, errors=None):
                 root
                 / "output"
                 / "burgers"
-                / "nu_0p031415927"
+                / "nu_0p001"
                 / config["campaign"]
                 / method
                 / f"seed_{seed}"
@@ -90,9 +90,9 @@ def test_prepared_grid_matches_controlled_template(sweep):
             assert config[field] == template[field]
         for field in ("interior_points", "boundary_points", "initial_points"):
             assert config["problem"][field] == template["problem"][field]
-        assert config["problem"]["viscosity"] == math.pi / 100
+        assert config["problem"]["viscosity"] == 0.001
         assert config["problem"]["reference_path"] == (
-            "data/burgers_dataset/burgers_nu_0p031415927_N1024.npz"
+            "data/burgers_dataset/burgers_nu_0p001_N4096.npz"
         )
         method = next(iter(config["methods"]))
         method_settings = dict(config["methods"][method])
@@ -103,13 +103,42 @@ def test_prepared_grid_matches_controlled_template(sweep):
         config["methods"]["pacmann_diffusion"]["sigma"] for config in sweep[1:]
     ] == [1e-5, 1e-4, 1e-3, 1e-2]
 
+    # Verify that the prepared sweep uses the accepted reference and exact study times.
+    coordinates, reference, fingerprint = load_reference(
+        train.ROOT, sweep[0]["problem"], sweep[0]["evaluation"]["solution_nx"]
+    )
+    assert coordinates.shape == (199 * 1024, 2)
+    assert reference.shape == (199 * 1024, 1)
+    assert coordinates[:, 1].min() == 0.0 and coordinates[:, 1].max() == 0.99
+    assert (
+        fingerprint
+        == "b628305506f4d3fcfc5052c725bfe595fee716bce21e951165a8ce0af85d89de"
+    )
+
+
+def test_baseline_executes_one_seed_without_changing_the_plan(tmp_path, monkeypatch):
+    """Launch only seed 3000 with the full three-seed baseline configuration."""
+    monkeypatch.setattr(campaign, "ROOT", tmp_path)
+    calls = []
+    monkeypatch.setattr(
+        campaign,
+        "run_seed",
+        lambda config, method, seed: calls.append((config, method, seed)),
+    )
+
+    baseline.main()
+
+    assert calls == [(tuning.load_configurations()[0], "pacmann_adam", 3000)]
+    assert calls[0][0]["seeds"] == [3000, 3001, 3002]
+    assert not (tmp_path / "output").exists()
+
 
 def test_preflight_entire_sweep_before_execution(sweep, tmp_path, monkeypatch):
     """Find a final-configuration conflict before launching any training."""
     last = sweep[-1]
     existing = (
         tmp_path
-        / "output/burgers/nu_0p031415927"
+        / "output/burgers/nu_0p001"
         / last["campaign"]
         / "pacmann_diffusion/seed_3002"
     )
@@ -123,9 +152,7 @@ def test_preflight_entire_sweep_before_execution(sweep, tmp_path, monkeypatch):
     with pytest.raises(FileExistsError):
         tuning.run_tuning(sweep)
     assert calls == []
-    assert not (
-        tmp_path / "output/burgers/nu_0p031415927" / sweep[0]["campaign"]
-    ).exists()
+    assert not (tmp_path / "output/burgers/nu_0p001" / sweep[0]["campaign"]).exists()
 
 
 def test_sweep_order(sweep, monkeypatch):
