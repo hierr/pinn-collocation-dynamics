@@ -120,3 +120,52 @@ a general diffusion benefit across viscosities. Per-seed outcomes, search
 history, execution conditions, and provenance are in the campaign README and
 tracked artifacts. Training times reflect three-way GPU concurrency; they are
 not directly comparable with ten-way evaluation timing.
+
+## Diffusion tuning at pi/100
+
+The [π/100 tuning campaign](../output/burgers/nu_0p031415927/sigma_0/README.md)
+completed all 15 planned runs without numerical failures. It used paired seeds
+3000–3002 and the restored N1024 reference, stored at viscosity
+0.031415926535897934. The reference passed structural and loader checks, but
+its numerical accuracy is not independently certified. All runs record source
+revision `cb6c6e8`; all 15 final checkpoints independently reproduced the five
+saved error metrics on CPU.
+
+The positive sigma with the lowest mean final solution relative L2 was selected.
+Exact ties favor the smaller positive value; sigma zero is a comparison baseline
+only. The interior positive winner was **sigma = 1e-4**, so no search expansion
+was required. Solution L2 is reported as percent and paired changes as
+percentage points.
+
+| Sigma | Final solution relative L2, mean ± sample SD (%) | Mean paired change vs. sigma 0 (percentage points) | Improved / 3 | Mean training seconds per run |
+| ---: | ---: | ---: | ---: | ---: |
+| 0 | 0.0135490 ± 0.00717480 | — | — | 3239.2 |
+| 1e-5 | 0.0157212 ± 0.00568930 | +0.00217220 | 1/3 | 3165.9 |
+| **1e-4** | **0.0142509 ± 0.00391486** | **+0.000701916** | **1/3** | 3296.5 |
+| 1e-3 | 0.0169627 ± 0.00251858 | +0.00341373 | 1/3 | 3252.4 |
+| 1e-2 | 0.0327593 ± 0.0102919 | +0.0192103 | 0/3 | 3163.9 |
+
+The sigma-zero baseline had a lower mean solution error than every positive
+candidate. The accepted positive-only rule still selects sigma 1e-4 for
+evaluation. At that setting, mean residual RMS was 0.000968064 ± 0.000112133,
+versus 0.000959376 ± 0.000249007 for sigma zero; the paired residual difference
+was +0.00000868754 ± 0.000154842, with lower residual in one of three seeds.
+Residual was assessed at the solution-selected sigma and did not select a
+different setting.
+
+Each run used 35,000 Adam steps. Mean ± sample SD observed L-BFGS iterations and
+function evaluations per run were:
+
+| Sigma | L-BFGS iterations | L-BFGS function evaluations |
+| ---: | ---: | ---: |
+| 0 | 16891 ± 656.2 | 27411.7 ± 2907.3 |
+| 1e-5 | 16463 ± 482.6 | 26983.7 ± 1371.1 |
+| **1e-4** | **17101.7 ± 486.1** | **28792 ± 2102.0** |
+| 1e-3 | 16828 ± 581.7 | 27838.3 ± 1712.9 |
+| 1e-2 | 16368 ± 83.1 | 27014 ± 2628.0 |
+
+Training times include compilation and training, exclude post-processing, and
+reflect three concurrent seeds on one RTX 5070 using float64. The small
+development sample does not establish held-out performance, a general
+diffusion benefit, or a sharpness effect. The selected setting is frozen for
+the separate ten-seed evaluation on new seeds after transfer to `main`.
