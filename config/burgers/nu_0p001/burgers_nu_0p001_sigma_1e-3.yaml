@@ -11,7 +11,7 @@ problem:
   initial_points: 160
 network:
   layers: [2, 64, 64, 64, 64, 1]
-# Provisional evaluation grid; check adequacy before selecting sigma.
+# Evaluation density retained after the baseline spatial-grid check.
 evaluation:
   solution_nx: 1024
   residual_nx: 1024

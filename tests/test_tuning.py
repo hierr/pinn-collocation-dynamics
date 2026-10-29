@@ -15,8 +15,12 @@ from src.burgers import load_reference
 
 @pytest.fixture
 def sweep(tmp_path, monkeypatch):
-    """Use the actual tuning YAMLs and disposable output destinations."""
-    configs = tuning.load_configurations()
+    """Use the initial five tuning YAMLs and disposable output destinations."""
+    configs = [
+        config
+        for config in tuning.load_configurations()
+        if config["campaign"] not in ("sigma_1e-7", "sigma_1e-6")
+    ]
     monkeypatch.setattr(tuning, "ROOT", tmp_path)
     monkeypatch.setattr(campaign, "ROOT", tmp_path)
     return configs
@@ -73,6 +77,15 @@ def save_completed(configs, root, errors=None):
             (run / "diagnostics.png").write_bytes(b"test figure")
             paths.append(run)
     return paths
+
+
+def test_expanded_grid_keeps_matched_controls():
+    """Include the approved lower decades without changing paired-run controls."""
+    configs = tuning.load_configurations()
+    tuning.check_tuning_configs(configs)
+    assert [
+        config["methods"]["pacmann_diffusion"]["sigma"] for config in configs[1:]
+    ] == [1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2]
 
 
 def test_prepared_grid_matches_controlled_template(sweep):

@@ -107,7 +107,7 @@ a general diffusion benefit. Freeze `sigma = 1e-4` for the separate ten-seed
 evaluation on seeds 4000–4009 after transferring the setting to `main`; see
 the [selection results](results.md#diffusion-tuning-at-pi100).
 
-The next prepared regime is `nu = 0.001`, extending the study toward a sharper
+The `nu = 0.001` regime extends the study toward a sharper
 front. Use the N4096 working reference transferred unchanged from
 `dataset-validation` checkpoint `41529cb`. N2048–N4096 solution disagreement
 is 0.00964855% relative L2 on a dense common grid, compared with 0.261572%
@@ -115,21 +115,24 @@ for N1024–N2048. This convergence evidence supports the reference choice but
 does not bound absolute error or certify temporal convergence. References may
 use different solver resolutions to resolve different front widths; training
 budgets and within-viscosity evaluation coordinates remain matched.
-The [prepared sweep](../output/burgers/nu_0p001/sigma_0/README.md) retains the
-shared settings and three development seeds. Establish evaluation-grid adequacy
-with planned PACMANN baseline seed 3000 before sigma selection. Compare the same
-saved model on 1,024 and 4,096 spatial evaluation points, keeping the 199 native
-solution times and 200 residual midpoint times unchanged. Retain the current
-grid if both solution relative L2 and residual RMS change by less than 1%
-relative to the finer-grid scores. If either fails, the approved autonomous
-fallback checks 4,096 against 8,192 and then 8,192
-against 16,384 spatial points, selecting the first coarser grid passing both
-metrics. If no comparison passes, tuning remains blocked pending review.
-When density changes, retain the baseline's original evaluation and rescore its
-fixed weights before completing the remaining tuning runs on the chosen grid.
-This bounded check screens spatial sampling for one model, without certifying
-temporal sampling or requiring checks on every tuning model. Revisit only if
+The [completed sweep](../output/burgers/nu_0p001/sigma_0/README.md) retained the
+shared training settings and paired development seeds 3000–3002. Its baseline
+spatial-grid check supported retaining 1,024 points: refining to 4,096 changed
+solution relative L2 by 0.005708% and residual RMS by 0.051008%, both below the
+predeclared 1% relative threshold. The 199 native solution times and 200 residual
+midpoint times remained unchanged. This one-model check screens spatial sampling,
+without certifying temporal sampling or every trained model; revisit only if
 sensitivity appears or conclusions depend on differences of comparable size.
+
+All 21 runs completed: ordinary PACMANN and six positive sigma settings, including
+one lower-boundary expansion. Freeze **sigma = 1e-6**, the interior positive
+candidate with the lowest mean final solution relative L2, for a separate
+ten-seed evaluation on seeds 4000–4009. No further expansion is required.
+Ordinary PACMANN had lower mean solution and residual error on these development
+seeds, and outcomes were highly variable. The positive-only selection rule does
+not require a development improvement over sigma zero. Assess residual error at
+the same selected sigma; see [results](results.md). The ten-seed campaign at this
+viscosity has not started.
 
 Tune diffusion separately at each viscosity using development seeds, then
 freeze settings before ten-seed comparisons of fixed Hammersley, upstream random

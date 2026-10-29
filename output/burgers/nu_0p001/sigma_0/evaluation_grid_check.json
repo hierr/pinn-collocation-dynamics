@@ -1,0 +1,22 @@
+{
+  "dataset_sha256": "b628305506f4d3fcfc5052c725bfe595fee716bce21e951165a8ce0af85d89de",
+  "solution_nt": 199,
+  "residual_nt": 200,
+  "tolerance_percent": 1.0,
+  "selected_spatial_points": 1024,
+  "scores": [
+    {
+      "spatial_points": 1024,
+      "solution_relative_l2": 0.12378994272748914,
+      "residual_rms": 0.7843892366278834
+    },
+    {
+      "spatial_points": 4096,
+      "solution_relative_l2": 0.12378287691697022,
+      "residual_rms": 0.784789542628168,
+      "solution_relative_l2_change_percent": 0.005708229356840644,
+      "residual_rms_change_percent": 0.05100807013101179
+    }
+  ],
+  "training_revision": "ddac4705b14e72c0cf9eeb122affcd438b719110"
+}

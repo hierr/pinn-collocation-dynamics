@@ -10,10 +10,12 @@ from scripts.run_experiments import run_burgers_campaign as campaign
 from src.train import ROOT
 
 # Select execution here. Summarization never launches training or writes artifacts.
-ACTION = "summarize"  # Freeze the nu=0.001 evaluation grid before launching the sweep.
+ACTION = "summarize"  # Completed candidates are retained; launch expansions separately.
 BASELINE_SEEDS = [3001, 3002]  # Seed 3000 runs separately before the grid check.
 CONFIG_PATHS = [
     ROOT / "config/burgers/nu_0p001/burgers_nu_0p001_sigma_0.yaml",
+    ROOT / "config/burgers/nu_0p001/burgers_nu_0p001_sigma_1e-7.yaml",
+    ROOT / "config/burgers/nu_0p001/burgers_nu_0p001_sigma_1e-6.yaml",
     ROOT / "config/burgers/nu_0p001/burgers_nu_0p001_sigma_1e-5.yaml",
     ROOT / "config/burgers/nu_0p001/burgers_nu_0p001_sigma_1e-4.yaml",
     ROOT / "config/burgers/nu_0p001/burgers_nu_0p001_sigma_1e-3.yaml",

@@ -169,3 +169,49 @@ reflect three concurrent seeds on one RTX 5070 using float64. The small
 development sample does not establish held-out performance, a general
 diffusion benefit, or a sharpness effect. The selected setting is frozen for
 the separate ten-seed evaluation on new seeds after transfer to `main`.
+
+## Diffusion tuning at ν = 0.001
+
+The [ν = 0.001 tuning campaign](../output/burgers/nu_0p001/sigma_0/README.md)
+completed all 21 planned runs without reported execution failures: ordinary
+PACMANN and six positive coefficients on paired development seeds 3000–3002.
+The initial boundary winner, `sigma = 1e-5`, triggered the approved expansion
+to `1e-7` and `1e-6`. All outcomes are retained.
+
+The N4096 working reference has N2048–N4096 solution disagreement of 0.00964855%
+relative L2; this is refinement evidence, not an absolute error bound. The
+baseline spatial-grid check supported the common 1,024-by-199 solution grid
+and 1,024-by-200 residual midpoint grid. All 21 restored final checkpoints
+reproduced their saved predictions and five error metrics. Reference and
+evaluation limitations are recorded in the campaign README.
+
+| Sigma | Final solution relative L2, mean ± sample SD (%) | Mean paired change vs. sigma 0 (percentage points) | Improved / 3 |
+| ---: | ---: | ---: | ---: |
+| 0 | 41.75898 ± 28.78297 | — | — |
+| 1e-7 | 59.98023 ± 17.72189 | +18.22125 | 0/3 |
+| **1e-6** | **44.16674 ± 36.08290** | **+2.40776** | **1/3** |
+| 1e-5 | 54.57271 ± 20.69209 | +12.81373 | 1/3 |
+| 1e-4 | 70.95560 ± 18.66465 | +29.19662 | 0/3 |
+| 1e-3 | 62.27386 ± 17.67351 | +20.51488 | 1/3 |
+| 1e-2 | 58.15774 ± 14.10763 | +16.39876 | 0/3 |
+
+Freeze **sigma = 1e-6** under the predeclared positive-only rule. It is interior
+among tested positive values, so no further expansion is required. Sigma zero
+had lower mean solution error than every positive candidate. At the selected
+setting, individual solution errors were 78.27303%, 47.83910%, and 6.38810%;
+the improvement is confined to seed 3002 and does not establish a diffusion
+benefit. These are large and highly variable errors under the fixed training
+budget, despite successful execution and reproducible scoring.
+
+Residual error was assessed at the same solution-selected setting:
+
+| Sigma | Final PDE-residual RMS, mean ± sample SD | Mean paired change vs. sigma 0 | Improved / 3 |
+| ---: | ---: | ---: | ---: |
+| 0 | 2.931608 ± 2.791394 | — | — |
+| **1e-6** | **2.949592 ± 1.737246** | **+0.017983** | **1/3** |
+
+Mean residual RMS was also slightly higher at the selected coefficient, with
+lower residual only in seed 3002. The three-seed selection sample does not
+establish held-out performance or a sharpness effect. Full per-seed outcomes,
+optimizer work, and concurrency conditions are in the campaign README and
+artifacts. The separate ten-seed evaluation has not started.
