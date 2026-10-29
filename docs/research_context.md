@@ -163,9 +163,14 @@ refining to 4,096 changed solution relative L2 by 0.005708% and residual RMS by
 0.051008%, below the predeclared 1% relative threshold. The 199 native solution
 times and 200 residual midpoint times remain unchanged. This one-model check
 does not certify temporal resolution or every trained model. The
-[prepared ten-seed protocol](../output/burgers/nu_0p001/burgers_nu_0p001_10seed/README.md)
-uses held-out seeds 4000–4009 and all five methods at the frozen settings;
-execution has not started.
+[completed ten-seed evaluation](../output/burgers/nu_0p001/burgers_nu_0p001_10seed/README.md)
+retains all 50 runs on held-out seeds 4000–4009. Under the shared fixed training
+budget, all methods have large global solution errors. Random resampling has
+the lowest mean solution and residual errors; diffusion raises both means
+relative to ordinary PACMANN. See the [evaluation results](results.md#frozen-evaluation-at-nu-0001).
+These global outcomes do not establish a sharpness benefit or resolve the
+unmeasured feature-region question. Retain the outcomes and limitations without
+retuning on evaluation seeds.
 
 This design tests performance after local tuning at each viscosity. It does not
 test transfer of one fixed sigma across the range. Disclose tuning costs and
@@ -235,11 +240,11 @@ Regime labels are relative to this comparison. Viscosity also changes amplitude
 and temporal evolution, so performance differences across these cases cannot be
 attributed solely to sharpness.
 
-The four viscosities define the current coverage and stopping point for viscosity
-selection. Keep `nu = 0.05` outside the core comparison. Treat `nu = 0.001` as an
-optional sharper extension after a separate reference-convergence check within
-an agreed computational budget. Additional viscosities require a specific
-coverage objective and protocol approval.
+The four-reference characterization above retains its original scope. The
+approved sharper extension at `nu = 0.001` has separate reference-refinement
+evidence and a completed frozen evaluation, giving five tested viscosities.
+Keep `nu = 0.05` outside the core comparison. Further viscosity selection
+requires a specific coverage objective and protocol approval.
 
 Reproduce the table's numerical descriptors and both figures from the repository
 root using the [documented environment](../README.md#setup-and-execution):

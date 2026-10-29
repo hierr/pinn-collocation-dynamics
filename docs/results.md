@@ -561,5 +561,69 @@ The unchanged N4096 reference has N2048–N4096 solution disagreement of
 certification. The development baseline's spatial-grid check supported retaining
 the shared 1,024-by-199 solution grid and 1,024-by-200 residual midpoint grid.
 The [separate ten-seed campaign](../output/burgers/nu_0p001/burgers_nu_0p001_10seed/README.md)
-is prepared with frozen settings and new seeds; no evaluation outcomes are
-available yet.
+completed all 50 runs at the frozen settings on new seeds; its outcomes follow.
+
+## Frozen evaluation at nu 0.001
+
+The [five-method campaign](../output/burgers/nu_0p001/burgers_nu_0p001_10seed/README.md)
+completed all 50 planned runs on paired seeds 4000–4009, using the N4096 working
+reference and frozen **sigma = 1e-6**. All runs record source revision
+`5a1844b`, the same pinned dependency versions, CUDA execution, and the accepted
+reference fingerprint. All saved outcomes are finite, with no reported
+execution failures. Restoring all final checkpoints reproduced saved predictions
+exactly and the five saved error metrics within `1e-12 + 1e-10 * abs(saved)`.
+Initial point designs match across methods for each seed, constraints stay
+fixed, and physics points remain fixed during L-BFGS.
+
+Primary summaries retain all ten seeds and use mean ± sample SD. Solution L2
+is percent; residual RMS is unnormalized. Supplementary 10% trimmed means remove
+one minimum and one maximum independently for each error metric.
+
+| Method | Completed seeds | Solution L2 (%) | Trimmed solution L2 (%) | Residual RMS | Trimmed residual RMS | Training seconds |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Fixed Hammersley | 10/10 | 51.03469 ± 16.17762 | 49.59366 | 3.778311 ± 1.206309 | 3.690066 | 8800.7 ± 7.2 |
+| Random resampling | 10/10 | 42.21336 ± 22.60381 | 40.59296 | 2.881772 ± 2.353171 | 2.425556 | 8767.8 ± 18.5 |
+| RAD | 10/10 | 56.13778 ± 21.71956 | 56.79151 | 3.384161 ± 2.249354 | 3.193564 | 9050.1 ± 12.0 |
+| PACMANN | 10/10 | 49.13478 ± 22.87606 | 49.30347 | 3.520678 ± 1.770670 | 3.234714 | 9069.3 ± 12.6 |
+| PACMANN + diffusion, sigma 1e-6 | 10/10 | 60.68995 ± 22.40796 | 62.92386 | 4.861444 ± 2.652718 | 4.493992 | 9060.9 ± 10.8 |
+
+Paired differences are first method minus second over the same ten seeds;
+negative values favor the first method. Solution differences are percentage
+points; residual differences retain RMS units. Counts are improved / tied /
+worse. All ten pairs are retained.
+
+| Contrast | Solution difference (pp), mean ± sample SD | Improved / tied / worse | Residual difference, mean ± sample SD | Improved / tied / worse |
+| --- | ---: | ---: | ---: | ---: |
+| PACMANN + diffusion − PACMANN | +11.555165 ± 34.604971 | 4 / 0 / 6 | +1.340766 ± 3.454162 | 2 / 0 / 8 |
+| RAD − Fixed Hammersley | +5.103084 ± 24.884789 | 3 / 0 / 7 | -0.394151 ± 2.738495 | 6 / 0 / 4 |
+| PACMANN − Fixed Hammersley | -1.899914 ± 26.011056 | 5 / 0 / 5 | -0.257634 ± 1.770047 | 6 / 0 / 4 |
+| PACMANN + diffusion − Fixed Hammersley | +9.655251 ± 33.975815 | 3 / 0 / 7 | +1.083132 ± 3.383954 | 2 / 0 / 8 |
+| RAD − Random resampling | +13.924422 ± 26.254978 | 3 / 0 / 7 | +0.502389 ± 2.801648 | 5 / 0 / 5 |
+| PACMANN − Random resampling | +6.921424 ± 29.624584 | 4 / 0 / 6 | +0.638906 ± 2.665429 | 3 / 0 / 7 |
+| PACMANN + diffusion − Random resampling | +18.476589 ± 34.931055 | 3 / 0 / 7 | +1.979672 ± 3.857726 | 3 / 0 / 7 |
+
+Random resampling has the lowest mean and trimmed-mean error for both outcomes.
+PACMANN has slightly lower mean solution and residual errors than fixed
+Hammersley, but solution improvements occur in only five of ten pairs and the
+paired variability is large. All solution relative L2 errors range from
+10.48282% to 93.02576%, indicating poor solution accuracy across methods under
+the unchanged training budget. No tested adaptive method improves on random
+resampling's mean or trimmed-mean global errors in this batch.
+
+At the development-selected sigma, diffusion raises PACMANN's mean solution
+error from 49.13478% to 60.68995% and residual RMS from 3.520678 to 4.861444.
+It lowers solution error in four of ten seeds and residual error in two.
+These held-out outcomes do not support a diffusion improvement at this setting.
+All runs completed 35,000 Adam steps. L-BFGS iterations total 15,000 per run
+except random-resampling seed 4004, which completed 15,986. Full per-seed scores,
+constraint errors, and actual optimizer work are in the campaign README and
+artifacts. Timing uses ten concurrent seeds per method on one RTX 5070 (12 GB),
+float64, and one numerical CPU thread per worker; method batches run sequentially.
+
+The N2048–N4096 solution disagreement supports the working reference without
+bounding absolute error or certifying temporal convergence. The baseline
+spatial-grid check covers one model; feature-region errors have not been
+assessed. Results concern this viscosity, fixed training budget, and per-viscosity
+tuning policy. They do not isolate sharpness as a cause of method differences.
+Existing cross-regime figures retain their declared inputs; this campaign is
+reported separately here.

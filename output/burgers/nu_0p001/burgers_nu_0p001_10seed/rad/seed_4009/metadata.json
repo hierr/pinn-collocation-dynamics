@@ -1,0 +1,13 @@
+{
+  "revision": "5a1844bfa9ddb51a49efcb0910bda6838347b523",
+  "versions": {
+    "deepxde": "1.14.0",
+    "torch": "2.7.1+cu128",
+    "numpy": "2.3.1",
+    "scipy": "1.16.0",
+    "matplotlib": "3.10.3",
+    "PyYAML": "6.0.2"
+  },
+  "dataset_sha256": "b628305506f4d3fcfc5052c725bfe595fee716bce21e951165a8ce0af85d89de",
+  "device": "cuda:0"
+}
