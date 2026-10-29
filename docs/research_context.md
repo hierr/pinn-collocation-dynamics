@@ -115,8 +115,9 @@ The `nu = 0.05` reference has no approved PINN campaign.
 ## Parameterized sharpness study
 
 The core Burgers comparison uses viscosities `0.1`, `pi/100`, `0.01`, and
-`0.01/pi` to span relatively smooth through sharply varying solutions within
-this study. Tune diffusion separately at each viscosity with development seeds,
+`0.01/pi`, with an approved sharper extension at `0.001`, to span relatively
+smooth through sharply varying solutions within this study. Tune diffusion
+separately at each viscosity with development seeds,
 then freeze settings before ten-seed comparisons of fixed Hammersley, upstream
 random resampling, RAD, PACMANN, and PACMANN with diffusion. Retain the reference
 accuracy limitations described above. Other PDE families can follow later.
@@ -140,14 +141,40 @@ solution and residual errors. Diffusion lowered PACMANN's mean solution error
 but raised its mean residual; see the
 [evaluation results](results.md#frozen-evaluation-at-pi100).
 
+The `nu = 0.001` extension uses the N4096 working reference accepted at
+`dataset-validation` checkpoint `41529cb`. N2048–N4096 solution disagreement
+is 0.00964855% relative L2 on a dense common grid. This supports the reference
+choice without bounding absolute error or certifying temporal convergence.
+Different reference resolutions resolve different front widths without
+changing training budgets; all methods within a viscosity share the same
+reference and evaluation coordinates.
+
+The completed 21-run development sweep on seeds 3000–3002 selected positive
+**sigma = 1e-6**, including one lower-boundary expansion. This value is interior
+among tested positive candidates, so no further expansion is required. Sigma
+zero had lower mean solution and residual error, with large seed variability;
+the positive-only rule still selects `1e-6` for the diffusion ablation. The
+accepted decision and reference are transferred from `hyperparameter-tuning`
+checkpoint `56ea078`; full tuning artifacts remain on that branch. See the
+[selection result](results.md#diffusion-selection-at-nu-0001).
+
+The development baseline's spatial-grid check supported retaining 1,024 points:
+refining to 4,096 changed solution relative L2 by 0.005708% and residual RMS by
+0.051008%, below the predeclared 1% relative threshold. The 199 native solution
+times and 200 residual midpoint times remain unchanged. This one-model check
+does not certify temporal resolution or every trained model. The
+[prepared ten-seed protocol](../output/burgers/nu_0p001/burgers_nu_0p001_10seed/README.md)
+uses held-out seeds 4000–4009 and all five methods at the frozen settings;
+execution has not started.
+
 This design tests performance after local tuning at each viscosity. It does not
 test transfer of one fixed sigma across the range. Disclose tuning costs and
 apply a fair tuning policy for competing methods. A ranking at one viscosity
 alone does not answer how relative benefit changes with sharpness.
 
-The four campaign protocols fix the viscosities, tuning decisions, evaluation
-seeds, point populations, and training budgets. The `pi/100` protocol retains
-those controls with the development-selected diffusion coefficient frozen.
+The five campaign protocols fix the viscosities, tuning decisions, evaluation
+seeds, point populations, and training budgets. Each later protocol retains
+those controls with its development-selected diffusion coefficient frozen.
 The controlled study matches interior PDE populations and fixed constraints
 across methods, while retaining
 the shared upstream optimizer schedule and its L-BFGS stopping behavior.
@@ -317,7 +344,7 @@ frozen global evaluation or model-selection rules.
   relative. Recheck resolution for sharper regimes.
 - Complete feature-region definitions and the cross-regime analysis before
   making broader sharpness claims. Retain reference-accuracy limitations and
-  seek approval for extensions beyond the four selected viscosities. Negative or
+  seek approval for extensions beyond the five selected viscosities. Negative or
   uncertain outcomes remain valid results within the tested scope.
 
 ## Supporting references

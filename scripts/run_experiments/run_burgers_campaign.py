@@ -10,7 +10,7 @@ from scripts.post_processing.analyze_burgers import analyze_run
 from src.train import ROOT, run_training
 
 # Select the batch order here; the full scientific protocol remains in YAML.
-CONFIG_PATH = ROOT / "config/burgers_nu_0p031415927_10seed.yaml"
+CONFIG_PATH = ROOT / "config/burgers_nu_0p001_10seed.yaml"
 METHODS = [
     "fixed_hammersley",
     "random_resampling",
@@ -62,8 +62,17 @@ def check_campaign(config: dict, method: str):
         )
 
     # Other methods can already be complete; reject conflicts only for this launch.
+    nu_tag = f"{config['problem']['viscosity']:.8g}".replace(".", "p")
     for seed in seeds:
-        run_dir = ROOT / "output" / "burgers" / campaign / method / f"seed_{seed}"
+        run_dir = (
+            ROOT
+            / "output"
+            / "burgers"
+            / f"nu_{nu_tag}"
+            / campaign
+            / method
+            / f"seed_{seed}"
+        )
         if run_dir.exists():
             raise FileExistsError(f"Run already exists: {run_dir}")
 

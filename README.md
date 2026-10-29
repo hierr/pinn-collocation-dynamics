@@ -37,6 +37,12 @@ development-selected `sigma=1e-4`; see its
 [evaluation results](docs/results.md#frozen-evaluation-at-pi100).
 Development campaigns remain on `hyperparameter-tuning`.
 
+The sharper [nu = 0.001 campaign](output/burgers/nu_0p001/burgers_nu_0p001_10seed/README.md)
+is prepared for 50 runs using the accepted N4096 reference and separately
+selected **sigma = 1e-6**, from tuning checkpoint `56ea078`. It retains the
+shared training budgets and evaluation grids. No evaluation runs at this
+viscosity have started.
+
 ## Structure
 
 ```text
@@ -89,7 +95,10 @@ the sequence after its other workers finish. Set `METHODS` to a single-entry
 list when a pause for review is needed after that method.
 All five methods remain in the frozen YAML and its
 archived copies; each run records its actual `selected_method` and `selected_seed`.
-Existing evaluation destinations are occupied. For a new repetition, copy the
+The runner currently selects the prepared `nu = 0.001` configuration. Its 50
+destinations are unused. Earlier campaigns remain at their archived paths;
+new runs use `output/burgers/nu_<viscosity>/<campaign>/`.
+For a new repetition, copy the
 campaign YAML with a new `campaign` identifier, keep its scientific settings,
 and select that copy and the desired methods in the runner.
 For future campaigns,

@@ -528,3 +528,38 @@ contain the individual scores and aggregates; `paired_seed_ratios.csv` and
 `paired_summary.csv` retain the same-seed contrasts; `physical_time_errors.csv`
 contains per-time relative L2 (%) and absolute RMSE. Solution differences in
 the paired summary are percentage points; residual differences retain RMS units.
+
+## Diffusion selection at nu 0.001
+
+The completed development campaign on `hyperparameter-tuning` is retained at
+checkpoint `56ea078665bb85d73a5d02f26b83b366df7ca570`, under
+`output/burgers/nu_0p001/sigma_*/`. All 21 runs completed: ordinary PACMANN and
+six positive coefficients, each on paired development seeds 3000–3002.
+The initial lower-boundary winner triggered one approved expansion to `1e-7`
+and `1e-6`. The interior positive winner is **sigma = 1e-6**; no further
+expansion is required. All 21 restored final checkpoints reproduced saved
+predictions and the five solution, residual, and constraint error metrics.
+
+The selected coefficient has the lowest arithmetic mean final solution error
+among positive candidates; sigma zero is a comparison baseline only. At that
+setting, solution relative L2 values were 78.27303%, 47.83910%, and 6.38810%.
+Only seed 3002 improves over ordinary PACMANN on solution and residual error.
+
+| Setting | Final solution relative L2, mean ± sample SD (%) | Final PDE-residual RMS, mean ± sample SD |
+| --- | ---: | ---: |
+| PACMANN, sigma 0 | 41.75898 ± 28.78297 | 2.931608 ± 2.791394 |
+| PACMANN + diffusion, **sigma 1e-6** | **44.16674 ± 36.08290** | **2.949592 ± 1.737246** |
+
+The paired mean solution change is +2.40776 percentage points (sample SD
+64.74006); residual-RMS change is +0.017983 (sample SD 4.489610). Both means
+are higher at the selected coefficient. Large errors and variability under
+the fixed training budget remain valid development outcomes; these selection
+results do not establish a held-out diffusion benefit or a sharpness effect.
+
+The unchanged N4096 reference has N2048–N4096 solution disagreement of
+0.00964855% relative L2, without an absolute error bound or temporal-convergence
+certification. The development baseline's spatial-grid check supported retaining
+the shared 1,024-by-199 solution grid and 1,024-by-200 residual midpoint grid.
+The [separate ten-seed campaign](../output/burgers/nu_0p001/burgers_nu_0p001_10seed/README.md)
+is prepared with frozen settings and new seeds; no evaluation outcomes are
+available yet.

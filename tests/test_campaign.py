@@ -15,6 +15,44 @@ from src import train
 from src.burgers import load_reference
 
 
+def test_frozen_nu001_protocol_matches_accepted_controls(tmp_path, monkeypatch):
+    """Keep the sharper-regime campaign matched to the preceding frozen comparison."""
+    path = runner.ROOT / "config/burgers_nu_0p001_10seed.yaml"
+    config = yaml.safe_load(path.read_text())
+    previous = yaml.safe_load(
+        (runner.ROOT / "config/burgers_nu_0p031415927_10seed.yaml").read_text()
+    )
+    assert config["seeds"] == list(range(4000, 4010))
+    assert config["problem"] == dict(
+        previous["problem"],
+        viscosity=0.001,
+        reference_path="data/burgers_dataset/burgers_nu_0p001_N4096.npz",
+    )
+    for field in ("network", "training", "evaluation"):
+        assert config[field] == previous[field]
+    expected_methods = dict(previous["methods"])
+    expected_methods["pacmann_diffusion"] = dict(
+        expected_methods["pacmann_diffusion"], sigma=1e-6
+    )
+    assert config["methods"] == expected_methods
+
+    coordinates, reference, fingerprint = load_reference(
+        runner.ROOT, config["problem"], config["evaluation"]["solution_nx"]
+    )
+    assert coordinates.shape == (199 * 1024, 2)
+    assert reference.shape == (199 * 1024, 1)
+    assert (
+        fingerprint
+        == "b628305506f4d3fcfc5052c725bfe595fee716bce21e951165a8ce0af85d89de"
+    )
+
+    # Exercise all 50 destination checks without creating outputs or workers.
+    monkeypatch.setattr(runner, "ROOT", tmp_path)
+    for method in config["methods"]:
+        runner.check_campaign(config, method)
+    assert not (tmp_path / "output").exists()
+
+
 @pytest.fixture
 def calls(tmp_path, monkeypatch):
     """Record launch order and execute mocked workers when their processes join."""
@@ -117,7 +155,10 @@ def test_later_method_conflict_prevents_entire_sequence(
     monkeypatch.setattr(runner, "CONFIG_PATH", config_path)
     monkeypatch.setattr(runner, "METHODS", ["pacmann_adam", "fixed_hammersley"])
     existing = (
-        tmp_path / "output/burgers" / config["campaign"] / "fixed_hammersley/seed_1000"
+        tmp_path
+        / "output/burgers/nu_0p0031830989"
+        / config["campaign"]
+        / "fixed_hammersley/seed_1000"
     )
     existing.mkdir(parents=True)
     with pytest.raises(FileExistsError, match="Run already exists"):
@@ -149,7 +190,10 @@ def test_failed_method_prevents_next_batch(config, tmp_path, monkeypatch, calls)
 def test_other_methods_and_unused_destinations_are_allowed(config, tmp_path, calls):
     """Keep other methods and earlier seeds untouched when selecting a new batch."""
     previous = (
-        tmp_path / "output/burgers" / config["campaign"] / "pacmann_adam/seed_1000"
+        tmp_path
+        / "output/burgers/nu_0p0031830989"
+        / config["campaign"]
+        / "pacmann_adam/seed_1000"
     )
     previous.mkdir(parents=True)
     marker = previous / "run.log"
@@ -163,7 +207,10 @@ def test_later_destination_conflict_prevents_all_workers(config, tmp_path, calls
     """Reject a conflict at the final selected seed before starting any worker."""
     config["seeds"] = [1000, 1001]
     existing = (
-        tmp_path / "output/burgers" / config["campaign"] / "pacmann_adam/seed_1001"
+        tmp_path
+        / "output/burgers/nu_0p0031830989"
+        / config["campaign"]
+        / "pacmann_adam/seed_1001"
     )
     existing.mkdir(parents=True)
     marker = existing / "run.log"
@@ -349,7 +396,11 @@ def test_workers_generate_training_and_diagnostics(
     for method in config["methods"]:
         runner.run_seed(config, method, 1000)
         run = (
-            tmp_path / "output" / "burgers" / config["campaign"] / method / "seed_1000"
+            tmp_path
+            / "output/burgers/nu_0p0031830989"
+            / config["campaign"]
+            / method
+            / "seed_1000"
         )
         assert json.loads((run / "status.json").read_text()) == {"status": "complete"}
         metrics = json.loads((run / "metrics.json").read_text())

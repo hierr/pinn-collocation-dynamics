@@ -7,7 +7,7 @@ artifacts and [results](results.md); this dictionary explains how to read the fi
 ## Directory layout and experiment links
 
 ```text
-output/<problem>/<campaign>/
+output/burgers/nu_<viscosity>/<campaign>/
   README.md
   <method>/seed_<seed>/
     config.yaml
@@ -26,6 +26,12 @@ output/<problem>/<campaign>/
     diagnostics.json
     diagnostics.png
 ```
+
+New Burgers campaigns use the viscosity level, for example
+`output/burgers/nu_0p001/burgers_nu_0p001_10seed/`. Earlier completed campaigns
+remain under `output/burgers/<campaign>/`; their archived paths and files are
+unchanged. Viscosity directory tags use eight significant digits with `p`
+replacing the decimal point.
 
 Each scientific campaign has a concise, objective `README.md` with its execution
 instructions and reasoning not captured by configurations or artifacts. Link to
