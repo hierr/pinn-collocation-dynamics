@@ -161,14 +161,17 @@ venv/bin/python -m scripts.analysis.plot_burgers_final_collocation
 The script reads saved points and reference values without training or inference
 and writes `docs/figures/burgers_final_collocation.png`.
 
-To reproduce the accepted three-regime comparison from saved final artifacts:
+To reproduce the accepted five-regime comparison from saved final artifacts:
 
 ```bash
 venv/bin/python -m scripts.analysis.burgers_regime_comparison
 ```
 
-The script reads the fixed campaign snapshot `741c19b` from Git. It writes four
-figures under `docs/figures/burgers_regime_comparison/` and regenerable CSV tables
-under `output/burgers/regime_comparison/`. Figures are tracked; derived tables
-are ignored. No training or new inference is required. See the
-[comparison and interpretation](docs/results.md#comparison-across-three-burgers-regimes).
+The script reads all 250 runs from the fixed campaign snapshot `4562077` in Git.
+It writes four complete figures under `docs/figures/burgers_regime_comparison/`,
+four-viscosity slide selections under
+`docs/presentation/figures/burgers_regime_comparison/`, and regenerable CSV tables
+under `output/burgers/regime_comparison/`. The slide selection currently omits
+`pi/100`; the full analysis retains it. Figures are tracked; derived tables are
+ignored. No training or new inference is required. See the
+[comparison and interpretation](docs/results.md#comparison-across-five-burgers-regimes).

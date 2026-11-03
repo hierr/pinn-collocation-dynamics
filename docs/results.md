@@ -425,35 +425,55 @@ float64, and one numerical CPU thread per worker. Method batches run
 sequentially; timings include compilation and training and exclude final
 evaluation. These results concern a generated reference at one viscosity after
 per-viscosity diffusion tuning. They do not isolate sharpness as the cause of
-method differences. The accepted three-regime figures below retain their
-original scope and input snapshot; this campaign is reported separately here.
+method differences. This campaign is included in the cross-regime comparison
+below.
 
-## Comparison across three Burgers regimes
+## Comparison across five Burgers regimes
 
-This post hoc comparison uses all 150 final models from the completed campaigns
-at `nu = 0.1`, `0.01`, and `0.01/pi`. The
-[analysis script](../scripts/analysis/burgers_regime_comparison.py), transferred
-from `analysis` commit `2f8af94`, reads the fixed campaign snapshot `741c19b`.
+This post hoc comparison uses all 250 final models from the completed campaigns
+at `nu = 0.1`, `pi/100`, `0.01`, `0.01/pi`, and `0.001`. The
+[analysis script](../scripts/analysis/burgers_regime_comparison.py), originally
+transferred from `analysis` commit `2f8af94`, now reads the fixed campaign snapshot
+`4562077`.
 Solution scores recomputed from saved predictions match the archived final
 scores; residual RMS values are the archived independent-grid evaluations.
-No new training or inference is performed. The intermediate `pi/100` case is
-outside this three-regime comparison.
+No new training or inference is performed. All planned seeds remain in the
+comparison, including large-error outcomes.
 
 ![Final solution and residual errors for every planned seed](figures/burgers_regime_comparison/final_errors.png)
 
-Full-seed arithmetic means remain the primary summaries. Random resampling has
-the lowest mean solution error at `nu=0.1`, fixed Hammersley at `nu=0.01`, and
-RAD at `nu=0.01/pi`; RAD has the lowest mean residual RMS in all three cases.
-At the sharpest case, PACMANN has the lowest median solution error (0.05659%,
+Full-seed arithmetic means remain the primary summaries. The lowest observed
+means are listed below; these rankings do not imply statistical significance.
+Per-method means, sample SDs, and trimmed means remain in the campaign sections.
+
+| Viscosity | Lowest mean solution L2: method | Solution L2 (%) | Lowest mean residual RMS: method | Residual RMS |
+| --- | --- | ---: | --- | ---: |
+| 0.1 | Random resampling | 0.01250 | RAD | 0.0005411 |
+| pi/100 | Fixed Hammersley | 0.009627 | Fixed Hammersley | 0.0006763 |
+| 0.01 | Fixed Hammersley | 0.01156 | RAD | 0.0008902 |
+| 0.01/pi | RAD | 0.4250 | RAD | 0.01489 |
+| 0.001 | Random resampling | 42.213 | Random resampling | 2.88177 |
+
+At `nu=0.01/pi`, PACMANN has the lowest median solution error (0.05659%,
 compared with RAD's 0.06642%), but large errors lift its mean to 11.913%.
 The distinction between typical accuracy and unfavorable outcomes is retained
-rather than resolved by discarding seeds.
+rather than resolved by discarding seeds. At `nu=0.001`, all five methods have
+large mean and median solution errors: method medians range from 36.009% to
+61.535%. Random resampling has the lowest mean and median on both metrics.
+The favorable typical PACMANN outcome at `nu=0.01/pi` does not extend to this
+sharper case under the same training budget.
+
+The intermediate `pi/100` case has small errors, like its neighboring `0.1` and
+`0.01` cases, and does not reveal a PACMANN advantage. It remains part of the
+complete analysis. The presentation currently selects the other four cases for
+readability; inclusion of `pi/100` in its main result slides is deferred.
 
 The [paired baseline comparisons](figures/burgers_regime_comparison/baseline_ratios.png)
 divide each method's error by its baseline's error for the same seed and
-viscosity. They show lower median ratios for RAD and PACMANN in the sharpest
-case, with occasional large unfavorable ratios. The advantage is not consistent
-across the other two viscosities. Connecting median lines are descriptive;
+viscosity. They show lower median ratios for RAD and PACMANN at `nu=0.01/pi`,
+with occasional large unfavorable ratios. At `nu=0.001`, neither has a median
+ratio below one against random resampling on either metric. The advantage is
+not consistent across the five viscosities. Connecting median lines are descriptive;
 viscosity cases are categorical and are not pooled as independent replications.
 Labels use the reference-only peak gradient `G` defined in
 [regime characterization](research_context.md#reference-characterization-and-regime-coverage).
@@ -465,14 +485,17 @@ These are medians of same-seed ratios, not ratios of method medians:
 | Viscosity | Median solution ratio | Median residual ratio | Lower solution / residual errors |
 | --- | ---: | ---: | --- |
 | 0.1 | 0.985 | 0.913 | 7/10; 7/10 |
+| pi/100 | 0.962 | 1.025 | 7/10; 5/10 |
 | 0.01 | 0.869 | 0.886 | 7/10; 9/10 |
 | 0.01/pi | 1.036 | 1.277 | 4/10; 4/10 |
+| 0.001 | 1.248 | 1.326 | 4/10; 2/10 |
 
-Diffusion lowers both mean errors relative to PACMANN in the smoother two cases,
-but raises both at the sharpest case. This does not establish a general benefit
-or make diffusion the method with the lowest mean error in the smoother cases.
+Diffusion lowers both mean errors relative to PACMANN at `nu=0.1` and `0.01`,
+lowers mean solution error but raises mean residual RMS at `pi/100`, and raises
+both means at `0.01/pi` and `0.001`. This does not establish a general benefit
+or make diffusion the method with the lowest mean error in any tested case.
 
-### Exploratory temporal evidence in the steepest regime
+### Exploratory temporal evidence at nu 0.01/pi
 
 The [physical-time profiles](figures/burgers_regime_comparison/solution_error_over_time.png)
 show mean and median solution errors of the final models over the PDE time
@@ -502,6 +525,15 @@ at `t = 0.99`, PACMANN's median is lower than RAD's (0.0970% versus 0.1101%),
 but PACMANN has lower error in only three of ten same-seed comparisons.
 This observation does not establish a diffusion benefit.
 
+The extension to `nu=0.001` does not reproduce that favorable median pattern.
+All methods have appreciable errors already at `t=0` (method medians
+3.31%–10.96%); by `t=0.75`, median errors range from 54.85% to 92.61%.
+Both mean and median profiles are large, so the outcome is not explained by a
+few unfavorable seeds alone. The dotted lines mark each reference's maximum
+gradient time, not a detected onset of front formation. These observations
+bound the conditional finding at `nu=0.01/pi`; they do not diagnose why the
+sharper case is difficult.
+
 Each time-slice score covers the whole spatial domain. It cannot establish
 that the improvement occurs specifically inside the front, or that solution
 sharpness caused it. These are physical-time profiles of final models, not
@@ -521,7 +553,10 @@ with the [documented environment](../README.md#setup-and-execution):
 venv/bin/python -m scripts.analysis.burgers_regime_comparison
 ```
 
-Figures go to `docs/figures/burgers_regime_comparison/` and are tracked. Regenerable
+Full five-viscosity figures go to `docs/figures/burgers_regime_comparison/`.
+The same script writes four-viscosity presentation selections to
+`docs/presentation/figures/burgers_regime_comparison/`, omitting only `pi/100`.
+Both figure sets are tracked. Regenerable
 tables go to the ignored `output/burgers/regime_comparison/`.
 `final_metrics.csv` and `final_summary.csv`
 contain the individual scores and aggregates; `paired_seed_ratios.csv` and

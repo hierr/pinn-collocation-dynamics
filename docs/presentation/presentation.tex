@@ -17,7 +17,7 @@
 \setbeamercolor{alerted text}{fg=studyteal}
 \setbeamertemplate{navigation symbols}{}
 \setbeamertemplate{footline}[frame number]
-\graphicspath{{figures/}{../figures/}{../figures/burgers_regime_comparison/}}
+\graphicspath{{figures/}{figures/burgers_regime_comparison/}{../figures/}{../figures/burgers_regime_comparison/}}
 
 % TODO: Replace the author, affiliation, and date before presenting.
 \title[PINN collocation]{Collocation Dynamics in Physics-Informed Neural Networks}
@@ -32,7 +32,7 @@
   \titlepage
 \end{frame}
 
-\section{Collocation dynamics and research questions}
+\section{Collocation dynamics}
 
 % Introduce the scientific variable without repeating a general PINN tutorial.
 \begin{frame}{Why study collocation dynamics?}
@@ -79,22 +79,8 @@
     {6}{figures/collocation_methods_frames}{}{}
 \end{frame}
 
-\begin{frame}{Research questions}
-  \begin{enumerate}
-    \item How does the benefit of point-adaptive collocation change across
-      solution-sharpness regimes, for solution and PDE-residual error?
-    \item Does adding diffusion to PACMANN improve either outcome, and does
-      the effect depend on the regime?
-  \end{enumerate}
-  \medskip
-  \begin{block}{Working hypothesis}
-    Gradient-adaptive methods may offer greater benefits for solutions with
-    sharp features. Both the adaptive-sampling and diffusion benefits remain
-    open questions.
-  \end{block}
-\end{frame}
 
-\section{Problem, implementation, and reference validation}
+\section{Problem, research questions, and reference validation}
 
 \begin{frame}{Starting problem: viscous Burgers equation}
   \[
@@ -114,13 +100,14 @@
 \begin{frame}{Reference solutions across viscosity regimes}
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.50\textwidth}
-      \includegraphics[width=\linewidth,height=0.68\textheight,keepaspectratio]{burgers_reference_slices.png}
+      \includegraphics[width=\linewidth,height=0.63\textheight,keepaspectratio]{burgers_reference_slices.png}
       \par\smallskip
       {\footnotesize\textbf{Solution profiles.} Colors identify the four
-        physical times.}
+        physical times. The intermediate $\pi/100$ case is retained in the
+        complete five-viscosity analysis.}
     \end{column}
     \begin{column}{0.48\textwidth}
-      \includegraphics[width=\linewidth,height=0.68\textheight,keepaspectratio]{burgers_reference_regimes.png}
+      \includegraphics[width=\linewidth,height=0.63\textheight,keepaspectratio]{burgers_reference_regimes.png}
       \par\smallskip
       {\footnotesize\textbf{Sharpness.} Each curve tracks the steepest spatial
         slope over time; $G$ is its largest value.}
@@ -128,29 +115,21 @@
   \end{columns}
 \end{frame}
 
-\begin{frame}{Released PACMANN code changes to the controlled study}
-  \small
-  \begin{tabular}{@{}p{0.15\textwidth}p{0.81\textwidth}@{}}
-    \toprule
-    Category & Implementation choice \\
-    \midrule
-    Retained & Four 64-neuron tanh layers, float64, five alternating Adam/L-BFGS
-      stages, sampler settings, coordinate-Adam procedure, keep initial/boundary constraints fixed. \\
-    Changed & Match 2,500 interior PDE points from initialization for every
-      method;  Use generated references
-      and common final-checkpoint evaluation. \\
-    Added / tuned & Gaussian diffusion of point coordinates; select its
-      coefficient separately at each viscosity on tuning seeds. \\
-    \bottomrule
-  \end{tabular}
+\begin{frame}{Research questions}
+  \begin{enumerate}
+    \item How does the benefit of point-adaptive collocation change across
+      solution-sharpness regimes, for solution and PDE-residual error?
+    \item Does adding diffusion to PACMANN improve either outcome, and does
+      the effect depend on the regime?
+  \end{enumerate}
   \medskip
-  \begin{itemize}
-    \item DeepXDE\textsuperscript{\cite{deepxde}} with a PyTorch backend,
-      adapted from the released implementation.
-    \item Evaluate final models and retain all planned seeds, including failures.
-    \item Record actual optimizer work; shared limits do not imply equal computation.
-  \end{itemize}
+  \begin{block}{Working hypothesis}
+    Gradient-adaptive methods may offer greater benefits for solutions with
+    sharp features. Both the adaptive-sampling and diffusion benefits remain
+    open questions.
+  \end{block}
 \end{frame}
+
 
 \begin{frame}{Reference generation and validation at $\nu=0.01/\pi$}
   \begin{columns}[T,onlytextwidth]
@@ -216,37 +195,17 @@
 \end{frame}
 
 
-\begin{frame}{Tune first, freeze settings, then evaluate}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.48\textwidth}
-      \begin{block}{$\sigma$ tuning: three paired seeds}
-        \begin{itemize}
-          \item Seeds 3000--3002.
-          \item Test $\sigma=0$ and positive values $10^{-5},10^{-4},10^{-3},10^{-2}$.
-          \item Select by mean final solution relative $L^2$ error.
-        \end{itemize}
-      \end{block}
-    \end{column}
-    \begin{column}{0.48\textwidth}
-      \begin{block}{Evaluation: ten paired seeds}
-        \begin{itemize}
-          \item Freeze sigma before using seeds 4000--4009.
-          \item Compare all five methods; retain all seeds.
-        \end{itemize}
-      \end{block}
-    \end{column}
-  \end{columns}
-  \medskip
+\begin{frame}{PACMANN solution example at $\nu=0.01/\pi$}
   \centering
-  Frozen diffusion settings:
-  $\nu=0.1 \Rightarrow \sigma=10^{-5}$;\quad
-  $\nu=0.01 \Rightarrow \sigma=10^{-3}$;\quad
-  $\nu=0.01/\pi \Rightarrow \sigma=10^{-4}$.
-  \par\medskip
+  \includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{burgers_pacmann_example.png}
+  \par\smallskip
   \raggedright
-  {\footnotesize\textbf{Tuning scope.} Diffusion is tuned separately at each
-    viscosity; the other samplers retain their upstream parameter settings.}
+  {\footnotesize\textbf{Illustrative successful run.} First planned seed (4000),
+    final solution relative $L^2=0.0454\%$. The method comparisons retain all ten seeds.}
+  % Reproduce with: venv/bin/python -m scripts.analysis.plot_burgers_pacmann_example
 \end{frame}
+
+
 
 \begin{frame}{Final collocation positions across methods}
   \centering
@@ -259,35 +218,29 @@
 
 \section{Results and analysis}
 
-% Figures reproduce analysis checkpoint 2f8af94 using campaign snapshot 741c19b.
+% Four displayed viscosities from campaign snapshot 4562077; pi/100 remains in
+% the complete five-viscosity analysis under docs/figures/.
 \begin{frame}{Final accuracy and seed variability}
   \centering
   \includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{final_errors.png}
   \par\smallskip
   \raggedright
-  {\footnotesize RAD has the lowest mean residual RMS in all three cases.
-    The sharpest regime shows instability across seeds, particularly for PACMANN
-    and its diffusion variant: low median errors coexist with very large errors.}
+  {\footnotesize At $\nu=0.01/\pi$, low PACMANN median errors coexist with
+    very large errors in some seeds. At $\nu=0.001$, both means and medians
+    are large for every method under the shared training budget.}
 \end{frame}
 
-\begin{frame}{Paired benefits relative to both baselines}
-  \centering
-  \includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{baseline_ratios.png}
-  \par\smallskip
-  \raggedright
-  {\footnotesize RAD and PACMANN show lower median error
-    ratios against both baselines in the sharpest regime.}
-\end{frame}
 
 \begin{frame}{Does diffusion improve PACMANN?}
   \centering
   \includegraphics[width=\linewidth,height=0.63\textheight,keepaspectratio]{diffusion_ratios.png}
   \par\medskip
   \raggedright
-  {\footnotesize Lower solution error in \textbf{7/10}, \textbf{7/10}, and \textbf{4/10} paired
-  seeds, respectively; lower residual RMS in \textbf{7/10}, \textbf{9/10}, and
-  \textbf{4/10}. Mean errors decrease in the smoother two cases and increase
-  in the sharpest case.}
+  {\footnotesize From left to right, diffusion lowers solution error in
+    \textbf{7/10}, \textbf{7/10}, \textbf{4/10}, and \textbf{4/10} pairs;
+    residual RMS in \textbf{7/10}, \textbf{9/10}, \textbf{4/10}, and \textbf{2/10}.
+    Both mean errors decrease at $\nu=0.1$ and $0.01$, and increase at
+    $0.01/\pi$ and $0.001$.}
 \end{frame}
 
 \begin{frame}{Where in physical time do final-model errors grow?}
@@ -295,29 +248,29 @@
   \includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{solution_error_over_time.png}
   \par\smallskip
   \raggedright
-  {\footnotesize In the sharpest regime, large-error runs
-    dominate the later-time mean, while the median remains much lower.}
+  {\footnotesize At $\nu=0.01/\pi$, large-error runs raise the later-time mean
+    above the median. At $\nu=0.001$, both are large, including before the
+    peak reference gradient. Dotted lines mark that peak time, not front onset.}
 \end{frame}
 
 \section{Conclusions}
 
 \begin{frame}{Conclusions, limitations, and next steps}
   \begin{itemize}
-    \item \textbf{Adaptive collocation:} No consistent PACMANN advantage across
-      the three regimes. In the sharpest case, median errors are lower than both
-      baselines, but means are higher. RAD has the lowest mean residual RMS in all three.
-    \item \textbf{Diffusion:} Lower mean errors than ordinary PACMANN in two
-      smoother cases; higher mean errors in the sharpest. No general benefit.
-    \item \textbf{Limits and design choices:} One PDE, ten seeds per setting, references with limited
-      independent accuracy checks, and per-viscosity diffusion tuning.
-    \item \textbf{Next steps:} Extend to 1D Allen--Cahn with a varying
-      interface-width parameter, 2D Burgers, and other problems.
+    \item \textbf{Adaptive collocation:} At $\nu=0.01/\pi$, PACMANN has lower
+      median solution error than Hammersley and random resampling after the
+      sharp front forms. Large-error seeds limit robustness; no consistent
+      advantage across regimes. At $\nu=0.001$, all methods have large errors.
+    \item \textbf{Diffusion:} Lower mean errors than ordinary PACMANN at
+      $\nu=0.1$ and $0.01$; higher at $0.01/\pi$ and $0.001$.
+      No general benefit in the displayed regimes.
+    \item \textbf{Limits and design choices:} One PDE, ten seeds per setting,
+      a fixed training budget, reference checks that vary by viscosity,
+      and per-viscosity diffusion tuning.
+    \item \textbf{Next steps:} Develop a $\sigma$ controller driven by local
+      solution gradients. Extend to 1D Allen--Cahn with a varying interface-width
+      parameter, 2D Burgers, and other problems.
   \end{itemize}
-  \medskip
-  \begin{block}{Interpretation boundary}
-    Viscosity changes sharpness, amplitude, and temporal evolution together.
-    These comparisons do not isolate a causal sharpness effect.
-  \end{block}
 \end{frame}
 
 \section{References}
@@ -361,6 +314,77 @@
 % Appendix slides support questions and are excluded from the main-slide counter.
 \section*{Appendix}
 \setbeamertemplate{footline}{}
+
+\begin{frame}[noframenumbering]{Appendix: PACMANN implementation changes}
+  \small
+  \begin{tabular}{@{}p{0.15\textwidth}p{0.81\textwidth}@{}}
+    \toprule
+    Category & Implementation choice \\
+    \midrule
+    Retained & Four 64-neuron tanh layers, float64, five alternating Adam/L-BFGS
+      stages, sampler settings, coordinate-Adam procedure, keep initial/boundary constraints fixed. \\
+    Changed & Match 2,500 interior PDE points from initialization for every
+      method;  Use generated references
+      and common final-checkpoint evaluation. \\
+    Added / tuned & Gaussian diffusion of point coordinates; select its
+      coefficient separately at each viscosity on tuning seeds. \\
+    \bottomrule
+  \end{tabular}
+  \medskip
+  \begin{itemize}
+    \item DeepXDE\textsuperscript{\cite{deepxde}} with a PyTorch backend,
+      adapted from the released implementation.
+    \item Evaluate final models and retain all planned seeds, including failures.
+    \item Record actual optimizer work; shared limits do not imply equal computation.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[noframenumbering]{Appendix: tune first, then freeze settings}
+  \small
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.48\textwidth}
+      \begin{block}{$\sigma$ tuning: three paired seeds}
+        \begin{itemize}
+          \item Seeds 3000--3002.
+          \item Start with $\sigma=0$ and positive values
+            $10^{-5},10^{-4},10^{-3},10^{-2}$.
+          \item Expand positive boundary winners (at most two rounds).
+          \item Select by mean final solution relative $L^2$ error.
+        \end{itemize}
+      \end{block}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \begin{block}{Evaluation: ten paired seeds}
+        \begin{itemize}
+          \item Freeze $\sigma$ before using seeds 4000--4009.
+          \item Compare all five methods; retain all seeds.
+        \end{itemize}
+      \end{block}
+    \end{column}
+  \end{columns}
+  \medskip
+  \centering
+  \begin{tabular}{@{}lcccc@{}}
+    \toprule
+    Displayed viscosity $\nu$ & $0.1$ & $0.01$ & $0.01/\pi$ & $0.001$ \\
+    Frozen diffusion $\sigma$ & $10^{-5}$ & $10^{-3}$ & $10^{-4}$ & $10^{-6}$ \\
+    \bottomrule
+  \end{tabular}
+  \par\medskip
+  \raggedright
+  {\footnotesize\textbf{Tuning scope.} Diffusion is tuned separately at each
+    viscosity; the other samplers retain their upstream parameter settings.}
+\end{frame}
+
+\begin{frame}[noframenumbering]{Appendix: paired benefits relative to both baselines}
+  \centering
+  \includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{baseline_ratios.png}
+  \par\smallskip
+  \raggedright
+  {\footnotesize RAD and PACMANN have favorable median ratios against both
+    baselines at $\nu=0.01/\pi$. This pattern does not extend to $\nu=0.001$
+    against random resampling.}
+\end{frame}
 
 \begin{frame}[noframenumbering]{Appendix: detailed scientific settings}
   \footnotesize
@@ -406,7 +430,7 @@
       \textbf{Diffusion selection details}
       \begin{itemize}
         \item At $\nu=0.01/\pi$, zero was eligible for selection.
-        \item At $\nu=0.01$ and $0.1$, select the positive sigma with the lowest
+        \item At later viscosities, select the positive sigma with the lowest
           mean final solution error; zero is a comparison baseline.
         \item A positive boundary winner triggers search expansion,
           with at most two expansion rounds.
@@ -424,6 +448,14 @@
           sequentially. \\
         \bottomrule
       \end{tabular}
+      \par\medskip
+      \textbf{Sharper reference at $\nu=0.001$}
+      \begin{itemize}
+        \item Degree $N=4096$; other references use $N=1024$.
+        \item N2048--N4096 disagreement: $0.00965\%$ relative $L^2$.
+        \item A baseline grid-refinement check supported keeping the common
+          evaluation grids. These checks do not bound absolute reference error.
+      \end{itemize}
     \end{column}
   \end{columns}
 \end{frame}

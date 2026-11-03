@@ -183,10 +183,14 @@ those controls with its development-selected diffusion coefficient frozen.
 The controlled study matches interior PDE populations and fixed constraints
 across methods, while retaining
 the shared upstream optimizer schedule and its L-BFGS stopping behavior.
-The accepted [cross-regime comparison](results.md#comparison-across-three-burgers-regimes)
-uses final-model outcomes. Its temporal evidence motivates the
+The accepted [cross-regime comparison](results.md#comparison-across-five-burgers-regimes)
+uses all 250 final-model outcomes from the five completed viscosities. The
+conditional temporal evidence at `nu=0.01/pi` motivates the
 [spatially localized evaluation](#motivation-for-spatially-localized-evaluation)
-described below; feature-region error analysis remains unperformed.
+described below; feature-region error analysis remains unperformed. The sharper
+`nu=0.001` case has large errors across methods and does not extend that favorable
+typical-accuracy finding. This is a stopping point for the current global and
+physical-time comparison, not a reason to retune on evaluation outcomes.
 
 The trainer loads the generated reference selected by YAML and keeps training
 separate from final-checkpoint evaluation. Fixed Hammersley, upstream random
@@ -207,8 +211,9 @@ This characterization was formalized after the initial campaigns, using only
 the reference solutions. It describes the accepted coverage without changing
 the frozen training settings, model-selection rules, or error metrics.
 
-Use the campaign domain `[-1, 1] × [0, 0.99]`, with the native 1,025
-Chebyshev-Lobatto spatial nodes and 199 saved times at spacing `0.005`.
+Use the campaign domain `[-1, 1] × [0, 0.99]`, with the native
+Chebyshev-Lobatto spatial nodes (1,025 for the first four references; 4,097 at
+`nu=0.001`) and 199 saved times at spacing `0.005`.
 Differentiate each snapshot's Chebyshev interpolant in space and define
 
 $$
@@ -227,23 +232,24 @@ The common initial condition `-sin(pi*x)` has maximum spatial gradient `pi`.
 | 0.1 | Relatively smooth | 4.211 | 0.240 | 0.7836 |
 | pi/100 | Intermediate | 11.873 | 0.515 | 0.8228 |
 | 0.01 | Steep | 44.566 | 0.540 | 0.9307 |
-| 0.01/pi | Steepest tested | 151.933 | 0.510 | 0.9813 |
+| 0.01/pi | Sharper | 151.933 | 0.510 | 0.9813 |
+| 0.001 | Steepest tested | 494.986 | 0.505 | 0.9944 |
 
-![Maximum spatial gradient over time for the four Burgers references](figures/burgers_reference_regimes.png)
+![Maximum spatial gradient over time for the five Burgers references](figures/burgers_reference_regimes.png)
 
 The reference solution slices below use the same times as the run diagnostics
 (`0.25`, `0.50`, `0.75`, and `0.99`), with shared axes and time colors.
 
-![Burgers reference solution slices for the four viscosities](figures/burgers_reference_slices.png)
+![Burgers reference solution slices for the five viscosities](figures/burgers_reference_slices.png)
 
 Regime labels are relative to this comparison. Viscosity also changes amplitude
 and temporal evolution, so performance differences across these cases cannot be
 attributed solely to sharpness.
 
-The four-reference characterization above retains its original scope. The
-approved sharper extension at `nu = 0.001` has separate reference-refinement
-evidence and a completed frozen evaluation, giving five tested viscosities.
-Keep `nu = 0.05` outside the core comparison. Further viscosity selection
+The five-reference characterization includes the sharper `nu=0.001` extension
+with its separate reference-refinement evidence. It does not change the shared
+training or evaluation grids. Keep `nu=0.05` outside the core comparison.
+Further viscosity selection
 requires a specific coverage objective and protocol approval.
 
 Reproduce the table's numerical descriptors and both figures from the repository
@@ -254,14 +260,14 @@ venv/bin/python -m scripts.analysis.characterize_burgers_references
 ```
 
 The [script](../scripts/analysis/characterize_burgers_references.py) reads
-the reference paths and domains from the four campaign YAMLs, including the
-frozen `pi/100` protocol. It prints the descriptors and writes the two figures;
-it does not modify datasets or
-campaign artifacts.
+the reference paths and domains from the five campaign YAMLs. It prints the
+descriptors and writes the two complete figures, plus presentation selections
+under `docs/presentation/figures/` that omit `pi/100` pending slide review.
+It does not modify datasets or campaign artifacts.
 
 ### Motivation for spatially localized evaluation
 
-Post hoc [physical-time comparisons](results.md#exploratory-temporal-evidence-in-the-steepest-regime)
+Post hoc [physical-time comparisons](results.md#exploratory-temporal-evidence-at-nu-001pi)
 at `nu = 0.01/pi` show a conditional accuracy benefit: PACMANN has lower typical
 solution errors than the sampling baselines during the developed steep-front
 regime. Large-error runs still make its mean performance poor. The observation

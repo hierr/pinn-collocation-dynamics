@@ -18,10 +18,12 @@ CONFIG_PATHS = [
     ROOT / "config/burgers_nu_0p031415927_10seed.yaml",
     ROOT / "config/burgers_nu_0p01_10seed.yaml",
     ROOT / "config/burgers_nu_0p0031830989_10seed.yaml",
+    ROOT / "config/burgers_nu_0p001_10seed.yaml",
 ]
 OUTPUT_PATH = ROOT / "docs/figures/burgers_reference_regimes.png"
 SLICES_OUTPUT_PATH = ROOT / "docs/figures/burgers_reference_slices.png"
 SLICE_TIMES = (0.25, 0.50, 0.75, 0.99)
+GRADIENT_COLORS = ["#a58abf", "#8762a6", "#693f8c", "#461866", "#260a3a"]
 
 
 def spatial_derivative(x, solution):
@@ -80,13 +82,13 @@ def characterize_reference(problem):
     return x, times, solution, gradients, amplitudes
 
 
-def main():
-    """Print reference descriptors and save gradient and solution-slice comparisons."""
-    configs = [yaml.safe_load(path.read_text()) for path in CONFIG_PATHS]
-    common = configs[0]["problem"]
+def plot_references(references, case_indices, output_path, slices_output_path):
+    """Save gradient and solution-slice figures for selected characterized references."""
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    common = references[0][0]
     fig, ax = plt.subplots(figsize=(8, 6.8), constrained_layout=True)
-    columns = min(2, len(configs))
-    rows = (len(configs) + columns - 1) // columns
+    columns = min(2, len(case_indices))
+    rows = (len(case_indices) + columns - 1) // columns
     slices_fig, slices_axes = plt.subplots(
         rows,
         columns,
@@ -96,21 +98,15 @@ def main():
         squeeze=False,
     )
     # Encode viscosity in purple tones, separately from the solution time colors.
-    gradient_colors = ["#a58abf", "#8762a6", "#693f8c", "#461866"]
     time_colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"]
 
     # Describe each regime on the same domain, independently of training results.
-    print("nu,peak_gradient,time_at_peak,amplitude_at_peak")
-    for config, color, slice_ax in zip(configs, gradient_colors, slices_axes.flat):
-        problem = config["problem"]
-        if any(problem[key] != common[key] for key in ("x_bounds", "t_bounds")):
-            raise ValueError("Reference characterization requires a common domain")
-        x, times, solution, gradients, amplitudes = characterize_reference(problem)
+    for position, case_index in enumerate(case_indices):
+        problem, x, times, solution, gradients, _ = references[case_index]
+        color = GRADIENT_COLORS[case_index]
+        slice_ax = slices_axes.flat[position]
         peak = int(np.argmax(gradients))
         nu = problem["viscosity"]
-        print(
-            f"{nu:.10g},{gradients[peak]:.6f},{times[peak]:.3f},{amplitudes[peak]:.6f}"
-        )
         ax.plot(times, gradients, color=color, linewidth=1.8, label=f"ν = {nu:.6g}")
         ax.scatter(times[peak], gradients[peak], color=color, s=24, zorder=3)
 
@@ -145,16 +141,16 @@ def main():
     )
     ax.grid(True, which="major", linewidth=0.4, alpha=0.35)
     ax.legend(frameon=False)
-    fig.savefig(OUTPUT_PATH, dpi=200)
+    fig.savefig(output_path, dpi=200)
     plt.close(fig)
-    print(f"Saved {OUTPUT_PATH.relative_to(ROOT)}")
+    print(f"Saved {output_path.relative_to(ROOT)}")
 
     # Share the slice colors, legend, and axis scales across the regimes.
     for slice_ax in slices_axes[:, 0]:
         slice_ax.set_ylabel("u(x, t)")
     for slice_ax in slices_axes[-1]:
         slice_ax.set_xlabel("x")
-    for unused_ax in slices_axes.flat[len(configs) :]:
+    for unused_ax in slices_axes.flat[len(case_indices) :]:
         unused_ax.set_visible(False)
     slices_fig.suptitle("Burgers reference solutions")
     slices_fig.legend(
@@ -166,9 +162,44 @@ def main():
     slices_fig.subplots_adjust(
         bottom=0.13, top=0.89, left=0.09, right=0.985, wspace=0.13, hspace=0.28
     )
-    slices_fig.savefig(SLICES_OUTPUT_PATH, dpi=200)
+    slices_fig.savefig(slices_output_path, dpi=200)
     plt.close(slices_fig)
-    print(f"Saved {SLICES_OUTPUT_PATH.relative_to(ROOT)}")
+    print(f"Saved {slices_output_path.relative_to(ROOT)}")
+
+
+def main():
+    """Characterize all references and save full and presentation selections."""
+    configs = [yaml.safe_load(path.read_text()) for path in CONFIG_PATHS]
+    common = configs[0]["problem"]
+    references = []
+    print("nu,peak_gradient,time_at_peak,amplitude_at_peak")
+    for config in configs:
+        problem = config["problem"]
+        if any(problem[key] != common[key] for key in ("x_bounds", "t_bounds")):
+            raise ValueError("Reference characterization requires a common domain")
+        reference = (problem, *characterize_reference(problem))
+        references.append(reference)
+        _, _, times, _, gradients, amplitudes = reference
+        peak = int(np.argmax(gradients))
+        print(
+            f"{problem['viscosity']:.10g},{gradients[peak]:.6f},"
+            f"{times[peak]:.3f},{amplitudes[peak]:.6f}"
+        )
+    plot_references(references, range(len(references)), OUTPUT_PATH, SLICES_OUTPUT_PATH)
+
+    # Keep pi/100 in the full research figures while its main-slide inclusion is deferred.
+    presented = [
+        index
+        for index, reference in enumerate(references)
+        if reference[0]["viscosity"] != np.pi / 100
+    ]
+    presentation = ROOT / "docs/presentation/figures"
+    plot_references(
+        references,
+        presented,
+        presentation / OUTPUT_PATH.name,
+        presentation / SLICES_OUTPUT_PATH.name,
+    )
 
 
 if __name__ == "__main__":

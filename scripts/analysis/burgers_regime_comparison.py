@@ -17,15 +17,38 @@ from matplotlib.lines import Line2D
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "output/burgers/regime_comparison"
 FIGURES = ROOT / "docs/figures/burgers_regime_comparison"
-# Accepted analysis transferred from 2f8af94; inputs remain the fixed campaign snapshot.
-SOURCE_REVISION = "741c19b8927838c8d8d2a7c0a0b3f8164a2b2f69"
+PRESENTATION_FIGURES = ROOT / "docs/presentation/figures/burgers_regime_comparison"
+# All five completed campaigns are retained in this fixed results checkpoint.
+SOURCE_REVISION = "456207722c67ce4b11856efc3f4ace6f22f0c3e5"
 SEEDS = range(4000, 4010)
-# Reference descriptors are from the characterization accepted in commit 35c6ca6.
+# Peak gradients and times use the same native-grid reference characterization.
 CASES = [
-    ("burgers_nu_0p1_10seed", "0.1", 0.1, 4.211433, 0.240),
-    ("burgers_nu_0p01_10seed", "0.01", 0.01, 44.565582, 0.540),
-    ("burgers_nu_0p0031830989_10seed", "0.01/π", 0.01 / np.pi, 151.932819, 0.510),
+    ("output/burgers/burgers_nu_0p1_10seed", "0.1", 0.1, 4.211433, 0.240),
+    (
+        "output/burgers/burgers_nu_0p031415927_10seed",
+        "π/100",
+        np.pi / 100,
+        11.872671,
+        0.515,
+    ),
+    ("output/burgers/burgers_nu_0p01_10seed", "0.01", 0.01, 44.565582, 0.540),
+    (
+        "output/burgers/burgers_nu_0p0031830989_10seed",
+        "0.01/π",
+        0.01 / np.pi,
+        151.932819,
+        0.510,
+    ),
+    (
+        "output/burgers/nu_0p001/burgers_nu_0p001_10seed",
+        "0.001",
+        0.001,
+        494.985806,
+        0.505,
+    ),
 ]
+# Keep pi/100 in the complete analysis; its inclusion in the main slides is deferred.
+PRESENTATION_CASES = (0, 2, 3, 4)
 METHODS = [
     "fixed_hammersley",
     "random_resampling",
@@ -109,7 +132,7 @@ def write_csv(name, rows):
 
 
 def main():
-    """Read all 150 completed runs and save tables and four comparison figures."""
+    """Read all 250 completed runs and save full and presentation comparisons."""
     OUT.mkdir(parents=True, exist_ok=True)
     FIGURES.mkdir(parents=True, exist_ok=True)
     errors, temporal, sigmas = {}, {}, []
@@ -117,14 +140,14 @@ def main():
 
     # Recompute solution errors from final predictions; retain archived residual scores.
     for case_index, (campaign, _, nu, gradient, _) in enumerate(CASES):
-        first_run = f"output/burgers/{campaign}/{METHODS[0]}/seed_{SEEDS[0]}"
+        first_run = f"{campaign}/{METHODS[0]}/seed_{SEEDS[0]}"
         common = yaml.safe_load(read_snapshot(f"{first_run}/config.yaml"))
         sigmas.append(common["methods"]["pacmann_diffusion"]["sigma"])
         shared_grid = None
         for method in METHODS:
             solution_errors, residual_errors, profiles = [], [], []
             for seed in SEEDS:
-                run = f"output/burgers/{campaign}/{method}/seed_{seed}"
+                run = f"{campaign}/{method}/seed_{seed}"
                 config = yaml.safe_load(read_snapshot(f"{run}/config.yaml"))
                 if (
                     any(
@@ -217,7 +240,7 @@ def main():
                 )
         print(f"Verified all 50 final solution scores at ν={nu:.10g}", flush=True)
 
-    # Preserve seed pairing within each viscosity; do not pool the three regimes.
+    # Preserve seed pairing within each viscosity; do not pool different regimes.
     contrasts = [
         (method, baseline) for baseline in METHODS[:2] for method in METHODS[2:]
     ]
@@ -257,6 +280,14 @@ def main():
     write_csv("paired_seed_ratios.csv", ratio_rows)
     write_csv("physical_time_errors.csv", temporal_rows)
 
+    plot_comparisons(errors, temporal, sigmas, range(len(CASES)), FIGURES)
+    plot_comparisons(errors, temporal, sigmas, PRESENTATION_CASES, PRESENTATION_FIGURES)
+    print(f"Saved five CSV tables in {OUT.relative_to(ROOT)}")
+
+
+def plot_comparisons(errors, temporal, sigmas, case_indices, destination):
+    """Save the four comparison figures for an explicit selection of viscosity cases."""
+    destination.mkdir(parents=True, exist_ok=True)
     # Match figure widths and header spacing so titles keep the same displayed size.
     plt.rcParams.update(
         {
@@ -272,17 +303,21 @@ def main():
         Line2D([], [], color=color, label=label.replace("\n", " "))
         for color, label in zip(COLORS, LABELS)
     ]
+    selected_cases = [CASES[index] for index in case_indices]
     case_labels = [
-        f"ν = {label}\nG = {gradient:.2f}" for _, label, _, gradient, _ in CASES
+        f"ν = {label}\nG = {gradient:.2f}"
+        for _, label, _, gradient, _ in selected_cases
     ]
 
     # Show every final outcome, including tails, with full-seed mean and median.
-    fig, axes = plt.subplots(2, 3, figsize=(14, 8), sharey="row")
+    fig, axes = plt.subplots(
+        2, len(case_indices), figsize=(14, 8), sharey="row", squeeze=False
+    )
     for row, (metric, ylabel) in enumerate(METRICS):
-        for column in range(len(CASES)):
+        for column, case_index in enumerate(case_indices):
             ax = axes[row, column]
             for index, (method, color) in enumerate(zip(METHODS, COLORS)):
-                values = errors[column, method, metric]
+                values = errors[case_index, method, metric]
                 ax.scatter(index + jitter, values, color=color, s=19, alpha=0.85)
                 ax.scatter(
                     index, np.mean(values), color="black", marker="D", s=28, zorder=4
@@ -295,6 +330,8 @@ def main():
                     linewidth=1.8,
                 )
             ax.set(yscale="log", xticks=range(5), xticklabels=LABELS)
+            ax.tick_params(axis="x", labelsize=9, labelrotation=35)
+            plt.setp(ax.get_xticklabels(), ha="right")
             ax.grid(axis="y", alpha=0.2)
             if row == 0:
                 ax.set_title(case_labels[column])
@@ -331,7 +368,7 @@ def main():
         frameon=False,
     )
     fig.tight_layout(rect=(0, 0.07, 1, 0.94))
-    fig.savefig(FIGURES / "final_errors.png", dpi=200)
+    fig.savefig(destination / "final_errors.png", dpi=200)
     plt.close(fig)
 
     # Compare relative benefits to both sampling baselines using the same seeds.
@@ -343,12 +380,12 @@ def main():
                 if method == baseline:
                     continue
                 medians = []
-                for case_index in range(len(CASES)):
+                for position_index, case_index in enumerate(case_indices):
                     ratio = (
                         errors[case_index, method, metric]
                         / errors[case_index, baseline, metric]
                     )
-                    position = case_index + (index - 2.5) * 0.13
+                    position = position_index + (index - 2.5) * 0.13
                     ax.scatter(
                         position + jitter * 0.18,
                         ratio,
@@ -358,14 +395,16 @@ def main():
                     )
                     medians.append(np.median(ratio))
                 ax.plot(
-                    np.arange(3) + (index - 2.5) * 0.13,
+                    np.arange(len(case_indices)) + (index - 2.5) * 0.13,
                     medians,
                     color=COLORS[index],
                     marker="o",
                     linewidth=1.5,
                 )
             ax.axhline(1, color="black", linestyle="--", linewidth=1)
-            ax.set(yscale="log", xticks=range(3), xticklabels=case_labels)
+            ax.set(
+                yscale="log", xticks=range(len(case_indices)), xticklabels=case_labels
+            )
             ax.grid(axis="y", alpha=0.2)
             if row == 0:
                 ax.set_title(f"Relative to {LABELS[column]}")
@@ -389,22 +428,22 @@ def main():
     )
     fig.legend(handles=method_handles[1:], loc="lower center", ncol=4, frameon=False)
     fig.tight_layout(rect=(0, 0.07, 1, 0.92))
-    fig.savefig(FIGURES / "baseline_ratios.png", dpi=200)
+    fig.savefig(destination / "baseline_ratios.png", dpi=200)
     plt.close(fig)
 
     # Isolate diffusion's incremental effect under the frozen per-viscosity tuning policy.
     fig, axes = plt.subplots(1, 2, figsize=(14, 4.6))
     for ax, (metric, ylabel) in zip(axes, METRICS):
-        for case_index in range(len(CASES)):
+        for position_index, case_index in enumerate(case_indices):
             ratio = (
                 errors[case_index, METHODS[4], metric]
                 / errors[case_index, METHODS[3], metric]
             )
-            ax.scatter(case_index + jitter, ratio, color=COLORS[4], s=25)
+            ax.scatter(position_index + jitter, ratio, color=COLORS[4], s=25)
             ax.hlines(
                 np.median(ratio),
-                case_index - 0.23,
-                case_index + 0.23,
+                position_index - 0.23,
+                position_index + 0.23,
                 color="black",
                 linewidth=1.8,
             )
@@ -413,9 +452,10 @@ def main():
             yscale="log",
             title=ylabel,
             ylabel="Diffusion / PACMANN error ratio",
-            xticks=range(3),
+            xticks=range(len(case_indices)),
             xticklabels=[
-                f"ν = {case[1]}\nσ = {sigma:g}" for case, sigma in zip(CASES, sigmas)
+                f"ν = {CASES[index][1]}\nσ = {sigmas[index]:g}"
+                for index in case_indices
             ],
         )
         ax.grid(axis="y", alpha=0.2)
@@ -431,14 +471,22 @@ def main():
         color="0.35",
     )
     fig.tight_layout(rect=(0, 0, 1, 0.90))
-    fig.savefig(FIGURES / "diffusion_ratios.png", dpi=200)
+    fig.savefig(destination / "diffusion_ratios.png", dpi=200)
     plt.close(fig)
 
     # Physical time refers to the solution coordinate, not optimizer or elapsed time.
-    fig, axes = plt.subplots(2, 3, figsize=(14, 7.8), sharex=True, sharey="row")
-    for column, case in enumerate(CASES):
+    fig, axes = plt.subplots(
+        2,
+        len(case_indices),
+        figsize=(14, 7.8),
+        sharex=True,
+        sharey="row",
+        squeeze=False,
+    )
+    for column, case_index in enumerate(case_indices):
+        case = CASES[case_index]
         for method, color in zip(METHODS, COLORS):
-            times, profiles = temporal[column, method]
+            times, profiles = temporal[case_index, method]
             axes[0, column].plot(times, np.mean(profiles, axis=0), color=color)
             axes[1, column].plot(times, np.median(profiles, axis=0), color=color)
         for row in range(2):
@@ -471,10 +519,9 @@ def main():
         frameon=False,
     )
     fig.tight_layout(rect=(0, 0.10, 1, 0.94))
-    fig.savefig(FIGURES / "solution_error_over_time.png", dpi=200)
+    fig.savefig(destination / "solution_error_over_time.png", dpi=200)
     plt.close(fig)
-    print(f"Saved five CSV tables in {OUT.relative_to(ROOT)}")
-    print(f"Saved four figures in {FIGURES.relative_to(ROOT)}")
+    print(f"Saved four figures in {destination.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":

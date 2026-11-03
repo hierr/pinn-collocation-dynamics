@@ -65,7 +65,7 @@ def test_reference_viscosity_must_match(config):
         characterization.characterize_reference(config["problem"])
 
 
-@pytest.mark.parametrize("reference_count", [1, 4])
+@pytest.mark.parametrize("reference_count", [1, 4, 5])
 def test_documentation_figure_and_summary(
     config, tmp_path, monkeypatch, capsys, reference_count
 ):
