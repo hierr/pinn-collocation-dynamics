@@ -3,6 +3,10 @@
 Run from the repository root with
     venv/bin/python -m scripts.illustrations.animate_collocation_methods
 
+Optionally remove duplicate PDF backgrounds losslessly with MuPDF after rendering:
+    mutool clean -gggg -z -m docs/presentation/figures/collocation_methods_frames.pdf compact.pdf
+    mv compact.pdf docs/presentation/figures/collocation_methods_frames.pdf
+
 This presentation illustration does not train a PINN or replay an experiment.
 The smaller population and larger movement/noise scales make the rules visible.
 """

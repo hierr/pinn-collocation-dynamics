@@ -11,6 +11,7 @@
 
 % Keep the visual style simple; edit these colors to customize the template.
 \usetheme{Madrid}
+\setbeamertemplate{itemize items}[circle]
 \definecolor{studyblue}{HTML}{173B57}
 \definecolor{studyteal}{HTML}{087F8C}
 \setbeamercolor{structure}{fg=studyblue}
@@ -194,6 +195,69 @@
     same fixed grids, regardless of how it places its training points.}
 \end{frame}
 
+\begin{frame}{Detailed scientific settings}
+  \footnotesize
+  \begin{tabular}{@{}p{0.25\textwidth}p{0.71\textwidth}@{}}
+    \toprule
+    Setting & Frozen configuration \\
+    \midrule
+    Network / precision & $2$--$64$--$64$--$64$--$64$--$1$, tanh, Glorot normal;
+      float64. \\
+    Point budgets & 2,500 interior PDE points; 80 boundary and 160 initial points. \\
+    Optimizer schedule & Five phases, each with 7,000 Adam steps at $10^{-3}$,
+      followed by L-BFGS. \\
+    L-BFGS limits & Nominal maxiter 3,000, maxfun 3,750; maxcor 100,
+      gtol $10^{-8}$, ftol 0. \\
+    Sampling cadence & Every 50 Adam steps; no point updates during L-BFGS. \\
+    PACMANN motion & 15 coordinate steps at $10^{-5}$;
+      $\beta_1=0.9$, $\beta_2=0.999$, $\epsilon=10^{-7}$ outside the square root. \\
+    RAD & 100,000 candidates; weight $|r|/\operatorname{mean}(|r|)+1$;
+      sample without replacement. \\
+    Diffusion convention & Per coordinate step, add independent Gaussian noise
+      with componentwise standard deviation $\sigma (L_x,L_t)/\sqrt{15}$. \\
+    Evaluation & Uniform solution grid $1024\times199$ with spatial barycentric
+      reference interpolation; independent residual grid $1024\times200$. \\
+    \bottomrule
+  \end{tabular}
+\end{frame}
+
+\begin{frame}{Tune first, then freeze settings}
+  \small
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.48\textwidth}
+      \begin{block}{$\sigma$ tuning: three paired seeds}
+        \begin{itemize}
+          \item Seeds 3000--3002.
+          \item Start with $\sigma=0$ and positive values
+            $10^{-5},10^{-4},10^{-3},10^{-2}$.
+          \item Expand positive boundary winners (at most two rounds).
+          \item Select by mean final solution relative $L^2$ error.
+        \end{itemize}
+      \end{block}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \begin{block}{Evaluation: ten paired seeds}
+        \begin{itemize}
+          \item Freeze $\sigma$ before using seeds 4000--4009.
+          \item Compare all five methods; retain all seeds.
+        \end{itemize}
+      \end{block}
+    \end{column}
+  \end{columns}
+  \medskip
+  \centering
+  \begin{tabular}{@{}lcccc@{}}
+    \toprule
+    Displayed viscosity $\nu$ & $0.1$ & $0.01$ & $0.01/\pi$ & $0.001$ \\
+    Frozen diffusion $\sigma$ & $10^{-5}$ & $10^{-3}$ & $10^{-4}$ & $10^{-6}$ \\
+    \bottomrule
+  \end{tabular}
+  \par\medskip
+  \raggedright
+  {\footnotesize\textbf{Tuning scope.} Diffusion is tuned separately at each
+    viscosity; the other samplers retain their upstream parameter settings.}
+\end{frame}
+
 
 \begin{frame}{PACMANN solution example at $\nu=0.01/\pi$}
   \centering
@@ -225,11 +289,20 @@
   \includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{final_errors.png}
   \par\smallskip
   \raggedright
-  {\footnotesize At $\nu=0.01/\pi$, low PACMANN median errors coexist with
+  {\scriptsize At $\nu=0.01/\pi$, low PACMANN median errors coexist with
     very large errors in some seeds. At $\nu=0.001$, both means and medians
     are large for every method under the shared training budget.}
 \end{frame}
 
+\begin{frame}{Paired benefits relative to both baselines}
+  \centering
+  \includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{baseline_ratios.png}
+  \par\smallskip
+  \raggedright
+  {\scriptsize RAD and PACMANN have favorable median ratios against both
+    baselines at $\nu=0.01/\pi$. This pattern does not extend to $\nu=0.001$
+    against random resampling.}
+\end{frame}
 
 \begin{frame}{Does diffusion improve PACMANN?}
   \centering
@@ -248,7 +321,7 @@
   \includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{solution_error_over_time.png}
   \par\smallskip
   \raggedright
-  {\footnotesize At $\nu=0.01/\pi$, large-error runs raise the later-time mean
+  {\scriptsize At $\nu=0.01/\pi$, large-error runs raise the later-time mean
     above the median. At $\nu=0.001$, both are large, including before the
     peak reference gradient. Dotted lines mark that peak time, not front onset.}
 \end{frame}
@@ -339,82 +412,11 @@
   \end{itemize}
 \end{frame}
 
-\begin{frame}[noframenumbering]{Appendix: tune first, then freeze settings}
-  \small
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.48\textwidth}
-      \begin{block}{$\sigma$ tuning: three paired seeds}
-        \begin{itemize}
-          \item Seeds 3000--3002.
-          \item Start with $\sigma=0$ and positive values
-            $10^{-5},10^{-4},10^{-3},10^{-2}$.
-          \item Expand positive boundary winners (at most two rounds).
-          \item Select by mean final solution relative $L^2$ error.
-        \end{itemize}
-      \end{block}
-    \end{column}
-    \begin{column}{0.48\textwidth}
-      \begin{block}{Evaluation: ten paired seeds}
-        \begin{itemize}
-          \item Freeze $\sigma$ before using seeds 4000--4009.
-          \item Compare all five methods; retain all seeds.
-        \end{itemize}
-      \end{block}
-    \end{column}
-  \end{columns}
-  \medskip
-  \centering
-  \begin{tabular}{@{}lcccc@{}}
-    \toprule
-    Displayed viscosity $\nu$ & $0.1$ & $0.01$ & $0.01/\pi$ & $0.001$ \\
-    Frozen diffusion $\sigma$ & $10^{-5}$ & $10^{-3}$ & $10^{-4}$ & $10^{-6}$ \\
-    \bottomrule
-  \end{tabular}
-  \par\medskip
-  \raggedright
-  {\footnotesize\textbf{Tuning scope.} Diffusion is tuned separately at each
-    viscosity; the other samplers retain their upstream parameter settings.}
-\end{frame}
 
-\begin{frame}[noframenumbering]{Appendix: paired benefits relative to both baselines}
-  \centering
-  \includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{baseline_ratios.png}
-  \par\smallskip
-  \raggedright
-  {\footnotesize RAD and PACMANN have favorable median ratios against both
-    baselines at $\nu=0.01/\pi$. This pattern does not extend to $\nu=0.001$
-    against random resampling.}
-\end{frame}
 
-\begin{frame}[noframenumbering]{Appendix: detailed scientific settings}
-  \footnotesize
-  \begin{tabular}{@{}p{0.25\textwidth}p{0.71\textwidth}@{}}
-    \toprule
-    Setting & Frozen configuration \\
-    \midrule
-    Network / precision & $2$--$64$--$64$--$64$--$64$--$1$, tanh, Glorot normal;
-      float64. \\
-    Point budgets & 2,500 interior PDE points; 80 boundary and 160 initial points. \\
-    Optimizer schedule & Five phases, each with 7,000 Adam steps at $10^{-3}$,
-      followed by L-BFGS. \\
-    L-BFGS limits & Nominal maxiter 3,000, maxfun 3,750; maxcor 100,
-      gtol $10^{-8}$, ftol 0. \\
-    Sampling cadence & Every 50 Adam steps; no point updates during L-BFGS. \\
-    PACMANN motion & 15 coordinate steps at $10^{-5}$;
-      $\beta_1=0.9$, $\beta_2=0.999$, $\epsilon=10^{-7}$ outside the square root. \\
-    RAD & 100,000 candidates; weight $|r|/\operatorname{mean}(|r|)+1$;
-      sample without replacement. \\
-    Diffusion convention & Per coordinate step, add independent Gaussian noise
-      with componentwise standard deviation $\sigma (L_x,L_t)/\sqrt{15}$. \\
-    Evaluation & Uniform solution grid $1024\times199$ with spatial barycentric
-      reference interpolation; independent residual grid $1024\times200$. \\
-    \bottomrule
-  \end{tabular}
-  \par\medskip
-  The retained DeepXDE L-BFGS driver can exceed nominal stage limits.
-  Report recorded iterations, function evaluations, and training time.
-  % Source: the frozen campaign YAMLs and references/upstream.md.
-\end{frame}
+
+
+
 
 \begin{frame}[noframenumbering]{Appendix: reference checks, tuning, and computation}
   \footnotesize
