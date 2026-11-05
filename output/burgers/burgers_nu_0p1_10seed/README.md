@@ -1,67 +1,32 @@
-# Burgers ν = 0.1: frozen ten-seed evaluation
+# Burgers: nu = 0.1
 
-**Complete evaluation: all five methods and all 50 planned runs.** The
-comparison uses paired seeds 4000–4009 and frozen diffusion **σ = 1e-5**.
-This positive sigma was selected on separate development seeds 3000–3002 in
-the [tuning checkpoint](https://github.com/hierr/pinn-collocation-dynamics/commit/1968b350a5d44adc9180782406357c2c8763be92);
-ordinary PACMANN at sigma zero was only its comparison baseline. The selected
-value was interior among tested positive settings after one approved lower
-boundary expansion.
+This compact review record retains all five methods and all ten evaluation seeds
+(4000–4009), including unfavorable outcomes. Frozen diffusion sigma is `1e-05`.
+The tables below are preserved from the completed research campaign.
 
-## Design and verification
-
-The [frozen configuration](../../../config/burgers_nu_0p1_10seed.yaml)
-compares fixed Hammersley, random resampling, RAD, PACMANN-Adam, and PACMANN
-with diffusion. All methods use the same network, matched point budgets, fixed
-boundary and initial constraints, optimizer schedule, and evaluation grids.
-Only viscosity, reference dataset, and the separately selected sigma differ
-from the preceding frozen comparison. The reference is
-[data/burgers_dataset/burgers_nu_0p1_N1024.npz](../../../data/burgers_dataset/burgers_nu_0p1_N1024.npz),
-with SHA-256
-`78fbdc52d18e6538668d127174d5a94ed5999ef8c295a5fa9414592f14f9a833`.
-It passed structural and loader checks, but has no independent numerical-
-accuracy certification at this viscosity.
-
-Run outcomes and archived metadata show that all 50 training and post-
-processing jobs completed without numerical failures. The training source
-revision recorded in every run is
-[`e261b37`](https://github.com/hierr/pinn-collocation-dynamics/commit/e261b3720062491aad5898603a0d6b3826211dfe);
-all runs used the same pinned environment, CUDA device, and reference
-fingerprint. An independent CPU evaluation reloaded every final checkpoint and
-reproduced solution MSE, solution relative L2, residual RMS, boundary RMSE, and
-initial RMSE within 1e-12 + 1e-10·|saved|. Initial interior point designs and
-constraint coordinates match across methods for each seed. Constraints stayed
-fixed, and physics points did not move during L-BFGS stages.
-
-Use final-model errors on all ten seeds. Retain every outcome. Tables report
-solution relative L2 as percent, residual RMS in its original units, and
-boundary and initial-condition RMSE separately. Means use all ten seeds and
-sample SD. Supplementary trimmed means remove one minimum and one maximum
-independently for solution L2 and residual RMS. Paired solution differences are
-percentage points. Residual error does not select a separate sigma.
-
-## Reproduction
-
-Use the [documented environment](../../../README.md#setup-and-execution).
-From the repository root, run:
-
-```sh
-venv/bin/python -u -m scripts.run_experiments.run_burgers_campaign
-```
-
-The runner uses the configuration above and launches ten concurrent seeds per
-method, one numerical CPU thread per worker, on one NVIDIA GeForce RTX 5070
-(12 GB) in float64. Method batches run sequentially; each batch finishes
-training and evaluation before the next begins. Training time includes
-compilation and optimizer work and excludes final evaluation. It reflects
-ten-way GPU concurrency and is not comparable to three-way tuning timings.
-Artifacts are retained at
-`output/burgers/burgers_nu_0p1_10seed/<method>/seed_<seed>/`. Consolidated
-comparisons are in [results](../../../docs/results.md#frozen-evaluation-at-nu-01);
-see the [study context](../../../docs/research_context.md) and
+See the [study design](../../../docs/peer_review.md#study-design),
+[comparison](../../../docs/results.md),
+[frozen configuration](../../../config/burgers_nu_0p1_10seed.yaml), and
 [artifact dictionary](../../../docs/output_format.md).
 
+## Reproduction and retained evidence
+
+Every seed retains its original configuration, metadata, status, and final
+metrics. Only PACMANN-Adam seed 4000 at nu = 0.01/pi retains its complete run,
+including model weights and predictions. The [complete campaign](https://github.com/hierr/pinn-collocation-dynamics/tree/6e7a638383fe0e04d9d999a2cc491c313f587cc8/output/burgers/burgers_nu_0p1_10seed)
+and full execution instructions are available at the fixed research checkpoint.
+
+Use the two review commands in the [repository README](../../../README.md#setup-and-execution)
+for a short training demonstration and an independent saved-model check.
+Full campaigns used float64 on an RTX 5070 (12 GB), with ten concurrent seeds
+per method and sequential method batches. Training seconds reflect that shared
+GPU condition and exclude final evaluation; they are not serial CPU timings.
+
 ## Per-seed outcomes
+
+Solution L2 is reported in percent. Means and sample SDs use all ten seeds.
+Supplementary trimmed means remove one minimum and one maximum separately
+for each error metric; all seeds remain in the primary and paired comparisons.
 
 ### [Fixed Hammersley](fixed_hammersley/)
 
@@ -81,7 +46,6 @@ see the [study context](../../../docs/research_context.md) and
 | 10% trimmed mean | — | 0.01405093 | 0.0006226417 | — | — | — |
 
 Sampling updates: zero per seed.
-
 ### [Random resampling](random_resampling/)
 
 | Seed | Solution MSE | Solution L2 (%) | Residual RMS | Boundary RMSE | Initial RMSE | Training seconds |
@@ -100,7 +64,6 @@ Sampling updates: zero per seed.
 | 10% trimmed mean | — | 0.01240782 | 0.0006475428 | — | — | — |
 
 Sampling updates: 700 per seed.
-
 ### [RAD](rad/)
 
 | Seed | Solution MSE | Solution L2 (%) | Residual RMS | Boundary RMSE | Initial RMSE | Training seconds |
@@ -119,7 +82,6 @@ Sampling updates: 700 per seed.
 | 10% trimmed mean | — | 0.01354096 | 0.0005331210 | — | — | — |
 
 Sampling updates: 700 per seed.
-
 ### [PACMANN without diffusion](pacmann_adam/)
 
 | Seed | Solution MSE | Solution L2 (%) | Residual RMS | Boundary RMSE | Initial RMSE | Training seconds |
@@ -138,7 +100,6 @@ Sampling updates: 700 per seed.
 | 10% trimmed mean | — | 0.01583411 | 0.0008850280 | — | — | — |
 
 Sampling updates: 700 per seed.
-
 ### [PACMANN with diffusion](pacmann_diffusion/)
 
 | Seed | Solution MSE | Solution L2 (%) | Residual RMS | Boundary RMSE | Initial RMSE | Training seconds |
@@ -167,7 +128,7 @@ resampling; 16,737.6 ± 660.3 and 24,161.7 ± 2,714.4 for RAD; 16,557.8 ±
 recorded in each `training.json`; they differ across methods despite shared
 configured stages.
 
-The [study-level comparison](../../../docs/results.md#frozen-evaluation-at-nu-01)
+The [study-level comparison](../../../docs/results.md)
 reports the paired contrasts. On these held-out seeds, diffusion had lower mean
 solution L2 and residual RMS than PACMANN without diffusion, with improvement
 in seven of ten pairs on both metrics. This does not establish a general

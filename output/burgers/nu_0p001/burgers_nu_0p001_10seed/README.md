@@ -1,109 +1,32 @@
-# Burgers ν = 0.001: frozen ten-seed evaluation
+# Burgers: nu = 0.001
 
-Completed evaluation: **all 50 planned runs**, comprising five methods on paired
-seeds 4000–4009, with finite outcomes and no reported execution failures.
-Diffusion used frozen **sigma = 1e-6**,
-selected on separate development seeds 3000–3002 in tuning checkpoint
-`56ea078665bb85d73a5d02f26b83b366df7ca570` on `hyperparameter-tuning`.
+This compact review record retains all five methods and all ten evaluation seeds
+(4000–4009), including unfavorable outcomes. Frozen diffusion sigma is `1e-06`.
+The tables below are preserved from the completed research campaign.
 
-## Design and selection
-
-The [frozen configuration](../../../../config/burgers_nu_0p001_10seed.yaml)
-compares fixed Hammersley, upstream random resampling, RAD, PACMANN, and PACMANN
-with diffusion, in that order. Network architecture, optimizer settings,
-point budgets, constraint treatment, and evaluation grids match the preceding
-frozen comparisons. Viscosity, reference data, and selected sigma differ.
-Only interior physics points adapt; the 80 boundary and 160 initial constraints
-remain fixed. Each run starts with 2,500 interior points.
-
-The development search completed 21 runs: sigma zero plus six positive
-candidates, each on three paired seeds. Its initial boundary winner triggered
-one approved lower expansion. The final positive winner, `sigma = 1e-6`, is
-interior, so no further expansion is required. Select by arithmetic mean final
-solution relative L2; exact ties favor the smaller positive value. Sigma zero
-is a comparison baseline only, even when it has lower error. At the selected
-value, development means were 44.16674% solution relative L2 and 2.949592
-residual RMS, versus 41.75898% and 2.931608 for sigma zero. Errors were large
-and highly variable; these results do not establish a diffusion benefit.
-See the [accepted selection](../../../../docs/results.md#diffusion-selection-at-nu-0001).
-
-## Reference and evaluation
-
-Use the unchanged
-[N4096 reference](../../../../data/burgers_dataset/burgers_nu_0p001_N4096.npz)
-accepted on `dataset-validation` at `41529cb` and retained in the tuning
-checkpoint above. Stored viscosity is exactly 0.001. Its SHA-256 is
-`b628305506f4d3fcfc5052c725bfe595fee716bce21e951165a8ce0af85d89de`.
-N4096 gives 4,097 Chebyshev spatial nodes. N2048–N4096 solution disagreement
-was 0.00964855% relative L2 on a dense common grid; this supports the working
-reference without bounding absolute error or certifying temporal convergence.
-Reference data are used only for evaluation.
-
-Final solution error uses 1,024 uniform spatial points and 199 native times
-through `t = 0.99`. Interpolate reference values only in space and infer the
-PINN directly at these coordinates. PDE-residual RMS uses a separate fixed
-1,024-by-200 interior midpoint grid. The development baseline check, using
-fixed weights, changed solution relative L2 by 0.005708% and residual RMS by
-0.051008% when refining spatial sampling to 4,096 points. Both passed the
-predeclared 1% relative threshold. This checks one model's spatial sampling;
-it does not certify temporal resolution or every possible trained model.
-
-Use final-model errors and retain every planned seed, including numerical
-failures. Report per-seed outcomes, mean and sample SD, paired comparisons,
-and supplementary trimmed means removing one minimum and one maximum
-independently for solution L2 and residual RMS. Solution L2 is reported in
-percent, paired solution changes in percentage points, and residual RMS in
-its original units. Boundary and initial-condition RMSE are separate
-diagnostics. Assess residual error at the solution-selected sigma and do not
-retune on evaluation seeds. Model snapshots support evaluation, not exact
-training resume.
-
-## Reproduction and execution conditions
-
-Use the [documented environment](../../../../README.md#setup-and-execution).
-In `scripts/run_experiments/run_burgers_campaign.py`, select
-`CONFIG_PATH = ROOT / "config/burgers_nu_0p001_10seed.yaml"` and the five methods
-in the order above. The retained run directories are occupied. For a new
-repetition, copy the YAML with a new `campaign` identifier, retain all scientific
-settings and seeds, and select the copy in `CONFIG_PATH`. From the repository root:
-
-```sh
-OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
-venv/bin/python -u -m scripts.run_experiments.run_burgers_campaign
-```
-
-The runner executes ten concurrent seeds per method, with one numerical CPU
-thread per worker, on one NVIDIA GeForce RTX 5070 (12 GB) using float64.
-Method batches run sequentially, including final evaluation, before the next
-starts. Training time includes compilation and optimizer work and excludes
-post-processing. It reflects ten-way GPU concurrency and is not directly
-comparable with tuning timings. DeepXDE's batched L-BFGS driver can exceed
-configured limits; report actual optimizer work from `training.json`.
-
-All five methods and ten seeds remain in the frozen YAML. To execute one
-method batch at a time, select only that method in the runner's `METHODS` list.
-The runner preflights selected destinations and never overwrites an existing
-run. External interruptions follow the repository recovery policy; no
-favorable-error retries or replacement seeds are allowed.
-
-Retain artifacts under
-`output/burgers/nu_0p001/burgers_nu_0p001_10seed/<method>/seed_<seed>/`.
-All runs record source revision `5a1844bfa9ddb51a49efcb0910bda6838347b523`, the
-same dependency versions, CUDA execution, and reference fingerprint. Restoring
-each final checkpoint reproduced saved predictions exactly and all five error
-metrics within `1e-12 + 1e-10 * abs(saved)`. Initial point sets match across
-methods for each seed, constraints remain fixed, and physics points remain
-unchanged during L-BFGS. Fixed Hammersley points remain unchanged throughout.
-
-Study-level comparisons belong in [results](../../../../docs/results.md);
-see the [study context](../../../../docs/research_context.md) and
+See the [study design](../../../../docs/peer_review.md#study-design),
+[comparison](../../../../docs/results.md),
+[frozen configuration](../../../../config/burgers_nu_0p001_10seed.yaml), and
 [artifact dictionary](../../../../docs/output_format.md).
+
+## Reproduction and retained evidence
+
+Every seed retains its original configuration, metadata, status, and final
+metrics. Only PACMANN-Adam seed 4000 at nu = 0.01/pi retains its complete run,
+including model weights and predictions. The [complete campaign](https://github.com/hierr/pinn-collocation-dynamics/tree/6e7a638383fe0e04d9d999a2cc491c313f587cc8/output/burgers/nu_0p001/burgers_nu_0p001_10seed)
+and full execution instructions are available at the fixed research checkpoint.
+
+Use the two review commands in the [repository README](../../../../README.md#setup-and-execution)
+for a short training demonstration and an independent saved-model check.
+Full campaigns used float64 on an RTX 5070 (12 GB), with ten concurrent seeds
+per method and sequential method batches. Training seconds reflect that shared
+GPU condition and exclude final evaluation; they are not serial CPU timings.
 
 ## Per-seed outcomes
 
-Solution L2 is in percent. Aggregates use all ten seeds and sample SD.
-Supplementary trimmed means remove one minimum and one maximum independently
-for solution L2 and residual RMS; no seed is removed from the primary summaries.
+Solution L2 is reported in percent. Means and sample SDs use all ten seeds.
+Supplementary trimmed means remove one minimum and one maximum separately
+for each error metric; all seeds remain in the primary and paired comparisons.
 
 ### Fixed Hammersley
 
@@ -121,7 +44,6 @@ for solution L2 and residual RMS; no seed is removed from the primary summaries.
 | 4009 | 0.0354019 | 30.34503 | 4.198030 | 0.001510 | 0.022221 | 8785.4 |
 | Mean ± sample SD | 0.10919 ± 0.070989 | 51.03469 ± 16.17762 | 3.778311 ± 1.206309 | 0.001285 ± 0.000618 | 0.053116 ± 0.039805 | 8800.7 ± 7.2 |
 | 10% trimmed mean | — | 49.59366 | 3.690066 | — | — | — |
-
 ### Random resampling
 
 | Seed | Solution MSE | Solution L2 (%) | Residual RMS | Boundary RMSE | Initial RMSE | Training seconds |
@@ -138,7 +60,6 @@ for solution L2 and residual RMS; no seed is removed from the primary summaries.
 | 4009 | 0.013178 | 18.51393 | 1.458518 | 0.000697 | 0.025812 | 8773.1 |
 | Mean ± sample SD | 0.0861886 ± 0.0820231 | 42.21336 ± 22.60381 | 2.881772 ± 2.353171 | 0.000992 ± 0.000578 | 0.026092 ± 0.019856 | 8767.8 ± 18.5 |
 | 10% trimmed mean | — | 40.59296 | 2.425556 | — | — | — |
-
 ### RAD
 
 | Seed | Solution MSE | Solution L2 (%) | Residual RMS | Boundary RMSE | Initial RMSE | Training seconds |
@@ -155,7 +76,6 @@ for solution L2 and residual RMS; no seed is removed from the primary summaries.
 | 4009 | 0.0529087 | 37.09691 | 1.023046 | 0.001490 | 0.032313 | 9055.5 |
 | Mean ± sample SD | 0.137484 ± 0.0935419 | 56.13778 ± 21.71956 | 3.384161 ± 2.249354 | 0.002447 ± 0.001574 | 0.073751 ± 0.050931 | 9050.1 ± 12.0 |
 | 10% trimmed mean | — | 56.79151 | 3.193564 | — | — | — |
-
 ### PACMANN
 
 | Seed | Solution MSE | Solution L2 (%) | Residual RMS | Boundary RMSE | Initial RMSE | Training seconds |
@@ -172,7 +92,6 @@ for solution L2 and residual RMS; no seed is removed from the primary summaries.
 | 4009 | 0.0162918 | 20.58539 | 3.258315 | 0.004683 | 0.042877 | 9070.3 |
 | Mean ± sample SD | 0.110925 ± 0.088512 | 49.13478 ± 22.87606 | 3.520678 ± 1.770670 | 0.002661 ± 0.001884 | 0.061073 ± 0.059350 | 9069.3 ± 12.6 |
 | 10% trimmed mean | — | 49.30347 | 3.234714 | — | — | — |
-
 ### PACMANN + diffusion
 
 | Seed | Solution MSE | Solution L2 (%) | Residual RMS | Boundary RMSE | Initial RMSE | Training seconds |
@@ -189,28 +108,3 @@ for solution L2 and residual RMS; no seed is removed from the primary summaries.
 | 4009 | 0.147746 | 61.99151 | 4.242948 | 0.002600 | 0.038625 | 9057.7 |
 | Mean ± sample SD | 0.158981 ± 0.0917616 | 60.68995 ± 22.40796 | 4.861444 ± 2.652718 | 0.002686 ± 0.002696 | 0.059708 ± 0.049149 | 9060.9 ± 10.8 |
 | 10% trimmed mean | — | 62.92386 | 4.493992 | — | — | — |
-
-## Optimizer work and interpretation
-
-Fixed Hammersley has no sampling updates; the other methods have 700 per seed.
-Every run completed 35,000 Adam steps. L-BFGS work below is mean ± sample SD;
-random-resampling seed 4004 completed 15,986 iterations, while all other runs
-completed 15,000. Shared configured limits do not imply identical realized work.
-
-| Method | L-BFGS iterations | L-BFGS function evaluations |
-| --- | ---: | ---: |
-| Fixed Hammersley | 15000.0 ± 0.0 | 16668.6 ± 216.7 |
-| Random resampling | 15098.6 ± 311.8 | 16739.8 ± 697.8 |
-| RAD | 15000.0 ± 0.0 | 16349.2 ± 118.1 |
-| PACMANN | 15000.0 ± 0.0 | 16795.5 ± 213.4 |
-| PACMANN + diffusion | 15000.0 ± 0.0 | 16790.4 ± 251.2 |
-
-Random resampling has the lowest mean and trimmed-mean solution and residual
-errors. All 50 solution relative L2 errors are large, ranging from 10.48282%
-to 93.02576%. At the selected sigma, diffusion raises PACMANN's mean solution
-error by 11.555165 percentage points and residual RMS by 1.340766; it improves
-four of ten paired solution errors and two of ten residual errors. The
-[study-level comparison](../../../../docs/results.md#frozen-evaluation-at-nu-0001)
-retains these unfavorable outcomes, variability, and the seven paired contrasts.
-Reference limitations and unmeasured feature-region errors limit broader
-sharpness conclusions.

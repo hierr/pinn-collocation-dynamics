@@ -11,7 +11,7 @@ from src.train import ROOT
 @pytest.fixture
 def config(tmp_path):
     """Return small controlled settings and an analytic native-grid test reference."""
-    result = yaml.safe_load((ROOT / "config/burgers_template.yaml").read_text())
+    result = yaml.safe_load((ROOT / "config/peer_review.yaml").read_text())
     result["seeds"] = [1000]
     # Keep ordinary fixtures small; sampler-specific tests select the other methods.
     result["methods"] = {
@@ -41,9 +41,9 @@ def config(tmp_path):
 @pytest.fixture
 def all_methods_config(config):
     """Select all five methods with small populations and frequent sampling events."""
-    config["methods"] = yaml.safe_load(
-        (ROOT / "config/burgers_template.yaml").read_text()
-    )["methods"]
+    config["methods"] = yaml.safe_load((ROOT / "config/peer_review.yaml").read_text())[
+        "methods"
+    ]
     for settings in config["methods"].values():
         if "period" in settings:
             settings["period"] = 2

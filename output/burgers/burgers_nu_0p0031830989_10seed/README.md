@@ -1,109 +1,32 @@
-# Burgers: frozen-setting ten-seed comparison
+# Burgers: nu = 0.003183098862
 
-**Frozen protocol; all five method batches are complete (50/50 runs).** See the
-[consolidated results](../../../docs/results.md#frozen-n1024-ten-seed-evaluation).
-The [configuration](../../../config/burgers_nu_0p0031830989_10seed.yaml) contains
-the full five-method study. Run metadata records source revision `9c3f022` for
-PACMANN and `e02098d` for the other four methods. Numerical training and
-evaluation code is unchanged between these revisions.
+This compact review record retains all five methods and all ten evaluation seeds
+(4000–4009), including unfavorable outcomes. Frozen diffusion sigma is `0.0001`.
+The tables below are preserved from the completed research campaign.
 
-## Design and comparisons
+See the [study design](../../../docs/peer_review.md#study-design),
+[comparison](../../../docs/results.md),
+[frozen configuration](../../../config/burgers_nu_0p0031830989_10seed.yaml), and
+[artifact dictionary](../../../docs/output_format.md).
 
-The completed comparison evaluated fixed Hammersley, upstream random resampling,
-RAD, PACMANN, and PACMANN with diffusion on ten paired seeds (50 runs) at
-`nu = 0.01/pi`, using the validated generated N1024 reference. This evaluates
-methods at one viscosity; it does not test a sharpness effect or reproduce the
-original paper's unequal-population setup.
+## Reproduction and retained evidence
 
-The primary contrast is diffusion versus PACMANN for final solution relative L2,
-using `sigma=1e-4` selected on separate development seeds. Additional contrasts
-compare RAD, PACMANN, and PACMANN with diffusion against fixed Hammersley and
-random resampling. Assess the same contrasts for independent residual RMS without
-selecting another sigma.
-Boundary and initial-condition RMSE are constraint diagnostics.
+Every seed retains its original configuration, metadata, status, and final
+metrics. Only PACMANN-Adam seed 4000 at nu = 0.01/pi retains its complete run,
+including model weights and predictions. The [complete campaign](https://github.com/hierr/pinn-collocation-dynamics/tree/6e7a638383fe0e04d9d999a2cc491c313f587cc8/output/burgers/burgers_nu_0p0031830989_10seed)
+and full execution instructions are available at the fixed research checkpoint.
 
-Use the YAML's planned seed list. Match initial weights,
-Hammersley points, fixed constraints, PDE point budgets, and optimizer settings
-across methods within each seed. Sampling settings are fixed before evaluation:
-upstream sampling settings for the baselines and PACMANN, and development-selected
-sigma for diffusion. Disclose this tuning asymmetry. Retain the development sweep's
-L-BFGS behavior and compare actual iterations, function evaluations, and runtime.
+Use the two review commands in the [repository README](../../../README.md#setup-and-execution)
+for a short training demonstration and an independent saved-model check.
+Full campaigns used float64 on an RTX 5070 (12 GB), with ten concurrent seeds
+per method and sequential method batches. Training seconds reflect that shared
+GPU condition and exclude final evaluation; they are not serial CPU timings.
 
-Report every seed's final-model outcomes, means and sample SD, paired absolute
-error changes, and counts improved for each declared contrast. Negative paired
-changes mean lower error; exact ties count separately. Express solution L2 as
-percent and its paired changes as percentage points; residual changes remain in
-residual units. Do not retune, select history minima, or replace unfavorable
-seeds. Also report the supplementary trimmed means defined in the
-[results](../../../docs/results.md#consolidated-evaluation-results), while retaining
-all seeds in the primary summaries and paired comparisons.
-Report a worker failure after all started workers finish; retain every
-run's artifacts and review failures before launching another method. Follow the
-[recovery policy](../../../AGENTS.md#execution-recovery). Do not present a complete
-ten-seed mean from a successful subset; report missing/failed outcomes and the
-available paired count explicitly.
+## Per-seed outcomes
 
-## Execution
-
-Follow the repository's [setup instructions](../../../README.md#setup-and-execution).
-In `scripts/run_experiments/run_burgers_campaign.py`, set `CONFIG_PATH` to the
-campaign YAML and `METHODS` to the required methods in execution order. A full
-repetition includes `pacmann_adam`, `pacmann_diffusion`, `fixed_hammersley`,
-`random_resampling`, and `rad`. Use a copy of the YAML with a new `campaign`
-identifier to preserve the retained runs, keeping the scientific settings fixed.
-Execute from the repository root:
-
-```bash
-venv/bin/python -m scripts.run_experiments.run_burgers_campaign
-```
-
-Each batch launches all ten seeds concurrently in independent processes. The next
-method starts only after every worker in the current batch finishes training and
-evaluation. Only one method batch uses the GPU at a time. The reported evaluation
-used an NVIDIA GeForce RTX 5070.
-Workers use one CPU thread and set OMP/MKL/OpenBLAS thread limits to one, as
-described in the [environment instructions](../../../README.md#setup-and-execution).
-
-Report mean and sample SD of all ten `training_seconds` values for each method,
-describing the timing condition as up to ten concurrent seeds on one GPU. These
-recorded times include competition with other workers, including workers doing
-final evaluation. Do not combine them with timings from serial tuning runs.
-
-The launcher rejects occupied destinations and stops after a failed batch's
-workers finish. It does not skip, retry, or resume runs. Per-run artifacts are
-retained here; completed training requires predictions, metrics, and diagnostics
-before comparison. Saved weights support evaluation, not exact training resume.
-
-## Exploratory checkpoint diagnostics
-
-Post hoc inspection selected seeds 4000, 4002, 4004, and 4006 across all five
-methods, evaluating their ten saved optimizer-stage checkpoints (200 evaluations).
-The [checkpoint metrics](diagnostics/stage_metrics.csv) use the archived solution
-evaluation coordinates and reference, the configured independent residual grid,
-and each checkpoint's saved PDE points. Solution relative L2 is stored as a
-fraction. These selected examples describe failure trajectories; they do not
-establish causes or change the final-checkpoint evaluation policy.
-
-The transition figures for [PACMANN seed 4002](diagnostics/pacmann_adam_4002_transition.png)
-and [diffusion seed 4004](diagnostics/pacmann_diffusion_4004_transition.png) compare
-phase 2 L-BFGS, phase 3 Adam, and phase 3 L-BFGS. The top panels show absolute
-PDE residual with saved PDE points in black; the bottom panels compare reference
-(solid) and predicted (dashed) solutions at `t = 0.5, 0.75, 0.99`. Recreate both
-figures from archived checkpoints without training:
-
-```bash
-venv/bin/python -m scripts.analysis.diagnose_burgers_displaced_front
-```
-
-## Per-method results
-
-Final-checkpoint outcomes for every planned seed are shown below. Solution L2 is
-expressed as percent; the other error metrics are unnormalized. Training time is
-in seconds under the concurrency conditions above. Consolidated rows report
-mean ± sample SD. Supplementary trimmed means remove one lowest and one highest
-value independently for solution L2 and residual RMS; see the
-[definition and limitations](../../../docs/results.md#consolidated-evaluation-results).
-Cross-method comparisons remain in [results](../../../docs/results.md#frozen-n1024-ten-seed-evaluation).
+Solution L2 is reported in percent. Means and sample SDs use all ten seeds.
+Supplementary trimmed means remove one minimum and one maximum separately
+for each error metric; all seeds remain in the primary and paired comparisons.
 
 ### [Fixed Hammersley](fixed_hammersley/)
 
@@ -123,7 +46,6 @@ Cross-method comparisons remain in [results](../../../docs/results.md#frozen-n10
 | Trimmed mean | — | 0.47860 | 0.0318502 | — | — | — |
 
 Sampling updates: 0 per seed.
-
 ### [Random resampling](random_resampling/)
 
 | Seed | Solution MSE | Solution L2 (%) | Residual RMS | Boundary RMSE | Initial RMSE | Training seconds |
@@ -142,7 +64,6 @@ Sampling updates: 0 per seed.
 | Trimmed mean | — | 0.42278 | 0.0186581 | — | — | — |
 
 Sampling updates: 700 per seed.
-
 ### [RAD](rad/)
 
 | Seed | Solution MSE | Solution L2 (%) | Residual RMS | Boundary RMSE | Initial RMSE | Training seconds |
@@ -161,7 +82,6 @@ Sampling updates: 700 per seed.
 | Trimmed mean | — | 0.08295 | 0.00700943 | — | — | — |
 
 Sampling updates: 700 per seed.
-
 ### [PACMANN](pacmann_adam/)
 
 | Seed | Solution MSE | Solution L2 (%) | Residual RMS | Boundary RMSE | Initial RMSE | Training seconds |
@@ -180,7 +100,6 @@ Sampling updates: 700 per seed.
 | Trimmed mean | — | 6.94909 | 0.36952 | — | — | — |
 
 Sampling updates: 700 per seed.
-
 ### [PACMANN + diffusion](pacmann_diffusion/)
 
 | Seed | Solution MSE | Solution L2 (%) | Residual RMS | Boundary RMSE | Initial RMSE | Training seconds |
@@ -200,8 +119,8 @@ Sampling updates: 700 per seed.
 
 Sampling updates: 700 per seed.
 
-[Study controls](../../../docs/research_context.md#accepted-controls-and-evaluation-policy)
-· [Development selection](../../../docs/results.md#n1024-diffusion-development-selection)
+[Study controls](../../../docs/peer_review.md#study-design)
+· [Development selection](../../../docs/peer_review.md#study-design)
 · [Artifact dictionary](../../../docs/output_format.md)
 · [Environment](../../../README.md#setup-and-execution)
 · [Optimizer semantics](../../../references/upstream.md#controlled-study-choices)

@@ -1,98 +1,32 @@
-# Burgers ν = 0.01: frozen ten-seed evaluation
+# Burgers: nu = 0.01
 
-**Completed evaluation: all five methods and all 50 planned runs.** Fixed
-Hammersley, random resampling, RAD, PACMANN-Adam, and PACMANN with diffusion
-each have ten seeds and complete evaluation artifacts. The
-[configuration](../../../config/burgers_nu_0p01_10seed.yaml) freezes the five
-methods and ten paired evaluation seeds. The three baseline methods record
-revision `c615f0436e00bdb82762f78a20fb49c4d74e7b60`; the two PACMANN methods
-record `6582fa759bceff7b84b1b742ade8d7a75d56fd17`. The intervening revision
-changed the runner selection and documentation, while `src/` and `config/`
-remained unchanged.
+This compact review record retains all five methods and all ten evaluation seeds
+(4000–4009), including unfavorable outcomes. Frozen diffusion sigma is `0.001`.
+The tables below are preserved from the completed research campaign.
 
-## Design
+See the [study design](../../../docs/peer_review.md#study-design),
+[comparison](../../../docs/results.md),
+[frozen configuration](../../../config/burgers_nu_0p01_10seed.yaml), and
+[artifact dictionary](../../../docs/output_format.md).
 
-Evaluate fixed Hammersley, upstream random resampling, RAD, PACMANN, and PACMANN
-with diffusion at **ν = 0.01**, using
-`data/burgers_dataset/burgers_nu_0p01_N1024.npz`. Diffusion uses **sigma = 1e-3**,
-selected on development seeds 3000–3002 in `hyperparameter-tuning` commit
-`2baa9dd`. The positive search winner was interior, so no expansion was needed.
-See the [development result](../../../docs/results.md#diffusion-development-selection-at-nu-001).
+## Reproduction and retained evidence
 
-Use evaluation seeds 4000–4009 for every method, excluding the tuning seeds.
-These seed identifiers also occur in the earlier viscosity campaign; retain
-them all, including unfavorable outcomes. Network, point budgets, fixed
-constraints, optimizer stages, baseline sampling settings, evaluation grids,
-and reporting rules match the
-[shared comparison design](../burgers_nu_0p0031830989_10seed/README.md#design-and-comparisons).
-Only viscosity, reference dataset, and the separately selected diffusion sigma
-change. Do not retune on evaluation results.
+Every seed retains its original configuration, metadata, status, and final
+metrics. Only PACMANN-Adam seed 4000 at nu = 0.01/pi retains its complete run,
+including model weights and predictions. The [complete campaign](https://github.com/hierr/pinn-collocation-dynamics/tree/6e7a638383fe0e04d9d999a2cc491c313f587cc8/output/burgers/burgers_nu_0p01_10seed)
+and full execution instructions are available at the fixed research checkpoint.
 
-The primary contrast is diffusion versus PACMANN for final solution relative L2.
-Assess the same contrast for independent residual RMS, without a separate sigma
-selection. Compare adaptive methods against fixed Hammersley and random
-resampling as in the shared design. Report all per-seed outcomes, means, sample
-SD, paired differences and improvement counts; supplementary trimmed means
-remove one minimum and one maximum separately for solution L2 and residual RMS.
-Boundary and initial-condition RMSE are constraint diagnostics. Report actual
-optimizer work and timing, retaining numerical failures and all planned seeds.
+Use the two review commands in the [repository README](../../../README.md#setup-and-execution)
+for a short training demonstration and an independent saved-model check.
+Full campaigns used float64 on an RTX 5070 (12 GB), with ten concurrent seeds
+per method and sequential method batches. Training seconds reflect that shared
+GPU condition and exclude final evaluation; they are not serial CPU timings.
 
-This campaign evaluates held-out seeds at one viscosity. Comparison with the
-earlier viscosity does not by itself establish a sharpness-dependent benefit;
-explicit sharpness and feature-region evaluation remain pending. The generated
-reference passed structural and loader checks, without independent numerical
-accuracy certification at this viscosity. Baseline samplers retain upstream
-settings while diffusion is locally tuned; disclose that tuning policy.
+## Per-seed outcomes
 
-## Reproduction
-
-Use the [documented environment](../../../README.md#setup-and-execution).
-Select `config/burgers_nu_0p01_10seed.yaml` through `CONFIG_PATH` and the
-required method batches through `METHODS` in the runner. The committed runner
-selects the two PACMANN methods; the three baseline method directories are
-already retained in this campaign. For a full repetition, select all five
-methods in the order listed above and use a copy of the YAML with a new campaign
-name.
-Execute from the repository root:
-
-```sh
-venv/bin/python -m scripts.run_experiments.run_burgers_campaign
-```
-
-Each method launches ten concurrent seed processes, each with one numerical CPU
-thread, sharing one GPU. The next method starts after all workers finish
-training and final evaluation. Use the same execution conditions as the earlier
-campaign: NVIDIA GeForce RTX 5070 (12 GB), float64. Timing includes compilation
-and training, excludes final evaluation, and reflects shared-GPU concurrency.
-It is not comparable to the three-way-concurrent development timings.
-
-Set the runner's `METHODS` to a subset to stop after selected method batches.
-The runner rejects occupied seed destinations and stops after a failed batch's
-other workers finish. Preserve artifacts and follow the
-[recovery policy](../../../AGENTS.md#execution-recovery). For a full repetition,
-copy the YAML with a new campaign name and select that copy in the runner;
-keep scientific settings fixed.
-
-Outputs are under `<method>/seed_<seed>/` alongside this README. Per-seed and
-aggregate results for all five methods follow; consolidated comparisons are in
-[results](../../../docs/results.md#frozen-evaluation-at-nu-001). See
-[study context](../../../docs/research_context.md#reference-validation-and-current-evidence)
-and the [artifact dictionary](../../../docs/output_format.md).
-
-## Verified outcomes
-
-All 50 retained runs completed without numerical failures. Independent CPU
-evaluation reproduced the five saved error metrics for all runs, including all
-20 PACMANN checkpoints completed in this phase. Initial interior designs and
-constraint coordinates match exactly across methods within each seed.
-Constraints remain fixed, and physics points do not change during any L-BFGS
-stage.
-
-L2 is expressed as a percentage. SD is the sample standard deviation over all
-ten planned seeds. Supplementary trimmed means remove one minimum and one
-maximum independently for solution L2 and residual RMS; they do not replace
-the full-seed summaries. Training time includes compilation and optimizer work,
-excluding final evaluation. Actual optimizer work is retained in `training.json`.
+Solution L2 is reported in percent. Means and sample SDs use all ten seeds.
+Supplementary trimmed means remove one minimum and one maximum separately
+for each error metric; all seeds remain in the primary and paired comparisons.
 
 ### [Fixed Hammersley](fixed_hammersley/)
 
@@ -112,7 +46,6 @@ excluding final evaluation. Actual optimizer work is retained in `training.json`
 | Trimmed mean | — | 0.0115932 | 0.000904519 | — | — | — |
 
 Sampling updates: zero per seed.
-
 ### [Random resampling](random_resampling/)
 
 | Seed | Solution MSE | Solution L2 (%) | Residual RMS | Boundary RMSE | Initial RMSE | Training seconds |
@@ -131,7 +64,6 @@ Sampling updates: zero per seed.
 | Trimmed mean | — | 0.0183627 | 0.00121857 | — | — | — |
 
 Sampling updates: 700 per seed.
-
 ### [RAD](rad/)
 
 | Seed | Solution MSE | Solution L2 (%) | Residual RMS | Boundary RMSE | Initial RMSE | Training seconds |
@@ -150,7 +82,6 @@ Sampling updates: 700 per seed.
 | Trimmed mean | — | 0.0169540 | 0.000876878 | — | — | — |
 
 Sampling updates: 700 per seed.
-
 ### [PACMANN without diffusion](pacmann_adam/)
 
 | Seed | Solution MSE | Solution L2 (%) | Residual RMS | Boundary RMSE | Initial RMSE | Training seconds |
@@ -169,7 +100,6 @@ Sampling updates: 700 per seed.
 | Trimmed mean | — | 0.0308782 | 0.00175898 | — | — | — |
 
 Sampling updates: 700 per seed.
-
 ### [PACMANN with diffusion](pacmann_diffusion/)
 
 | Seed | Solution MSE | Solution L2 (%) | Residual RMS | Boundary RMSE | Initial RMSE | Training seconds |
@@ -188,35 +118,3 @@ Sampling updates: 700 per seed.
 | Trimmed mean | — | 0.0254398 | 0.00157040 | — | — | — |
 
 Sampling updates: 700 per seed.
-
-### Paired diffusion contrast and optimizer work
-
-For the paired contrast, differences are PACMANN with diffusion minus PACMANN
-without diffusion. Solution L2 differences are percentage points. Negative
-values favor diffusion; counts are improved / tied / worse.
-
-| Metric | Mean paired difference ± sample SD | Improved / tied / worse |
-| --- | ---: | ---: |
-| Solution relative L2 | -0.006712 percentage points ± 0.016198 | 7 / 0 / 3 |
-| Residual RMS | -0.00023024 ± 0.00037751 | 9 / 0 / 1 |
-
-Every run performed 35,000 Adam iterations. The L-BFGS driver can exceed its
-configured per-stage iteration and function-evaluation limits, so the table
-reports observed per-seed totals from `training.json`. Training seconds include
-compilation and optimizer work, and exclude final evaluation.
-
-| Method | L-BFGS iterations per seed, mean ± sample SD | L-BFGS function evaluations per seed, mean ± sample SD |
-| --- | ---: | ---: |
-| Fixed Hammersley | 16322.7 ± 348.6 | 25513.6 ± 1698.4 |
-| Random resampling | 16603.6 ± 342.7 | 25799.7 ± 1379.3 |
-| RAD | 15735.5 ± 506.9 | 19807.0 ± 1944.8 |
-| PACMANN without diffusion | 16344.8 ± 276.0 | 24786.2 ± 904.8 |
-| PACMANN with diffusion | 16325.0 ± 476.6 | 25666.4 ± 882.2 |
-
-The comparisons are limited to this generated reference and viscosity.
-The selected diffusion setting shows lower mean errors than PACMANN without
-diffusion on these ten seeds, but does not establish a general diffusion benefit
-or a sharpness-dependent effect. The reference passed structural and loader
-checks without independent numerical-accuracy certification at this viscosity.
-The three baseline sampling methods retain upstream settings while diffusion
-was tuned on separate development seeds.

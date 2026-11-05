@@ -29,3 +29,11 @@ htmlcov/
 
 # Reproducible tables accompanying the retained cross-regime figures
 /output/burgers/regime_comparison/
+
+# Disposable peer-review demonstrations
+/output/burgers/nu_*/peer_review_demo*/
+
+# Local presentation build files
+/docs/presentation/build/
+/docs/presentation/*.synctex
+/docs/presentation/*.synctex.gz
