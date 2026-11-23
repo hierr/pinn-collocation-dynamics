@@ -8,15 +8,16 @@ branches, citing the source commit, rather than merging entire workstreams.
 
 ## Current development campaign
 
-The completed 21-run sweep at `nu = 0.001` selected **sigma = 1e-6** for a
-separate ten-seed evaluation, which has not started. It uses the accepted N4096
-working reference from `dataset-validation` checkpoint `41529cb`. The
-[campaign protocol](output/burgers/nu_0p001/sigma_0/README.md) records reference
-convergence evidence, the expanded candidate grid, and the selection rule.
-The baseline spatial-grid check supported retaining the existing evaluation
-density. The runner defaults to summarization; comparisons and limitations,
-including higher development mean errors than sigma zero, are in
-[results](docs/results.md).
+The next development phase prepares gradient-dependent attenuation of PACMANN's
+diffusion. Four finite alpha values are configured at each of the five completed
+Burgers viscosities, using paired seeds 3000–3002 and the existing selected base
+sigma. Constant diffusion is eligible to win the selection. The controller runs
+have not started; the [development protocol](docs/research_context.md#sharpness-dependent-diffusion-development)
+defines the formula, comparisons, and stopping rule.
+
+The completed sigma sweeps and their artifacts remain on this branch; their
+[results](docs/results.md) include the `nu = 0.001` selection of **sigma = 1e-6**.
+Frozen evaluations and subsequent cross-regime analyses are maintained on `main`.
 
 Tune separately at each Burgers viscosity, then evaluate the frozen settings
 for solution and independent PDE-residual error on ten new seeds. The
@@ -36,6 +37,35 @@ source revision, dataset fingerprint, and dependency versions.
 uv venv --python 3.12 venv
 VIRTUAL_ENV="$PWD/venv" uv sync --active --locked
 ```
+
+### Controller development
+
+Select `NU_TAG` and `ACTION` in
+`scripts/run_experiments/run_burgers_alpha_tuning.py`. The available viscosity
+tags are `0p1`, `0p031415927`, `0p01`, `0p0031830989`, and `0p001`.
+The default `ACTION = "check"` verifies the selected viscosity's configurations,
+archived controls, and unused destinations without training or writing outputs:
+
+```bash
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+venv/bin/python -m scripts.run_experiments.run_burgers_alpha_tuning
+```
+
+Each viscosity has four complete `*_alpha_*.yaml` configurations under its
+`config/burgers/nu_*/` directory. They retain the selected sigma and introduce
+`alpha` and the fixed initial-gradient scale `g_base`. Outputs will follow
+`output/burgers/nu_*/alpha_*/pacmann_sharpness_diffusion/seed_<seed>/`.
+The two archived controls are read from their existing `sigma_*` campaigns.
+
+After execution is separately approved, `ACTION = "run"` launches the four
+candidate batches sequentially, with three concurrent seeds per batch. It
+checks all destinations before the first launch and never reruns controls.
+`ACTION = "summarize"` reads the saved outcomes and prints the per-seed and
+aggregate comparison without training or writing files. Selection remains
+pending until all planned outcomes and diagnostics exist. No search expansion
+is automatic; campaign READMEs are maintained manually with retained outputs.
+
+### Previous sigma sweeps
 
 When reproducing this campaign from the repository root, the baseline command
 runs only seed 3000 for the bounded spatial-grid check:
@@ -72,7 +102,7 @@ Campaign READMEs are maintained manually alongside the outputs.
 Tuning configurations are grouped by viscosity under `config/burgers/nu_*/`.
 Their filenames identify the viscosity and sigma, including `sigma_0` for the
 ordinary PACMANN baseline.
-Outputs follow `output/burgers/nu_*/sigma_*/<method>/seed_<seed>/`; campaign
+Sigma outputs follow `output/burgers/nu_*/sigma_*/<method>/seed_<seed>/`; campaign
 READMEs are stored in each `sigma_*` directory.
 
 The reusable runner is `scripts/run_experiments/run_burgers_campaign.py`; select

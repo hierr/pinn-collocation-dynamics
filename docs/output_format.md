@@ -104,6 +104,14 @@ noise component per movement event, before boundary replacement; it is not a
 physical PDE diffusion coefficient. Ordinary `pacmann_adam` is the sigma-zero
 baseline and has no `sigma` field.
 
+For `pacmann_sharpness_diffusion`, `sigma` is the base amplitude and the saved
+settings additionally contain `alpha` and `g_base`. The local noise-amplitude
+multiplier is `1 / sqrt(1 + (abs(du/dx) / (alpha * g_base))**2)`, evaluated from
+the current PINN before each coordinate substep. It multiplies the Gaussian
+increment in both coordinates. Burgers uses the fixed initial-gradient maximum
+`g_base = pi`; reference values and reference gradients do not drive movement.
+The existing domain and `sqrt(steps)` normalization remain unchanged.
+
 The diffusion callback initializes a persistent local generator using NumPy
 `SeedSequence([selected_seed, 1])`. This convention and the archived NumPy version
 identify the noise stream without extra metadata fields. Sigma zero draws no
@@ -137,6 +145,15 @@ constraints. They have no coordinate-movement steps or diffusion coefficient.
 The top-level `stages` list records completed optimizer stages in execution
 order. Each phase consists of network Adam followed by L-BFGS; optimizer state
 is reset when each stage is compiled.
+
+For `pacmann_sharpness_diffusion`, Adam stages with noise updates additionally
+record `mean_noise_multiplier` and `half_variance_fraction`. The first is the
+arithmetic mean of the local amplitude factors over all point/substep
+evaluations in that stage. The second is the fraction with
+`abs(du/dx) >= alpha * g_base`, where noise variance is at most half its base
+value. Both are dimensionless and lie between zero and one. Counters reset for
+each Adam stage; these fields are absent in L-BFGS stages and stages without
+noise updates. They describe controller activity, not independent error metrics.
 
 | Field | Type/unit | Meaning |
 | --- | --- | --- |

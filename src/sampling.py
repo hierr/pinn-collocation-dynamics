@@ -6,6 +6,7 @@ Apache-2.0 license: references/pacmann/burgers/LICENSE.
 
 import deepxde as dde
 import numpy as np
+import torch
 
 
 def interior_points(data, count: int):
@@ -193,6 +194,123 @@ class PacmannAdam(dde.callbacks.Callback):
             )
 
         # Replace only after all coordinate steps, preserving upstream timing.
+        inside = np.logical_and(
+            data.geom.geometry.inside(points[:, 0]),
+            data.geom.timedomain.inside(points[:, 1]),
+        )
+        points[~inside] = data.geom.random_points(int((~inside).sum()), random="pseudo")
+        data.replace_with_anchors(points)
+        if not np.array_equal(data.train_x_bc, constraints):
+            raise RuntimeError("Constraint coordinates changed during movement")
+        self.events += 1
+
+
+class PacmannSharpnessDiffusion(dde.callbacks.Callback):
+    """Attenuate PACMANN noise using the PINN's local spatial gradient."""
+
+    def __init__(
+        self,
+        *,
+        interior_points: int,
+        residual_gradient,
+        period: int,
+        coordinate_steps: int,
+        step_size: float,
+        betas,
+        epsilon: float,
+        sigma: float,
+        alpha: float,
+        g_base: float,
+        domain_widths,
+        seed: int,
+    ):
+        """Initialize coordinate ascent, gradient attenuation, and seeded noise."""
+        super().__init__()
+        widths = np.asarray(domain_widths, dtype=float)
+        if not np.isfinite(sigma) or sigma < 0:
+            raise ValueError("Sigma must be finite and nonnegative")
+        if not np.isfinite([alpha, g_base]).all() or alpha <= 0 or g_base <= 0:
+            raise ValueError("Alpha and g_base must be finite and positive")
+        if widths.shape != (2,) or not np.isfinite(widths).all() or (widths <= 0).any():
+            raise ValueError("Domain widths must be two positive finite values")
+        if type(coordinate_steps) is not int or coordinate_steps <= 0:
+            raise ValueError("Coordinate steps must be a positive integer")
+        if type(period) is not int or period <= 0:
+            raise ValueError("Movement period must be a positive integer")
+        self.interior_count = interior_points
+        self.residual_gradient = residual_gradient
+        self.period = period
+        self.coordinate_steps = coordinate_steps
+        self.step_size = step_size
+        self.beta1, self.beta2 = betas
+        self.epsilon = epsilon
+        self.sigma, self.alpha, self.g_base = sigma, alpha, g_base
+        self.noise_scale = sigma * widths / np.sqrt(coordinate_steps)
+        self.rng = np.random.default_rng(np.random.SeedSequence([seed, 1]))
+        self.adam_steps = 0
+        self.events = 0
+        self.noise_multiplier_sum = 0.0
+        self.half_variance_count = 0
+        self.noise_point_count = 0
+
+    def on_epoch_end(self):
+        """Move physics points with noise attenuated at each pre-update location."""
+        model = self.model
+        if model is None:
+            raise RuntimeError("Callback is not attached to a model")
+        if model.opt_name != "adam":
+            return
+        self.adam_steps += 1
+        if self.adam_steps % self.period:
+            return
+        data = model.data
+        points = interior_points(data, self.interior_count)
+        constraints = data.train_x_bc.copy()
+
+        def point_gradients(x, y):
+            """Return [d(r²)/dx, d(r²)/dt, du/dx] in one model evaluation."""
+            score_gradient = self.residual_gradient(x, y)
+            ux = dde.grad.jacobian(y, x, i=0, j=0)
+            return torch.cat([score_gradient, ux], dim=1)
+
+        # Reevaluate drift and attenuation before every coordinate substep.
+        first, second = np.zeros_like(points), np.zeros_like(points)
+        for step in range(self.coordinate_steps):
+            gradients = model.predict(points, operator=point_gradients)
+            if gradients.shape != (len(points), 3):
+                raise ValueError("Sampling gradients must have shape (points, 3)")
+            if not np.isfinite(gradients).all():
+                raise FloatingPointError("Non-finite sampling gradients")
+            residual_gradient = gradients[:, :2]
+            first = self.beta1 * first + (1 - self.beta1) * residual_gradient
+            second = self.beta2 * second + (1 - self.beta2) * residual_gradient**2
+            corrected_first = first / (1 - self.beta1 ** (step + 1))
+            corrected_second = second / (1 - self.beta2 ** (step + 1))
+            points += (
+                self.step_size
+                * corrected_first
+                / (np.sqrt(corrected_second) + self.epsilon)
+            )
+
+            # The Perona–Malik-inspired factor scales variance; its square root
+            # scales noise amplitude in both coordinates. g_base is fixed, not fitted.
+            if self.sigma > 0:
+                relative_gradient = np.abs(gradients[:, 2:3]) / (
+                    self.alpha * self.g_base
+                )
+                multiplier = 1 / np.hypot(1.0, relative_gradient)
+                points += (
+                    self.noise_scale
+                    * multiplier
+                    * self.rng.standard_normal(points.shape)
+                )
+                self.noise_multiplier_sum += float(multiplier.sum())
+                self.half_variance_count += int(
+                    np.count_nonzero(relative_gradient >= 1)
+                )
+                self.noise_point_count += len(points)
+
+        # Preserve upstream replacement timing and fixed initial/boundary constraints.
         inside = np.logical_and(
             data.geom.geometry.inside(points[:, 0]),
             data.geom.timedomain.inside(points[:, 1]),

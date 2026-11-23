@@ -131,8 +131,8 @@ ten-seed evaluation on seeds 4000–4009. No further expansion is required.
 Ordinary PACMANN had lower mean solution and residual error on these development
 seeds, and outcomes were highly variable. The positive-only selection rule does
 not require a development improvement over sigma zero. Assess residual error at
-the same selected sigma; see [results](results.md). The ten-seed campaign at this
-viscosity has not started.
+the same selected sigma; see [results](results.md). Frozen evaluations and
+subsequent cross-regime analyses are maintained on `main`.
 
 Tune diffusion separately at each viscosity using development seeds, then
 freeze settings before ten-seed comparisons of fixed Hammersley, upstream random
@@ -143,7 +143,65 @@ sigma across regimes. Additional PDE families may follow later.
 The controlled Burgers implementation loads generated references, matches PDE
 populations, and evaluates final solution, residual, and constraint errors. It
 includes fixed Hammersley, random resampling, RAD, PACMANN, and PACMANN with
-diffusion. Sharpness and feature-region evaluation remain future work.
+constant diffusion. The controller development below extends that comparison.
+
+### Sharpness-dependent diffusion development
+
+Exploratory inspection of the completed evaluations on `main` suggested that
+diffusion's effect may differ between smoother solution regions and developed
+steep fronts. The pattern depends on viscosity and on whether mean or typical
+outcomes are considered. These observations motivate a new method-development
+question: can local attenuation retain useful exploration while reducing noise
+where it disrupts PACMANN? They do not establish that changing noise locally will
+combine the favorable outcomes of separately trained models.
+
+Use the current PINN's spatial derivative to attenuate both coordinate-noise
+components, with
+
+$$
+g_\theta(x,t)=|\partial_x u_\theta(x,t)|,\qquad
+g_{\mathrm{base}}=\max_x|\partial_x u_0(x)|=\pi,
+$$
+$$
+\sigma_{\mathrm{eff}}(x,t)=
+\frac{\sigma_0}{\sqrt{1+[g_\theta(x,t)/(\alpha g_{\mathrm{base}})]^2}}.
+$$
+
+The rational variance attenuation is inspired by
+[Perona and Malik (1990)](https://www.sci.utah.edu/~gerig/CS7960-S2010/materials/Perona-Malik/PeronaMalik-PAMI-1990.pdf).
+Its use for stochastic collocation movement is a proposed adaptation. Alpha
+rescales the half-variance gradient: at `g_theta = alpha * g_base`, amplitude is
+`sigma_0 / sqrt(2)`. Attenuation is continuous, without an onset cutoff. The
+initial-gradient scale is fixed analytically and is not fitted from reference
+solutions. The predicted gradient is recomputed at the pre-update coordinates
+at every coordinate substep. Keep PACMANN drift, domain-normalized noise,
+movement cadence, point budgets, and fixed constraints unchanged.
+
+Prepare separate calibrations at `nu = 0.1`, `pi/100`, `0.01`, `0.01/pi`, and
+`0.001`, using `alpha = 0.1, 1, 10, 100` and development seeds 3000–3002.
+Retain each viscosity's previously selected positive sigma as `sigma_0`, along
+with its reference, training schedule, and evaluation grids. This is 60 new
+training runs. Reuse matching archived PACMANN and constant-diffusion controls,
+checking saved settings, reference fingerprints, and environment provenance.
+Source revisions may differ because the new sampler is added separately.
+
+Select alpha independently at each viscosity by the arithmetic mean final
+global solution relative L2 over all three seeds. Constant diffusion is an
+eligible endpoint representing `alpha → infinity`; ordinary PACMANN is a
+comparison baseline. Exact ties favor constant diffusion, then larger finite
+alpha. Assess residual RMS at the same selected setting and retain every seed,
+including large-error outcomes. Do not select from incomplete or failed planned
+comparisons. Report a finite boundary winner as the best tested setting; no
+search expansion is automatic.
+
+This design tests a calibration procedure applied separately to each regime,
+with base sigma fixed; it does not test transfer of one alpha or joint optimality
+of sigma and alpha. Attenuation also reduces the overall injected noise, so an
+accuracy improvement would not isolate the benefit of spatial localization from
+the benefit of reducing noise. Selection can favor constant diffusion. Fresh-seed
+evaluation, execution order, and dispatch will be prepared separately after
+development setup is reviewed. The inspected evaluation seeds motivated this
+proposal and cannot provide untouched confirmation of the new controller.
 
 ## Accepted controls and evaluation policy
 

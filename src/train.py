@@ -21,6 +21,7 @@ from src.sampling import (
     FixedHammersley,
     PacmannAdam,
     PacmannDiffusion,
+    PacmannSharpnessDiffusion,
     RandomResampling,
 )
 
@@ -96,6 +97,24 @@ def run_training(config: dict, method: str, seed: int):
                 ],
                 seed=seed,
             )
+        elif method == "pacmann_sharpness_diffusion":
+            sampler = PacmannSharpnessDiffusion(
+                interior_points=interior_count,
+                residual_gradient=residual_gradient,
+                period=sampling_settings["period"],
+                coordinate_steps=sampling_settings["steps"],
+                step_size=sampling_settings["step_size"],
+                betas=sampling_settings["betas"],
+                epsilon=sampling_settings["epsilon"],
+                sigma=sampling_settings["sigma"],
+                alpha=sampling_settings["alpha"],
+                g_base=sampling_settings["g_base"],
+                domain_widths=[
+                    problem_settings["x_bounds"][1] - problem_settings["x_bounds"][0],
+                    problem_settings["t_bounds"][1] - problem_settings["t_bounds"][0],
+                ],
+                seed=seed,
+            )
         constraints = model.data.train_x_bc.copy()
         initial_pde_points = model.data.train_x_all.copy()
         save_points(model.data, run_dir, "initial", interior_count)
@@ -113,6 +132,10 @@ def run_training(config: dict, method: str, seed: int):
         for phase in range(1, training_settings["phases"] + 1):
             # Optimize network weights with Adam and the sampling callback.
             events_before = sampler.events
+            if isinstance(sampler, PacmannSharpnessDiffusion):
+                sampler.noise_multiplier_sum = 0.0
+                sampler.half_variance_count = 0
+                sampler.noise_point_count = 0
             synchronize()
             start = time.perf_counter()
             model.compile("adam", lr=training_settings["learning_rate"])
@@ -145,6 +168,18 @@ def run_training(config: dict, method: str, seed: int):
                     "pde_points": len(model.data.train_x_all),
                 }
             )
+            if (
+                isinstance(sampler, PacmannSharpnessDiffusion)
+                and sampler.noise_point_count
+            ):
+                stages[-1].update(
+                    mean_noise_multiplier=(
+                        sampler.noise_multiplier_sum / sampler.noise_point_count
+                    ),
+                    half_variance_fraction=(
+                        sampler.half_variance_count / sampler.noise_point_count
+                    ),
+                )
             write_json(run_dir / "training.json", {"stages": stages})
 
             # Recompile for L-BFGS, resetting optimizer state and fixing PDE points.

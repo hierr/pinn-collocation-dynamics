@@ -48,7 +48,8 @@ Read ignored `AGENTS.local.md`, if present, at session start.
   and seed count alone do not determine scientific value.
 - Keep scientific settings in YAML. Archive the resolved configuration in
   `output/burgers/nu_<viscosity>/<campaign>/<method>/<seed>/config.yaml` at run start.
-  Tuning campaign names are `sigma_<sigma>`; use `sigma_0` for ordinary PACMANN.
+  Sigma-tuning campaigns use `sigma_<sigma>` (`sigma_0` for ordinary PACMANN);
+  controller-tuning campaigns use `alpha_<alpha>` and reuse their archived controls.
 - Never overwrite a prior run or alter original reference datasets.
 - Use archived configurations and fixed evaluation seeds for post-processing.
 - Model snapshots support evaluation, not exact training resume.

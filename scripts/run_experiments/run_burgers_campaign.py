@@ -43,6 +43,7 @@ def check_campaign(config: dict, method: str):
                 "rad",
                 "pacmann_adam",
                 "pacmann_diffusion",
+                "pacmann_sharpness_diffusion",
             )
             for configured_method in methods
         )

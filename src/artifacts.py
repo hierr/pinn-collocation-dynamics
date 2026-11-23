@@ -39,6 +39,7 @@ def prepare_run(config: dict, method: str, seed: int, dataset_sha256: str, root:
             "rad",
             "pacmann_adam",
             "pacmann_diffusion",
+            "pacmann_sharpness_diffusion",
         )
         or method not in config["methods"]
     ):
