@@ -1,0 +1,109 @@
+{
+  "stages": [
+    {
+      "phase": 1,
+      "optimizer": "adam",
+      "seconds": 1131.7758153530012,
+      "global_step": 7000,
+      "optimizer_iterations": 7000,
+      "movement_events": 140,
+      "pde_points": 2500,
+      "mean_noise_multiplier": 0.363014256122247,
+      "half_variance_fraction": 0.8967771428571428
+    },
+    {
+      "phase": 1,
+      "optimizer": "L-BFGS",
+      "seconds": 1187.159822697984,
+      "global_step": 10000,
+      "optimizer_iterations": 3000,
+      "movement_events": 0,
+      "pde_points": 2500,
+      "function_evaluations": 3350
+    },
+    {
+      "phase": 2,
+      "optimizer": "adam",
+      "seconds": 910.6418548229849,
+      "global_step": 17000,
+      "optimizer_iterations": 7000,
+      "movement_events": 140,
+      "pde_points": 2500,
+      "mean_noise_multiplier": 0.35300686519870644,
+      "half_variance_fraction": 0.9089940952380953
+    },
+    {
+      "phase": 2,
+      "optimizer": "L-BFGS",
+      "seconds": 2343.2814707400103,
+      "global_step": 20437,
+      "optimizer_iterations": 3437,
+      "movement_events": 0,
+      "pde_points": 2500,
+      "function_evaluations": 5002
+    },
+    {
+      "phase": 3,
+      "optimizer": "adam",
+      "seconds": 283.46380426199175,
+      "global_step": 27437,
+      "optimizer_iterations": 7000,
+      "movement_events": 140,
+      "pde_points": 2500,
+      "mean_noise_multiplier": 0.3475955460275337,
+      "half_variance_fraction": 0.9114264761904762
+    },
+    {
+      "phase": 3,
+      "optimizer": "L-BFGS",
+      "seconds": 2436.463613041007,
+      "global_step": 30738,
+      "optimizer_iterations": 3301,
+      "movement_events": 0,
+      "pde_points": 2500,
+      "function_evaluations": 6255
+    },
+    {
+      "phase": 4,
+      "optimizer": "adam",
+      "seconds": 211.94030754099367,
+      "global_step": 37738,
+      "optimizer_iterations": 7000,
+      "movement_events": 140,
+      "pde_points": 2500,
+      "mean_noise_multiplier": 0.3446810961365616,
+      "half_variance_fraction": 0.9111409523809524
+    },
+    {
+      "phase": 4,
+      "optimizer": "L-BFGS",
+      "seconds": 2524.4262931970297,
+      "global_step": 41014,
+      "optimizer_iterations": 3276,
+      "movement_events": 0,
+      "pde_points": 2500,
+      "function_evaluations": 6255
+    },
+    {
+      "phase": 5,
+      "optimizer": "adam",
+      "seconds": 163.38101345597534,
+      "global_step": 48014,
+      "optimizer_iterations": 7000,
+      "movement_events": 140,
+      "pde_points": 2500,
+      "mean_noise_multiplier": 0.34034967913485314,
+      "half_variance_fraction": 0.9125487619047619
+    },
+    {
+      "phase": 5,
+      "optimizer": "L-BFGS",
+      "seconds": 2081.8406361329835,
+      "global_step": 51014,
+      "optimizer_iterations": 3000,
+      "movement_events": 0,
+      "pde_points": 2500,
+      "function_evaluations": 3427
+    }
+  ]
+}

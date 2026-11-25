@@ -143,9 +143,10 @@ sigma across regimes. Additional PDE families may follow later.
 The controlled Burgers implementation loads generated references, matches PDE
 populations, and evaluates final solution, residual, and constraint errors. It
 includes fixed Hammersley, random resampling, RAD, PACMANN, and PACMANN with
-constant diffusion. The controller development below extends that comparison.
+constant diffusion. The adaptive diffusion development below extends that
+comparison.
 
-### Sharpness-dependent diffusion development
+### Adaptive diffusion development
 
 Exploratory inspection of the completed evaluations on `main` suggested that
 diffusion's effect may differ between smoother solution regions and developed
@@ -155,8 +156,8 @@ question: can local attenuation retain useful exploration while reducing noise
 where it disrupts PACMANN? They do not establish that changing noise locally will
 combine the favorable outcomes of separately trained models.
 
-Use the current PINN's spatial derivative to attenuate both coordinate-noise
-components, with
+We call this method **PACMANN with adaptive diffusion**. It uses the current
+PINN's spatial derivative to attenuate both coordinate-noise components, with
 
 $$
 g_\theta(x,t)=|\partial_x u_\theta(x,t)|,\qquad
@@ -177,13 +178,17 @@ solutions. The predicted gradient is recomputed at the pre-update coordinates
 at every coordinate substep. Keep PACMANN drift, domain-normalized noise,
 movement cadence, point budgets, and fixed constraints unchanged.
 
-Prepare separate calibrations at `nu = 0.1`, `pi/100`, `0.01`, `0.01/pi`, and
-`0.001`, using `alpha = 0.1, 1, 10, 100` and development seeds 3000–3002.
-Retain each viscosity's previously selected positive sigma as `sigma_0`, along
-with its reference, training schedule, and evaluation grids. This is 60 new
-training runs. Reuse matching archived PACMANN and constant-diffusion controls,
+The [completed development comparison](../output/burgers/nu_0p0031830989/alpha_0p1/README.md)
+calibrated separately at `nu = 0.1`, `pi/100`, `0.01`, `0.01/pi`, and `0.001`,
+using `alpha = 0.1, 1, 10, 100` and development seeds 3000–3002. All 60 new
+training runs completed, retaining each viscosity's previously selected positive
+sigma as `sigma_0`, its reference, training schedule, and evaluation grids.
+Matching archived PACMANN and constant-diffusion controls were reused after
 checking saved settings, reference fingerprints, and environment provenance.
-Source revisions may differ because the new sampler is added separately.
+Source revisions differ because the new sampler was added separately. The
+adaptive diffusion runs used an RTX 5090; earlier controls used an RTX 5070.
+The campaign README records execution conditions; their timings do not isolate
+the cost of adaptation.
 
 Select alpha independently at each viscosity by the arithmetic mean final
 global solution relative L2 over all three seeds. Constant diffusion is an
@@ -194,14 +199,23 @@ including large-error outcomes. Do not select from incomplete or failed planned
 comparisons. Report a finite boundary winner as the best tested setting; no
 search expansion is automatic.
 
+The [development results](results.md#adaptive-diffusion-development) select
+constant diffusion at `nu = 0.1` and finite alpha values at the other four
+viscosities. Solution-error improvements are not consistent across seeds or
+accompanied by lower residual error in every regime. Several selected finite
+settings retain nearly the full base noise amplitude. These findings do not yet
+establish an advantage from local attenuation. The saved method identifier
+`pacmann_sharpness_diffusion` is retained for provenance and denotes adaptive
+diffusion in configurations and artifacts.
+
 This design tests a calibration procedure applied separately to each regime,
 with base sigma fixed; it does not test transfer of one alpha or joint optimality
 of sigma and alpha. Attenuation also reduces the overall injected noise, so an
 accuracy improvement would not isolate the benefit of spatial localization from
 the benefit of reducing noise. Selection can favor constant diffusion. Fresh-seed
-evaluation, execution order, and dispatch will be prepared separately after
-development setup is reviewed. The inspected evaluation seeds motivated this
-proposal and cannot provide untouched confirmation of the new controller.
+evaluation, execution order, and dispatch remain a separate, unstarted step.
+The inspected evaluation seeds motivated this proposal and cannot provide
+untouched confirmation of adaptive diffusion.
 
 ## Accepted controls and evaluation policy
 

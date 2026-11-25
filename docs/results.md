@@ -215,3 +215,86 @@ lower residual only in seed 3002. The three-seed selection sample does not
 establish held-out performance or a sharpness effect. Full per-seed outcomes,
 optimizer work, and concurrency conditions are in the campaign README and
 artifacts. The separate ten-seed evaluation has not started.
+
+## Adaptive diffusion development
+
+The [adaptive diffusion campaign](../output/burgers/nu_0p0031830989/alpha_0p1/README.md)
+completed all **60 planned new runs** without reported execution failures:
+four finite alpha values at five viscosities, each using development seeds
+3000–3002. PACMANN with adaptive diffusion uses the PINN's local spatial
+gradient to attenuate its noise; the [research context](research_context.md#adaptive-diffusion-development)
+defines the formula and its rationale. The base sigma was frozen from each
+viscosity's earlier sweep. Archived ordinary PACMANN and constant-diffusion
+controls were reused, with matching scientific settings, reference fingerprints,
+and recorded dependency versions.
+
+Select independently at each viscosity by mean final global solution relative
+L2 across all three seeds. Constant diffusion is eligible as alpha → infinity;
+ordinary PACMANN is a comparison baseline. Residual error is assessed at the
+solution-selected setting. The finite candidates were alpha = 0.1, 1, 10, 100;
+no search expansion or new-seed evaluation has been performed.
+
+Solution relative L2 uses the common 1,024-by-199 grid. Values below are
+**mean ± sample SD in percent**. Lower-pair counts compare the selected strategy
+against the same-seed constant-diffusion control, without dropping any seeds.
+
+| ν | Selected strategy | Ordinary PACMANN L2 (%) | Constant diffusion L2 (%) | Selected L2 (%) | Lower solution error vs constant / 3 |
+| --- | --- | ---: | ---: | ---: | ---: |
+| [0.1](../output/burgers/nu_0p1/alpha_0p1/README.md) | Constant | 0.0177093 ± 0.00715926 | 0.00961106 ± 0.00186134 | 0.00961106 ± 0.00186134 | — |
+| [π/100](../output/burgers/nu_0p031415927/alpha_0p1/README.md) | α = 10 | 0.013549 ± 0.0071748 | 0.0142509 ± 0.00391486 | 0.0119088 ± 0.00186732 | 2/3 |
+| [0.01](../output/burgers/nu_0p01/alpha_0p1/README.md) | α = 100 | 0.0289837 ± 0.0112685 | 0.0262913 ± 0.00596281 | 0.0192932 ± 0.00675546 | 2/3 |
+| [0.01/π](../output/burgers/nu_0p0031830989/alpha_0p1/README.md) | α = 1 | 0.140387 ± 0.0970043 | 0.0796273 ± 0.0464911 | 0.0686017 ± 0.0248522 | 1/3 |
+| [0.001](../output/burgers/nu_0p001/alpha_0p1/README.md) | α = 10 | 41.759 ± 28.783 | 44.1667 ± 36.0829 | 41.0928 ± 16.218 | 1/3 |
+
+PDE-residual RMS uses the independent 1,024-by-200 interior midpoint grid.
+It is unnormalized; percentage changes below compare arithmetic means and are
+relative changes, not percentage points. The strategy is the one selected above.
+
+| ν | Constant residual RMS, mean ± sample SD | Selected residual RMS, mean ± sample SD | Change vs constant | Lower residual vs constant / 3 |
+| --- | ---: | ---: | ---: | ---: |
+| 0.1 | 0.000773829 ± 0.000180949 | 0.000773829 ± 0.000180949 | — | — |
+| π/100 | 0.000968064 ± 0.000112133 | 0.00106115 ± 0.000313549 | +9.62% | 1/3 |
+| 0.01 | 0.00173037 ± 0.000505739 | 0.00145826 ± 0.00012809 | -15.73% | 2/3 |
+| 0.01/π | 0.00364778 ± 0.000266738 | 0.00476455 ± 0.00154972 | +30.62% | 0/3 |
+| 0.001 | 2.94959 ± 1.73725 | 2.94578 ± 1.57457 | -0.13% | 1/3 |
+
+Constant diffusion wins at ν = 0.1: none of the finite-alpha candidates lowers
+its mean solution error. At π/100, alpha 10 lowers mean solution error by 16.4%
+but raises mean residual RMS by 9.6%. At ν = 0.01, alpha 100 lowers mean solution
+error by 26.6% and residual RMS by 15.7%, with lower errors in two of three paired
+seeds for each metric. Alpha 100 is the upper finite boundary, so it is the best
+tested setting, not an established optimum; constant diffusion was also tested
+as the infinite-alpha endpoint. The approved rule does not expand automatically.
+
+At ν = 0.01/π, alpha 1 lowers mean solution error by 13.8%, but this improvement
+occurs in only one of three paired seeds; residual RMS rises by 30.6% and is
+higher in all three seeds. At ν = 0.001, alpha 10 lowers mean solution error by
+7.0% against constant diffusion but remains close to ordinary PACMANN, with
+41.09% ± 16.22% error. Mean residual RMS changes by only -0.13%. These outcomes
+do not demonstrate reliable recovery of the sharpest solution under this budget.
+
+The retained activity counters provide an important qualification. At ν = 0.01,
+the selected alpha 100 retained **99.987% of base noise amplitude on average**,
+with no recorded point/substep at or below half base variance. The selected
+alpha 10 settings at π/100 and 0.001 retained 99.623% and 99.586%, respectively;
+alpha 1 at 0.01/π retained 91.024%. These means cover collocation point/substep
+evaluations across all five Adam stages and three seeds, not a uniform measure
+over physical space-time. The improvements from nearly constant noise do not
+by themselves establish a benefit from substantial local suppression.
+
+Successful execution does not imply an accurate solution. At ν = 0.01/π,
+alpha 100, seed 3000 reached **69.8004% solution error** and residual RMS 4.69545;
+its diagnostics show a displaced front. This outcome remains in the aggregate,
+with no rerun or exclusion. Large errors at ν = 0.001 are likewise retained.
+
+All 60 adaptive diffusion runs record source revision `4b64662` and used an
+RTX 5090, with up to 15 concurrent workers; archived controls used an RTX 5070.
+The [campaign protocol](../output/burgers/nu_0p0031830989/alpha_0p1/README.md#execution-conditions)
+records the differing execution conditions. Wall times do not isolate adaptation
+cost. The comparisons are three-seed development selections using historical
+controls, not fresh-seed evidence of superiority. A benefit from spatial
+localization also remains confounded with reducing total injected noise.
+The sweep supports candidate selection but does not yet establish a reliable
+adaptive diffusion advantage. Full per-seed outcomes and candidate aggregates
+are in the linked campaign READMEs; configurations and numerical artifacts remain
+the authoritative records.

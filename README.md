@@ -8,12 +8,14 @@ branches, citing the source commit, rather than merging entire workstreams.
 
 ## Current development campaign
 
-The next development phase prepares gradient-dependent attenuation of PACMANN's
-diffusion. Four finite alpha values are configured at each of the five completed
-Burgers viscosities, using paired seeds 3000–3002 and the existing selected base
-sigma. Constant diffusion is eligible to win the selection. The controller runs
-have not started; the [development protocol](docs/research_context.md#sharpness-dependent-diffusion-development)
-defines the formula, comparisons, and stopping rule.
+The adaptive diffusion development sweep completed all 60 planned runs: four
+finite alpha values at five Burgers viscosities, using paired seeds 3000–3002
+and each viscosity's selected base sigma. PACMANN with adaptive diffusion
+attenuates noise using the PINN's local spatial gradient; constant diffusion
+remains an eligible endpoint. The [development protocol](docs/research_context.md#adaptive-diffusion-development)
+defines the method and selection rule. The [results](docs/results.md#adaptive-diffusion-development)
+report the selected settings, seed variability, and solution/residual tradeoffs.
+These are development selections; fresh-seed evaluation has not started.
 
 The completed sigma sweeps and their artifacts remain on this branch; their
 [results](docs/results.md) include the `nu = 0.001` selection of **sigma = 1e-6**.
@@ -28,8 +30,11 @@ record the accepted controls; [results](docs/results.md) will consolidate outcom
 
 Use Python 3.12 and the existing uv-managed local `venv`; conda is unnecessary.
 The locked stack includes DeepXDE 1.14.0 and PyTorch 2.7.1 with CUDA 12.8
-wheels. Completed tuning used Python 3.12.12 and an NVIDIA GeForce RTX 5070
-(12 GB, driver 617.42).
+wheels. The preceding sigma sweeps used Python 3.12.12 and an NVIDIA GeForce
+RTX 5070 (12 GB, driver 617.42). Adaptive diffusion runs used Python 3.12.16
+and an RTX 5090 (32 GB, driver 595.99.02), with up to 15 concurrent workers.
+The [shared campaign protocol](output/burgers/nu_0p0031830989/alpha_0p1/README.md#execution-conditions)
+records the execution conditions and timing limitations.
 The backend is PyTorch with float64; saved metadata records the training device,
 source revision, dataset fingerprint, and dependency versions.
 
@@ -38,7 +43,7 @@ uv venv --python 3.12 venv
 VIRTUAL_ENV="$PWD/venv" uv sync --active --locked
 ```
 
-### Controller development
+### Adaptive diffusion development
 
 Select `NU_TAG` and `ACTION` in
 `scripts/run_experiments/run_burgers_alpha_tuning.py`. The available viscosity
@@ -53,17 +58,19 @@ venv/bin/python -m scripts.run_experiments.run_burgers_alpha_tuning
 
 Each viscosity has four complete `*_alpha_*.yaml` configurations under its
 `config/burgers/nu_*/` directory. They retain the selected sigma and introduce
-`alpha` and the fixed initial-gradient scale `g_base`. Outputs will follow
+`alpha` and the fixed initial-gradient scale `g_base`. Retained outputs follow
 `output/burgers/nu_*/alpha_*/pacmann_sharpness_diffusion/seed_<seed>/`.
+The saved identifier `pacmann_sharpness_diffusion` denotes PACMANN with
+adaptive diffusion; it is retained for artifact and configuration compatibility.
 The two archived controls are read from their existing `sigma_*` campaigns.
 
 After execution is separately approved, `ACTION = "run"` launches the four
 candidate batches sequentially, with three concurrent seeds per batch. It
 checks all destinations before the first launch and never reruns controls.
 `ACTION = "summarize"` reads the saved outcomes and prints the per-seed and
-aggregate comparison without training or writing files. Selection remains
-pending until all planned outcomes and diagnostics exist. No search expansion
-is automatic; campaign READMEs are maintained manually with retained outputs.
+aggregate comparison without training or writing files. Use it for the completed
+campaigns; `check` and `run` require unused destinations. No search expansion is
+automatic; campaign READMEs are maintained manually with retained outputs.
 
 ### Previous sigma sweeps
 

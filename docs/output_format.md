@@ -28,8 +28,10 @@ output/burgers/nu_<viscosity>/<campaign>/
 ```
 
 Tuning campaign folders are named `sigma_0`, `sigma_1e-5`, and so on, with zero
-denoting ordinary PACMANN. Viscosity tags use eight significant digits and `p`
-for the decimal point; `nu_0p0031830989` denotes `0.01/pi`. Archived configs and
+denoting ordinary PACMANN. Adaptive diffusion tuning uses `alpha_0p1`, `alpha_1`,
+`alpha_10`, and `alpha_100`, reusing the archived sigma controls. Viscosity tags
+use eight significant digits and `p` for the decimal point; `nu_0p0031830989`
+denotes `0.01/pi`. Archived configs and
 logs retain their original campaign labels and paths after directory moves.
 Summary comparisons disregard only the campaign label, preserving checks on all
 scientific settings.
@@ -104,7 +106,9 @@ noise component per movement event, before boundary replacement; it is not a
 physical PDE diffusion coefficient. Ordinary `pacmann_adam` is the sigma-zero
 baseline and has no `sigma` field.
 
-For `pacmann_sharpness_diffusion`, `sigma` is the base amplitude and the saved
+**PACMANN with adaptive diffusion** uses the saved method identifier
+`pacmann_sharpness_diffusion`; this identifier and existing paths are retained
+for provenance. Here `sigma` is the base amplitude and the saved
 settings additionally contain `alpha` and `g_base`. The local noise-amplitude
 multiplier is `1 / sqrt(1 + (abs(du/dx) / (alpha * g_base))**2)`, evaluated from
 the current PINN before each coordinate substep. It multiplies the Gaussian
