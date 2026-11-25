@@ -101,6 +101,10 @@ def build_model(
         """Return the gradient of squared residual with respect to coordinates."""
         return dde.grad.jacobian(pde(x, y) ** 2, x, i=0)
 
+    def du_dx_operator(inputs, outputs):
+        """Return the spatial derivative of the Burgers velocity field."""
+        return dde.grad.jacobian(outputs, inputs, i=0, j=0)
+
     # Keep the upstream soft initial and boundary constraint losses.
     bc = dde.icbc.DirichletBC(domain, lambda x: 0, lambda _, boundary: boundary)
     ic = dde.icbc.IC(
@@ -122,4 +126,4 @@ def build_model(
     )
     net = FNN(network_settings["layers"], "tanh", "Glorot normal")
     model = dde.Model(data, net)
-    return model, residual_gradient
+    return model, residual_gradient, du_dx_operator

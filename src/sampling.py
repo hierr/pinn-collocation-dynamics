@@ -287,3 +287,203 @@ class PacmannDiffusion(dde.callbacks.Callback):
         if not np.array_equal(data.train_x_bc, constraints):
             raise RuntimeError("Constraint coordinates changed during movement")
         self.events += 1
+
+
+        
+class PacmannAdaptDiffusion(dde.callbacks.Callback):
+    """Add velocity-gradient-dependent Gaussian diffusion to PACMANN."""
+
+    def __init__(
+        self,
+        *,
+        interior_points: int,
+        residual_gradient,
+        du_dx_operator,
+        period: int,
+        coordinate_steps: int,
+        step_size: float,
+        betas,
+        epsilon: float,
+        sigma_0: float,
+        sc: float,
+        domain_widths,
+        seed: int,
+    ):
+        """Initialize PACMANN with local gradient-dependent diffusion."""
+        super().__init__()
+
+        widths = np.asarray(domain_widths, dtype=float)
+
+        # Validate diffusion and normalization parameters
+        if not np.isfinite(sigma_0) or sigma_0 < 0:
+            raise ValueError("sigma_0 must be finite and nonnegative")
+
+        if not np.isfinite(sc) or sc <= 0:
+            raise ValueError("sc must be finite and positive")
+
+        if (
+            widths.shape != (2,)
+            or not np.isfinite(widths).all()
+            or (widths <= 0).any()
+        ):
+            raise ValueError(
+                "Domain widths must be two positive finite values"
+            )
+
+        if type(coordinate_steps) is not int or coordinate_steps <= 0:
+            raise ValueError(
+                "Coordinate steps must be a positive integer"
+            )
+
+        self.interior_count = interior_points
+        self.residual_gradient = residual_gradient
+        self.du_dx_operator = du_dx_operator
+
+        self.period = period
+        self.coordinate_steps = coordinate_steps
+        self.step_size = step_size
+
+        self.beta1, self.beta2 = betas
+        self.epsilon = epsilon
+
+        # Gradient-dependent diffusion parameters
+        self.sigma_0 = sigma_0
+        self.sc = sc
+        self.Lx = widths[0]
+        self.U0 = 1.0
+
+        self.widths = widths
+
+        self.rng = np.random.default_rng(
+            np.random.SeedSequence([seed, 1])
+        )
+
+        self.adam_steps = 0
+        self.events = 0
+
+    def on_epoch_end(self):
+        """Apply gradient-dependent noisy coordinate ascent."""
+
+        model = self.model
+
+        if model is None:
+            raise RuntimeError(
+                "Callback is not attached to a model"
+            )
+
+        if model.opt_name != "adam":
+            return
+
+        self.adam_steps += 1
+
+        if self.adam_steps % self.period:
+            return
+
+        data = model.data
+
+        points = interior_points(
+            data,
+            self.interior_count
+        )
+
+        constraints = data.train_x_bc.copy()
+
+        # Fresh coordinate-Adam moments for each movement event
+        first = np.zeros_like(points)
+        second = np.zeros_like(points)
+
+        for step in range(self.coordinate_steps):
+
+            # Calculate PDE residual gradient
+            residual_gradient = model.predict(
+                points,
+                operator=self.residual_gradient
+            )
+
+            if not np.isfinite(residual_gradient).all():
+                raise FloatingPointError(
+                    "Non-finite coordinate gradient"
+                )
+
+            # Coordinate ascent using Adam
+            first = (
+                self.beta1 * first
+                + (1 - self.beta1) * residual_gradient
+            )
+
+            second = (
+                self.beta2 * second
+                + (1 - self.beta2) * residual_gradient**2
+            )
+
+            corrected_first = (
+                first / (1 - self.beta1 ** (step + 1))
+            )
+
+            corrected_second = (
+                second / (1 - self.beta2 ** (step + 1))
+            )
+
+            points += (
+                self.step_size
+                * corrected_first
+                / (np.sqrt(corrected_second) + self.epsilon)
+            )
+
+            # Calculate local velocity gradient
+            if self.sigma_0 > 0:
+
+                du_dx = model.predict(
+                    points,
+                    operator=self.du_dx_operator
+                )
+
+                if not np.isfinite(du_dx).all():
+                    raise FloatingPointError(
+                        "Non-finite velocity gradient"
+                    )
+
+            
+                # Dimensionless local velocity-gradient indicator
+                sk = (self.Lx / self.U0) * np.abs(du_dx.reshape(-1))
+                
+                # Local adaptive diffusion coefficient
+                sigma_local = self.sigma_0 / np.sqrt(
+                    1.0 + (sk / self.sc)**2
+                )
+
+                # Domain-normalized Gaussian noise
+                noise = (
+                    sigma_local[:, None]
+                    * self.widths[None, :]
+                    / np.sqrt(self.coordinate_steps)
+                    * self.rng.standard_normal(points.shape)
+                )
+
+                points += noise
+
+        # Replace points that escaped the domain
+        inside = np.logical_and(
+            data.geom.geometry.inside(points[:, 0]),
+            data.geom.timedomain.inside(points[:, 1]),
+        )
+
+        points[~inside] = data.geom.random_points(
+            int((~inside).sum()),
+            random="pseudo"
+        )
+
+        # Update interior anchors
+        data.replace_with_anchors(points)
+
+        # Ensure boundary-condition coordinates remain unchanged
+        if not np.array_equal(
+            data.train_x_bc,
+            constraints
+        ):
+            raise RuntimeError(
+                "Constraint coordinates changed during movement"
+            )
+
+        self.events += 1
+

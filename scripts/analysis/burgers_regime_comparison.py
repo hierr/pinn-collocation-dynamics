@@ -23,15 +23,15 @@ SOURCE_REVISION = "456207722c67ce4b11856efc3f4ace6f22f0c3e5"
 SEEDS = range(4000, 4010)
 # Peak gradients and times use the same native-grid reference characterization.
 CASES = [
-    ("output/burgers/burgers_nu_0p1_10seed", "0.1", 0.1, 4.211433, 0.240),
-    (
-        "output/burgers/burgers_nu_0p031415927_10seed",
-        "π/100",
-        np.pi / 100,
-        11.872671,
-        0.515,
-    ),
-    ("output/burgers/burgers_nu_0p01_10seed", "0.01", 0.01, 44.565582, 0.540),
+    # ("output/burgers/burgers_nu_0p1_10seed", "0.1", 0.1, 4.211433, 0.240),
+    # (
+    #     "output/burgers/burgers_nu_0p031415927_10seed",
+    #     "π/100",
+    #     np.pi / 100,
+    #     11.872671,
+    #     0.515,
+    # ),
+    # ("output/burgers/burgers_nu_0p01_10seed", "0.01", 0.01, 44.565582, 0.540),
     (
         "output/burgers/burgers_nu_0p0031830989_10seed",
         "0.01/π",
@@ -39,40 +39,45 @@ CASES = [
         151.932819,
         0.510,
     ),
-    (
-        "output/burgers/nu_0p001/burgers_nu_0p001_10seed",
-        "0.001",
-        0.001,
-        494.985806,
-        0.505,
-    ),
+    # (
+    #     "output/burgers/nu_0p001/burgers_nu_0p001_10seed",
+    #     "0.001",
+    #     0.001,
+    #     494.985806,
+    #     0.505,
+    # ),
 ]
 # Keep pi/100 in the complete analysis; its inclusion in the main slides is deferred.
-PRESENTATION_CASES = (0, 2, 3, 4)
+PRESENTATION_CASES = (0,)
 METHODS = [
     "fixed_hammersley",
     "random_resampling",
     "rad",
     "pacmann_adam",
     "pacmann_diffusion",
+    "pacmann_adapt_diffusion",
 ]
-LABELS = ["Hammersley", "Random", "RAD", "PACMANN", "PACMANN\n+ diffusion"]
+LABELS = ["Hammersley", "Random", "RAD", "PACMANN", "PACMANN\n+ diffusion", "PACMANN\n+ Adapt diffusion"]
 # Separate method colors from the reference figures' time and viscosity palettes.
-COLORS = ["#363b41", "#8a8f94", "#008b8b", "#b18b00", "#b5166b"]
+COLORS = ["#363b41", "#8a8f94", "#008b8b", "#b18b00", "#b5166b", "#0023F5"]
 METRICS = [
     ("solution_l2_percent", "Solution relative L2 (%)"),
     ("residual_rms", "PDE residual RMS"),
 ]
 
 
+# def read_snapshot(path):
+#     """Read an artifact from the accepted Git snapshot without changing checkout files."""
+#     return subprocess.run(
+#         ["git", "show", f"{SOURCE_REVISION}:{path}"],
+#         cwd=ROOT,
+#         check=True,
+#         capture_output=True,
+#     ).stdout
+
 def read_snapshot(path):
-    """Read an artifact from the accepted Git snapshot without changing checkout files."""
-    return subprocess.run(
-        ["git", "show", f"{SOURCE_REVISION}:{path}"],
-        cwd=ROOT,
-        check=True,
-        capture_output=True,
-    ).stdout
+    """Read an artifact from the current results directory."""
+    return (ROOT / path).read_bytes()
 
 
 def prediction_errors(arrays):
@@ -131,82 +136,207 @@ def write_csv(name, rows):
         writer.writerows(rows)
 
 
+
 def main():
-    """Read all 250 completed runs and save full and presentation comparisons."""
+    """Read all completed runs and save full and presentation comparisons."""
     OUT.mkdir(parents=True, exist_ok=True)
     FIGURES.mkdir(parents=True, exist_ok=True)
-    errors, temporal, sigmas = {}, {}, []
+
+    errors, temporal = {}, {}
+    diffusion_parameters = {}
+
     final_rows, temporal_rows, summary_rows = [], [], []
+
+    SHARED_CONFIG_KEYS = (
+        "problem",
+        "evaluation",
+        "network",
+        "training",
+    )
 
     # Recompute solution errors from final predictions; retain archived residual scores.
     for case_index, (campaign, _, nu, gradient, _) in enumerate(CASES):
+
+        # Load the shared reference configuration.
         first_run = f"{campaign}/{METHODS[0]}/seed_{SEEDS[0]}"
-        common = yaml.safe_load(read_snapshot(f"{first_run}/config.yaml"))
-        sigmas.append(common["methods"]["pacmann_diffusion"]["sigma"])
+        common = yaml.safe_load(
+            read_snapshot(f"{first_run}/config.yaml")
+        )
+
+        # Load one reference configuration per method.
+        reference_configs = {}
+
+        for method in METHODS:
+            reference_run = f"{campaign}/{method}/seed_{SEEDS[0]}"
+            reference_configs[method] = yaml.safe_load(
+                read_snapshot(f"{reference_run}/config.yaml")
+            )
+
+        # Extract method-specific diffusion parameters.
+        diffusion_config = reference_configs["pacmann_diffusion"][
+            "methods"
+        ].get("pacmann_diffusion")
+
+        adapt_diffusion_config = reference_configs[
+            "pacmann_adapt_diffusion"
+        ]["methods"].get("pacmann_adapt_diffusion")
+
+        if diffusion_config is None:
+            raise ValueError(
+                f"Missing pacmann_diffusion configuration: {campaign}"
+            )
+
+        if adapt_diffusion_config is None:
+            raise ValueError(
+                f"Missing pacmann_adapt_diffusion configuration: {campaign}"
+            )
+
+        diffusion_parameters[case_index] = {
+            "diffusion_sigma": diffusion_config["sigma"],
+            "adapt_diffusion_sigma_0": adapt_diffusion_config["sigma_0"],
+        }
+
         shared_grid = None
+
         for method in METHODS:
             solution_errors, residual_errors, profiles = [], [], []
+
+            # Reference method-specific configuration.
+            reference_method_config = (
+                reference_configs[method]["methods"].get(method)
+            )
+
+            if reference_method_config is None:
+                raise ValueError(
+                    f"Missing configuration for method '{method}' "
+                    f"in reference run"
+                )
+
             for seed in SEEDS:
                 run = f"{campaign}/{method}/seed_{seed}"
-                config = yaml.safe_load(read_snapshot(f"{run}/config.yaml"))
+
+                config = yaml.safe_load(
+                    read_snapshot(f"{run}/config.yaml")
+                )
+
+                # 1. Validate shared scientific configuration.
+                if any(
+                    config[key] != common[key]
+                    for key in SHARED_CONFIG_KEYS
+                ):
+                    raise ValueError(
+                        f"Shared scientific configuration mismatch: {run}"
+                    )
+
+                # 2. Validate method-specific configuration.
+                current_method_config = config["methods"].get(method)
+
+                if current_method_config is None:
+                    raise ValueError(
+                        f"Missing configuration for method '{method}': {run}"
+                    )
+
+                if current_method_config != reference_method_config:
+                    raise ValueError(
+                        f"Method-specific configuration mismatch: {run}"
+                    )
+
+                # 3. Validate viscosity and run metadata.
+                if not np.isclose(
+                    config["problem"]["viscosity"],
+                    nu,
+                    rtol=1e-12,
+                    atol=0,
+                ):
+                    raise ValueError(f"Viscosity mismatch: {run}")
+
                 if (
-                    any(
-                        config[key] != common[key]
-                        for key in (
-                            "problem",
-                            "evaluation",
-                            "network",
-                            "training",
-                            "methods",
-                        )
-                    )
-                    or not np.isclose(
-                        config["problem"]["viscosity"], nu, rtol=1e-12, atol=0
-                    )
-                    or config["selected_method"] != method
+                    config["selected_method"] != method
                     or config["selected_seed"] != seed
                 ):
-                    raise ValueError(f"Scientific configuration mismatch: {run}")
-                if (
-                    json.loads(read_snapshot(f"{run}/status.json"))["status"]
-                    != "complete"
-                ):
+                    raise ValueError(f"Run metadata mismatch: {run}")
+
+                # 4. Validate run completion.
+                status = json.loads(
+                    read_snapshot(f"{run}/status.json")
+                )
+
+                if status["status"] != "complete":
                     raise ValueError(f"Incomplete planned run: {run}")
-                metrics = json.loads(read_snapshot(f"{run}/metrics.json"))
+
+                metrics = json.loads(
+                    read_snapshot(f"{run}/metrics.json")
+                )
+
+                # 5. Recompute solution errors from predictions.
                 with np.load(
-                    BytesIO(read_snapshot(f"{run}/predictions.npz")), allow_pickle=False
+                    BytesIO(read_snapshot(f"{run}/predictions.npz")),
+                    allow_pickle=False,
                 ) as arrays:
-                    times, relative, rmse, overall = prediction_errors(arrays)
+
+                    times, relative, rmse, overall = prediction_errors(
+                        arrays
+                    )
+
                     if shared_grid is None:
                         shared_grid = (
                             arrays["coordinates"].copy(),
                             arrays["reference"].copy(),
                         )
+
                     elif not (
-                        np.array_equal(shared_grid[0], arrays["coordinates"])
-                        and np.array_equal(shared_grid[1], arrays["reference"])
+                        np.array_equal(
+                            shared_grid[0], arrays["coordinates"]
+                        )
+                        and np.array_equal(
+                            shared_grid[1], arrays["reference"]
+                        )
                     ):
-                        raise ValueError(f"Evaluation grid or reference differs: {run}")
+                        raise ValueError(
+                            f"Evaluation grid or reference differs: {run}"
+                        )
+
+                # 6. Validate archived solution error.
                 if not np.isclose(
-                    overall, metrics["final_relative_l2"], rtol=1e-10, atol=1e-12
+                    overall,
+                    metrics["final_relative_l2"],
+                    rtol=1e-10,
+                    atol=1e-12,
                 ):
                     raise ValueError(
                         f"Archived solution score differs from predictions: {run}"
                     )
+
                 solution_errors.append(100 * overall)
                 residual_errors.append(metrics["final_residual_rms"])
                 profiles.append(100 * relative)
+
+                # Select the appropriate diffusion parameter for the CSV.
+                if method == "pacmann_diffusion":
+                    selected_sigma = diffusion_parameters[
+                        case_index
+                    ]["diffusion_sigma"]
+
+                elif method == "pacmann_adapt_diffusion":
+                    selected_sigma = diffusion_parameters[
+                        case_index
+                    ]["adapt_diffusion_sigma_0"]
+
+                else:
+                    selected_sigma = None
+
                 final_rows.append(
                     {
                         "nu": nu,
                         "peak_reference_gradient": gradient,
-                        "selected_diffusion_sigma": sigmas[-1],
+                        "selected_diffusion_sigma": selected_sigma,
                         "method": method,
                         "seed": seed,
                         "solution_l2_percent": 100 * overall,
                         "residual_rms": metrics["final_residual_rms"],
                     }
                 )
+
                 temporal_rows.extend(
                     {
                         "nu": nu,
@@ -216,16 +346,33 @@ def main():
                         "solution_l2_percent": value,
                         "solution_rmse": absolute,
                     }
-                    for time, value, absolute in zip(times, 100 * relative, rmse)
+                    for time, value, absolute in zip(
+                        times, 100 * relative, rmse
+                    )
                 )
-            temporal[case_index, method] = (times, np.array(profiles))
-            for (metric, _), values in zip(METRICS, (solution_errors, residual_errors)):
+
+            # 7. Store per-seed results for statistical comparisons.
+            temporal[case_index, method] = (
+                times,
+                np.array(profiles),
+            )
+
+            for (metric, _), values in zip(
+                METRICS,
+                (solution_errors, residual_errors),
+            ):
                 values = np.array(values)
-                if not np.isfinite(values).all() or np.any(values <= 0):
+
+                if (
+                    not np.isfinite(values).all()
+                    or np.any(values <= 0)
+                ):
                     raise ValueError(
                         f"Ratios and log plots require positive finite {metric}"
                     )
+
                 errors[case_index, method, metric] = values
+
                 summary_rows.append(
                     {
                         "nu": nu,
@@ -238,21 +385,37 @@ def main():
                         "maximum": np.max(values),
                     }
                 )
-        print(f"Verified all 50 final solution scores at ν={nu:.10g}", flush=True)
+
+        print(
+            f"Verified all {len(METHODS) * len(SEEDS)} "
+            f"final solution scores at ν={nu:.10g}",
+            flush=True,
+        )
 
     # Preserve seed pairing within each viscosity; do not pool different regimes.
     contrasts = [
-        (method, baseline) for baseline in METHODS[:2] for method in METHODS[2:]
+        (method, baseline)
+        for baseline in METHODS[:2]
+        for method in METHODS[2:]
     ]
-    contrasts += [(METHODS[1], METHODS[0]), (METHODS[4], METHODS[3])]
+
+    contrasts += [
+        (METHODS[1], METHODS[0]),
+        (METHODS[4], METHODS[3]),
+    ]
+
     paired_rows, ratio_rows = [], []
+
     for case_index, (_, _, nu, gradient, _) in enumerate(CASES):
+
         for method, baseline in contrasts:
+
             for metric, _ in METRICS:
                 first, second = (
                     errors[case_index, method, metric],
                     errors[case_index, baseline, metric],
                 )
+
                 paired_rows.append(
                     dict(
                         nu=nu,
@@ -262,6 +425,7 @@ def main():
                         **paired_statistics(first, second),
                     )
                 )
+
                 ratio_rows.extend(
                     {
                         "nu": nu,
@@ -274,21 +438,49 @@ def main():
                     }
                     for seed, ratio in zip(SEEDS, first / second)
                 )
+
+    # 8. Save derived tables.
     write_csv("final_metrics.csv", final_rows)
     write_csv("final_summary.csv", summary_rows)
     write_csv("paired_summary.csv", paired_rows)
     write_csv("paired_seed_ratios.csv", ratio_rows)
     write_csv("physical_time_errors.csv", temporal_rows)
 
-    plot_comparisons(errors, temporal, sigmas, range(len(CASES)), FIGURES)
-    plot_comparisons(errors, temporal, sigmas, PRESENTATION_CASES, PRESENTATION_FIGURES)
+    # 9. Generate figures.
+    plot_comparisons(
+        errors,
+        temporal,
+        diffusion_parameters,
+        range(len(CASES)),
+        FIGURES,
+    )
+
+    plot_comparisons(
+        errors,
+        temporal,
+        diffusion_parameters,
+        PRESENTATION_CASES,
+        PRESENTATION_FIGURES,
+    )
+
     print(f"Saved five CSV tables in {OUT.relative_to(ROOT)}")
 
 
-def plot_comparisons(errors, temporal, sigmas, case_indices, destination):
+
+def plot_comparisons(
+    errors,
+    temporal,
+    diffusion_parameters,
+    case_indices,
+    destination,
+):
     """Save the four comparison figures for an explicit selection of viscosity cases."""
     destination.mkdir(parents=True, exist_ok=True)
-    # Match figure widths and header spacing so titles keep the same displayed size.
+
+    case_indices = list(case_indices)
+    if not case_indices:
+        raise ValueError("At least one viscosity case must be selected.")
+
     plt.rcParams.update(
         {
             "font.size": 10,
@@ -298,30 +490,58 @@ def plot_comparisons(errors, temporal, sigmas, case_indices, destination):
             "axes.spines.right": False,
         }
     )
+
     jitter = np.linspace(-0.14, 0.14, len(SEEDS))
+
     method_handles = [
         Line2D([], [], color=color, label=label.replace("\n", " "))
         for color, label in zip(COLORS, LABELS)
     ]
+
     selected_cases = [CASES[index] for index in case_indices]
+
     case_labels = [
         f"ν = {label}\nG = {gradient:.2f}"
         for _, label, _, gradient, _ in selected_cases
     ]
 
-    # Show every final outcome, including tails, with full-seed mean and median.
+    n_cases = len(case_indices)
+
+    # ---------------------------------------------------------
+    # 1. Final-model accuracy
+    # ---------------------------------------------------------
     fig, axes = plt.subplots(
-        2, len(case_indices), figsize=(14, 8), sharey="row", squeeze=False
+        2,
+        n_cases,
+        figsize=(max(8, 5 * n_cases), 8),
+        sharey="row",
+        squeeze=False,
     )
+
     for row, (metric, ylabel) in enumerate(METRICS):
         for column, case_index in enumerate(case_indices):
             ax = axes[row, column]
+
             for index, (method, color) in enumerate(zip(METHODS, COLORS)):
                 values = errors[case_index, method, metric]
-                ax.scatter(index + jitter, values, color=color, s=19, alpha=0.85)
+
                 ax.scatter(
-                    index, np.mean(values), color="black", marker="D", s=28, zorder=4
+                    index + jitter,
+                    values,
+                    color=color,
+                    s=19,
+                    alpha=0.85,
                 )
+
+                ax.scatter(
+                    index,
+                    np.mean(values),
+                    color="black",
+                    marker="D",
+                    s=28,
+                    zorder=4,
+                )
+
                 ax.hlines(
                     np.median(values),
                     index - 0.23,
@@ -329,18 +549,28 @@ def plot_comparisons(errors, temporal, sigmas, case_indices, destination):
                     color="black",
                     linewidth=1.8,
                 )
-            ax.set(yscale="log", xticks=range(5), xticklabels=LABELS)
+
+            ax.set(
+                yscale="log",
+                xticks=range(len(METHODS)),
+                xticklabels=LABELS,
+            )
+
             ax.tick_params(axis="x", labelsize=9, labelrotation=35)
             plt.setp(ax.get_xticklabels(), ha="right")
             ax.grid(axis="y", alpha=0.2)
+
             if row == 0:
                 ax.set_title(case_labels[column])
+
             if column == 0:
                 ax.set_ylabel(ylabel)
+
     fig.suptitle(
         "Final-model accuracy",
         y=1 - 0.12 / fig.get_figheight(),
     )
+
     fig.text(
         0.5,
         1 - 0.34 / fig.get_figheight(),
@@ -351,6 +581,7 @@ def plot_comparisons(errors, temporal, sigmas, case_indices, destination):
         weight="normal",
         color="0.35",
     )
+
     fig.legend(
         handles=[
             Line2D(
@@ -361,31 +592,53 @@ def plot_comparisons(errors, temporal, sigmas, case_indices, destination):
                 linestyle="none",
                 label="Arithmetic mean (all seeds)",
             ),
-            Line2D([], [], color="black", linewidth=1.8, label="Median (all seeds)"),
+            Line2D(
+                [],
+                [],
+                color="black",
+                linewidth=1.8,
+                label="Median (all seeds)",
+            ),
         ],
         loc="lower center",
         ncol=2,
         frameon=False,
     )
+
     fig.tight_layout(rect=(0, 0.07, 1, 0.94))
     fig.savefig(destination / "final_errors.png", dpi=200)
     plt.close(fig)
 
-    # Compare relative benefits to both sampling baselines using the same seeds.
-    fig, axes = plt.subplots(2, 2, figsize=(14, 8), sharex=True, sharey="row")
+    # ---------------------------------------------------------
+    # 2. Paired ratios against sampling baselines
+    # ---------------------------------------------------------
+    fig, axes = plt.subplots(
+        2,
+        2,
+        figsize=(14, 8),
+        sharex=True,
+        sharey="row",
+        squeeze=False,
+    )
+
     for row, (metric, _) in enumerate(METRICS):
         for column, baseline in enumerate(METHODS[:2]):
             ax = axes[row, column]
+
             for index, method in enumerate(METHODS[1:], start=1):
                 if method == baseline:
                     continue
+
                 medians = []
+
                 for position_index, case_index in enumerate(case_indices):
                     ratio = (
                         errors[case_index, method, metric]
                         / errors[case_index, baseline, metric]
                     )
+
                     position = position_index + (index - 2.5) * 0.13
+
                     ax.scatter(
                         position + jitter * 0.18,
                         ratio,
@@ -393,29 +646,47 @@ def plot_comparisons(errors, temporal, sigmas, case_indices, destination):
                         s=16,
                         alpha=0.65,
                     )
+
                     medians.append(np.median(ratio))
+
                 ax.plot(
-                    np.arange(len(case_indices)) + (index - 2.5) * 0.13,
+                    np.arange(n_cases) + (index - 2.5) * 0.13,
                     medians,
                     color=COLORS[index],
                     marker="o",
                     linewidth=1.5,
                 )
-            ax.axhline(1, color="black", linestyle="--", linewidth=1)
-            ax.set(
-                yscale="log", xticks=range(len(case_indices)), xticklabels=case_labels
+
+            ax.axhline(
+                1,
+                color="black",
+                linestyle="--",
+                linewidth=1,
             )
+
+            ax.set(
+                yscale="log",
+                xticks=range(n_cases),
+                xticklabels=case_labels,
+            )
+
             ax.grid(axis="y", alpha=0.2)
+
             if row == 0:
                 ax.set_title(f"Relative to {LABELS[column]}")
+
             if column == 0:
                 ax.set_ylabel(
-                    "Solution-error ratio" if row == 0 else "Residual-RMS ratio"
+                    "Solution-error ratio"
+                    if row == 0
+                    else "Residual-RMS ratio"
                 )
+
     fig.suptitle(
         "Paired final-error ratios across reference regimes",
         y=1 - 0.12 / fig.get_figheight(),
     )
+
     fig.text(
         0.5,
         1 - 0.34 / fig.get_figheight(),
@@ -426,20 +697,42 @@ def plot_comparisons(errors, temporal, sigmas, case_indices, destination):
         weight="normal",
         color="0.35",
     )
-    fig.legend(handles=method_handles[1:], loc="lower center", ncol=4, frameon=False)
+
+    fig.legend(
+        handles=method_handles[1:],
+        loc="lower center",
+        ncol=4,
+        frameon=False,
+    )
+
     fig.tight_layout(rect=(0, 0.07, 1, 0.92))
     fig.savefig(destination / "baseline_ratios.png", dpi=200)
     plt.close(fig)
 
-    # Isolate diffusion's incremental effect under the frozen per-viscosity tuning policy.
-    fig, axes = plt.subplots(1, 2, figsize=(14, 4.6))
-    for ax, (metric, ylabel) in zip(axes, METRICS):
+    # ---------------------------------------------------------
+    # 3. Incremental effect of diffusion
+    # ---------------------------------------------------------
+    fig, axes = plt.subplots(
+        1,
+        2,
+        figsize=(max(10, 5 * n_cases), 4.6),
+        squeeze=False,
+    )
+
+    for ax, (metric, ylabel) in zip(axes[0], METRICS):
         for position_index, case_index in enumerate(case_indices):
             ratio = (
                 errors[case_index, METHODS[4], metric]
                 / errors[case_index, METHODS[3], metric]
             )
-            ax.scatter(position_index + jitter, ratio, color=COLORS[4], s=25)
+
+            ax.scatter(
+                position_index + jitter,
+                ratio,
+                color=COLORS[4],
+                s=25,
+            )
+
             ax.hlines(
                 np.median(ratio),
                 position_index - 0.23,
@@ -447,19 +740,33 @@ def plot_comparisons(errors, temporal, sigmas, case_indices, destination):
                 color="black",
                 linewidth=1.8,
             )
-        ax.axhline(1, color="black", linestyle="--", linewidth=1)
+
+        ax.axhline(
+            1,
+            color="black",
+            linestyle="--",
+            linewidth=1,
+        )
+
         ax.set(
             yscale="log",
             title=ylabel,
             ylabel="Diffusion / PACMANN error ratio",
-            xticks=range(len(case_indices)),
+            xticks=range(n_cases),
             xticklabels=[
-                f"ν = {CASES[index][1]}\nσ = {sigmas[index]:g}"
+                f"ν = {CASES[index][1]}\n"
+                f"σ = {diffusion_parameters[index]['diffusion_sigma']:g}"
                 for index in case_indices
             ],
         )
+
         ax.grid(axis="y", alpha=0.2)
-    fig.suptitle("Paired diffusion effect", y=1 - 0.12 / fig.get_figheight())
+
+    fig.suptitle(
+        "Paired diffusion effect",
+        y=1 - 0.12 / fig.get_figheight(),
+    )
+
     fig.text(
         0.5,
         1 - 0.34 / fig.get_figheight(),
@@ -470,39 +777,67 @@ def plot_comparisons(errors, temporal, sigmas, case_indices, destination):
         weight="normal",
         color="0.35",
     )
+
     fig.tight_layout(rect=(0, 0, 1, 0.90))
     fig.savefig(destination / "diffusion_ratios.png", dpi=200)
     plt.close(fig)
 
-    # Physical time refers to the solution coordinate, not optimizer or elapsed time.
+    # ---------------------------------------------------------
+    # 4. Solution error over physical time
+    # ---------------------------------------------------------
     fig, axes = plt.subplots(
         2,
-        len(case_indices),
-        figsize=(14, 7.8),
+        n_cases,
+        figsize=(max(8, 5 * n_cases), 7.8),
         sharex=True,
         sharey="row",
         squeeze=False,
     )
+
     for column, case_index in enumerate(case_indices):
         case = CASES[case_index]
+
         for method, color in zip(METHODS, COLORS):
             times, profiles = temporal[case_index, method]
-            axes[0, column].plot(times, np.mean(profiles, axis=0), color=color)
-            axes[1, column].plot(times, np.median(profiles, axis=0), color=color)
+
+            axes[0, column].plot(
+                times,
+                np.mean(profiles, axis=0),
+                color=color,
+            )
+
+            axes[1, column].plot(
+                times,
+                np.median(profiles, axis=0),
+                color=color,
+            )
+
         for row in range(2):
             axes[row, column].axvline(
-                case[4], color="black", linestyle=":", linewidth=1
+                case[4],
+                color="black",
+                linestyle=":",
+                linewidth=1,
             )
-            axes[row, column].set(yscale="log", xlim=(0, 0.99))
+
+            axes[row, column].set(
+                yscale="log",
+                xlim=(0, 0.99),
+            )
+
             axes[row, column].grid(alpha=0.2)
+
         axes[0, column].set_title(case_labels[column])
         axes[1, column].set_xlabel("Physical time t")
+
     axes[0, 0].set_ylabel("Mean solution relative L2 (%)")
     axes[1, 0].set_ylabel("Median solution relative L2 (%)")
+
     fig.suptitle(
         "Final-model solution error over physical time",
         y=1 - 0.12 / fig.get_figheight(),
     )
+
     fig.legend(
         handles=method_handles
         + [
@@ -518,10 +853,17 @@ def plot_comparisons(errors, temporal, sigmas, case_indices, destination):
         ncol=3,
         frameon=False,
     )
+
     fig.tight_layout(rect=(0, 0.10, 1, 0.94))
-    fig.savefig(destination / "solution_error_over_time.png", dpi=200)
+    fig.savefig(
+        destination / "solution_error_over_time.png",
+        dpi=200,
+    )
     plt.close(fig)
-    print(f"Saved four figures in {destination.relative_to(ROOT)}")
+
+    print(
+        f"Saved four figures in {destination.relative_to(ROOT)}"
+    )
 
 
 if __name__ == "__main__":

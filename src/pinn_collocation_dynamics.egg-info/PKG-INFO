@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: pinn-collocation-dynamics
+Version: 0.1.0
+Summary: Controlled Burgers collocation experiments with DeepXDE
+Requires-Python: <3.13,>=3.12
+Requires-Dist: deepxde==1.14.0
+Requires-Dist: numpy==2.3.1
+Requires-Dist: scipy==1.16.0
+Requires-Dist: matplotlib==3.10.3
+Requires-Dist: torch==2.7.1
+Requires-Dist: PyYAML==6.0.2

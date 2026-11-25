@@ -217,7 +217,7 @@ def analyze_run(run: Path):
         if fingerprint != metadata["dataset_sha256"]:
             raise ValueError("Reference dataset differs from the training fingerprint")
         dde_config.set_default_float("float64")
-        model, _ = build_model(config["problem"], config["network"])
+        model, _, _ = build_model(config["problem"], config["network"])
         model.compile("adam", lr=config["training"]["learning_rate"])
         model.net.load_state_dict(
             torch.load(

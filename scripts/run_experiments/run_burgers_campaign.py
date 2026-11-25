@@ -10,13 +10,9 @@ from scripts.post_processing.analyze_burgers import analyze_run
 from src.train import ROOT, run_training
 
 # Select the batch order here; the full scientific protocol remains in YAML.
-CONFIG_PATH = ROOT / "config/burgers_nu_0p001_10seed.yaml"
+CONFIG_PATH = ROOT / "config/burgers_nu_0p0031830989_10seed_adapt.yaml"
 METHODS = [
-    "fixed_hammersley",
-    "random_resampling",
-    "rad",
-    "pacmann_adam",
-    "pacmann_diffusion",
+    "pacmann_adapt_diffusion",
 ]
 
 
@@ -49,6 +45,7 @@ def check_campaign(config: dict, method: str):
                 "rad",
                 "pacmann_adam",
                 "pacmann_diffusion",
+                "pacmann_adapt_diffusion",
             )
             for configured_method in methods
         )

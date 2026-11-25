@@ -22,6 +22,7 @@ from src.sampling import (
     PacmannAdam,
     PacmannDiffusion,
     RandomResampling,
+    PacmannAdaptDiffusion,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -48,9 +49,9 @@ def run_training(config: dict, method: str, seed: int):
         # Initialize reproducibility before constructing points and network weights.
         dde_config.set_random_seed(seed)
         dde_config.set_default_float("float64")
-        model, residual_gradient = build_model(
-            problem_settings=problem_settings,
-            network_settings=network_settings,
+        model, residual_gradient, du_dx_operator = build_model(
+            problem_settings,
+            network_settings,
         )
 
         # Select the collocation method independently of the network optimizer.
@@ -96,6 +97,24 @@ def run_training(config: dict, method: str, seed: int):
                 ],
                 seed=seed,
             )
+        elif method == "pacmann_adapt_diffusion":
+            sampler = PacmannAdaptDiffusion(
+                interior_points=interior_count,
+                residual_gradient=residual_gradient,
+                du_dx_operator=du_dx_operator,
+                period=sampling_settings["period"],
+                coordinate_steps=sampling_settings["steps"],
+                step_size=sampling_settings["step_size"],
+                betas=sampling_settings["betas"],
+                epsilon=sampling_settings["epsilon"],
+                sigma_0=sampling_settings["sigma_0"],
+                sc=sampling_settings["sc"],
+                domain_widths=[
+                    problem_settings["x_bounds"][1] - problem_settings["x_bounds"][0],
+                    problem_settings["t_bounds"][1] - problem_settings["t_bounds"][0],
+                ],
+                seed=seed,
+)
         constraints = model.data.train_x_bc.copy()
         initial_pde_points = model.data.train_x_all.copy()
         save_points(model.data, run_dir, "initial", interior_count)
